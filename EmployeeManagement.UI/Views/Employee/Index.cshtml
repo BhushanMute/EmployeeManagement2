@@ -1,0 +1,52 @@
+﻿@using EmployeeManagement.UI.ViewModels
+@model List<EmployeeViewModel>
+
+<div class="container mt-4">
+
+<a href="/Employee/Create" class="btn btn-success">
+    Create Employee
+</a>
+    <!-- Employee Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th style="width:5%">Id</th>
+                    <th style="width:20%">Name</th>
+                    <th style="width:25%">Email</th>
+                    <th style="width:20%">Department</th>
+                    <th style="width:15%">Salary</th>
+                    <th style="width:15%">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var emp in Model)
+                    {
+                        <tr>
+                            <td class="text-center">@emp.Id</td>
+                            <td>@emp.Name</td>
+                            <td>@emp.Email</td>
+                            <td>@emp.DepartmentName</td>
+                            <td>@emp.Salary.ToString("C")</td>
+                            <td class="text-center">
+                                <a href="/Employee/Edit/@emp.Id" class="btn btn-sm btn-primary me-1">Edit</a>
+                                <a href="/Employee/Delete/@emp.Id" class="btn btn-sm btn-danger">Delete</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            No employees found
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
