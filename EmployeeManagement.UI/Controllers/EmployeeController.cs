@@ -3,6 +3,7 @@ using EmployeeManagement.UI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
+using System.Net;
 using System.Net.Http.Headers;
 
 namespace EmployeeManagement.UI.Controllers
@@ -106,6 +107,8 @@ namespace EmployeeManagement.UI.Controllers
                 return View(model);
             }
         }
+
+         
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)

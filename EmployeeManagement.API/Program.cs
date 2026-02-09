@@ -1,4 +1,6 @@
-﻿using EmployeeManagement.API.Repositories;
+﻿using EmployeeManagement.API.Common;
+using EmployeeManagement.API.Repositories;
+using EmployeeManagement.API.services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -7,14 +9,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
- 
+builder.Services.AddScoped<DbHelper>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
-
 builder.Services.AddScoped<IUserRepository, UserRepository>();
- 
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -34,11 +35,11 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(key)
     };
 });
-builder.Services.AddHttpClient("ApiClient", client =>
+ builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri("http://localhost:5089/");
 });
- 
+
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -73,9 +74,11 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
-
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 app.UseAuthentication();

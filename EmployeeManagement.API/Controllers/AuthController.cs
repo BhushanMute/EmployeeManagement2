@@ -1,5 +1,6 @@
 ﻿using EmployeeManagement.API.Models;
 using EmployeeManagement.API.Repositories;
+using EmployeeManagement.API.services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -15,55 +16,53 @@ namespace EmployeeManagement.API.Controllers
     {
         private readonly IUserRepository _repo;
         private readonly IConfiguration _config;
+        private readonly IJwtTokenService _jwt;
 
-        public AuthController(IUserRepository repo, IConfiguration config)
+        public AuthController(IUserRepository repo, IConfiguration config, IJwtTokenService jwt)
         {
             _repo = repo;
             _config = config;
+             _jwt = jwt;
         }
 
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginModel model)
         {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid login request");
+
             try
             {
-                var (user, message) = await _repo.LoginAsync(model.Username, model.Password);
+                //var passwordhash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+                var (user, roles, message) =
+                await _repo.LoginAsync(model.Username, model.Password);
 
                 if (user == null)
-                    return Ok(new AuthResponse { Token = null, Message = message });
+                    return Unauthorized(new AuthResponse
+                    {
+                        Token = null,
+                        Message = message
+                    });
 
-                var jwtKey = _config["Jwt:Key"];
-                if (string.IsNullOrEmpty(jwtKey))
-                    return StatusCode(500, "JWT Key missing");
-
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.Name, user.Username)
-                };
-
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-                var token = new JwtSecurityToken(
-                    issuer: _config["Jwt:Issuer"],
-                    audience: _config["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"])),
-                    signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
-                );
+                // ✅ CALL JWT SERVICE HERE
+                var token = _jwt.GenerateToken(user, roles);
 
                 return Ok(new AuthResponse
                 {
-                    Token = new JwtSecurityTokenHandler().WriteToken(token),
+                    Token = token,
                     Message = "Login successful"
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Log exception if you have a logger
-                return StatusCode(500, new { success = false, message = "Unexpected error: " + ex.Message });
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Internal server error"
+                });
             }
         }
-
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest model)
         {

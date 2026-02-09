@@ -60,4 +60,19 @@ public class EmployeeController : ControllerBase
         await _repo.Delete(id);
         return Ok();
     }
+
+    //[Authorize(Roles = "Admin")]
+    //[HttpGet("admin-data")]
+    //public IActionResult GetAdminData()
+    //{
+    //    return Ok("Admin only data");
+    //}
+
+    ////Admin only
+    //[Authorize(Roles = "Admin")]
+    //[HttpPost]
+    //public IActionResult CreateEmployee()
+    //{
+    //    return Ok("Employee created");
+    //}
 }

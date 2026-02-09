@@ -19,8 +19,7 @@ namespace EmployeeManagement.API.Repositories
         {
             return new SqlConnection(_connectionString);
         }
-
-        // GET ALL EMPLOYEES
+ 
         public async Task<List<Employee>> GetAll()
         {
             var employees = new List<Employee>();
@@ -48,7 +47,7 @@ namespace EmployeeManagement.API.Repositories
             return employees;
         }
 
-        // GET EMPLOYEE BY ID
+        
         public async Task<Employee?> GetById(int id)
         {
             using var conn = GetConnection();
@@ -72,8 +71,7 @@ namespace EmployeeManagement.API.Repositories
                 Salary = reader.GetDecimal(reader.GetOrdinal("Salary"))
             };
         }
-
-        // ADD EMPLOYEE
+            
         public async Task Add(Employee emp)
         {
             using var conn = GetConnection();
@@ -90,7 +88,7 @@ namespace EmployeeManagement.API.Repositories
             await cmd.ExecuteNonQueryAsync();
         }
 
-        // UPDATE EMPLOYEE
+        
         public async Task Update(Employee emp)
         {
             using var conn = GetConnection();
@@ -107,8 +105,7 @@ namespace EmployeeManagement.API.Repositories
 
             await cmd.ExecuteNonQueryAsync();
         }
-
-        // DELETE EMPLOYEE
+ 
         public async Task Delete(int id)
         {
             using var conn = GetConnection();
