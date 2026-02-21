@@ -19,35 +19,62 @@ namespace EmployeeManagement.API.Repositories
         {
             return new SqlConnection(_connectionString);
         }
- 
+
+        //public async Task<List<Employee>> GetAll()
+        //{
+        //    var employees = new List<Employee>();
+
+        //    using var conn = GetConnection();
+        //    await conn.OpenAsync();
+
+        //    using var cmd = new SqlCommand("sp_GetAllEmployees", conn);
+        //    cmd.CommandType = CommandType.StoredProcedure;
+
+        //    using var reader = await cmd.ExecuteReaderAsync();
+        //    while (await reader.ReadAsync())
+        //    {
+        //        employees.Add(new Employee
+        //        {
+        //            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+        //            Name = reader.GetString(reader.GetOrdinal("Name")),
+        //            Email = reader.GetString(reader.GetOrdinal("Email")),
+
+        //            DepartmentName = reader["DepartmentName"].ToString(),
+        //            Salary = reader.GetDecimal(reader.GetOrdinal("Salary"))
+        //        });
+        //    }
+
+        //    return employees;
+        //}
+
         public async Task<List<Employee>> GetAll()
         {
             var employees = new List<Employee>();
 
-            using var conn = GetConnection();
-            await conn.OpenAsync();
+            using SqlConnection con = new SqlConnection(_connectionString);
+            using SqlCommand cmd = new SqlCommand("sp_GetAllEmployees", con);
 
-            using var cmd = new SqlCommand("sp_GetAllEmployees", conn);
             cmd.CommandType = CommandType.StoredProcedure;
 
-            using var reader = await cmd.ExecuteReaderAsync();
+            await con.OpenAsync();
+            using SqlDataReader reader = await cmd.ExecuteReaderAsync();
+
             while (await reader.ReadAsync())
             {
                 employees.Add(new Employee
                 {
-                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                    Name = reader.GetString(reader.GetOrdinal("Name")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
-                    DepartmentId = reader.GetInt32(reader.GetOrdinal("DepartmentId")),
+                    Id = reader.GetInt32("Id"),
+                    Name = reader["Name"].ToString(),
+                    Email = reader["Email"].ToString(),
+                    DepartmentId = reader.GetInt32("DepartmentId"),
                     DepartmentName = reader["DepartmentName"].ToString(),
-                    Salary = reader.GetDecimal(reader.GetOrdinal("Salary"))
+                    Salary = reader.GetDecimal("Salary")
                 });
             }
 
             return employees;
         }
 
-        
         public async Task<Employee?> GetById(int id)
         {
             using var conn = GetConnection();
@@ -74,18 +101,28 @@ namespace EmployeeManagement.API.Repositories
             
         public async Task Add(Employee emp)
         {
-            using var conn = GetConnection();
-            await conn.OpenAsync();
+            try
+            {
+                using var conn = GetConnection();
+                await conn.OpenAsync();
 
-            using var cmd = new SqlCommand("sp_AddEmployee", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
+                using var cmd = new SqlCommand("sp_AddEmployee", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            cmd.Parameters.AddWithValue("@Name", emp.Name);
-            cmd.Parameters.AddWithValue("@Email", emp.Email);
-            cmd.Parameters.AddWithValue("@DepartmentId", emp.DepartmentId);
-            cmd.Parameters.AddWithValue("@Salary", emp.Salary);
+                cmd.Parameters.AddWithValue("@Name", emp.Name);
+                cmd.Parameters.AddWithValue("@Email", emp.Email);
+                cmd.Parameters.AddWithValue("@DepartmentId", emp.DepartmentId);
+                cmd.Parameters.AddWithValue("@Salary", emp.Salary);
 
-            await cmd.ExecuteNonQueryAsync();
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex) when (ex.Number == 2627)
+            {
+
+                throw new Exception("Email already exists. Please use different email.");
+
+            }
+
         }
 
         

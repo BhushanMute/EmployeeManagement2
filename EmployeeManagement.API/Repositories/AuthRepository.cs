@@ -31,5 +31,8 @@ namespace EmployeeManagement.API.Repositories
             await con.OpenAsync();
             await cmd.ExecuteNonQueryAsync();
         }
+
+        
+
     }
 }

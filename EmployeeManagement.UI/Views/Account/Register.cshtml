@@ -1,4 +1,4 @@
-﻿@model EmployeeManagement.UI.Models.LoginModel
+﻿@model EmployeeManagement.UI.Models.RegisterModel
 @{
     ViewData["Title"] = "Register";
 }
@@ -40,7 +40,11 @@
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
 
-                        
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <input asp-for="Email" type="email" class="form-control" placeholder="Enter email" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">Register</button>

@@ -1,19 +1,21 @@
-﻿@using System.Security.Claims
+﻿@using System.IdentityModel.Tokens.Jwt
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
-@using System.IdentityModel.Tokens.Jwt
 
 @{
     var token = HttpContextAccessor.HttpContext.Session.GetString("token");
     var isLoggedIn = !string.IsNullOrEmpty(token);
-    string username = "";
+
+    string email = "";
+    JwtSecurityToken jwtToken = null;
+
     if (isLoggedIn)
     {
         var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(token);
-        username = jwtToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value ?? "";
+        jwtToken = handler.ReadJwtToken(token);
+
+        email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "";
     }
 }
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,15 +56,37 @@
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if (isLoggedIn)
                         {
-                            <li class="nav-item me-2"> <span class="badge bg-primary px-3 py-2"> @username </span> </li>
+                            <li class="nav-item me-2">
+                                <span class="badge bg-primary px-3 py-2">
+                                    @email
+                                </span>
+                            </li>
 
-                            <li class="nav-item"> <a class="btn btn-outline-danger btn-sm" asp-controller="Account" asp-action="Logout"> Logout </a> </li>
+                            <li class="nav-item">
+                                <a class="btn btn-outline-danger btn-sm"
+                                   asp-controller="Account"
+                                   asp-action="Logout">
+                                    Logout
+                                </a>
+                            </li>
                         }
                         else
                         {
-                            <li class="nav-item me-2"> <a class="btn btn-outline-primary btn-sm" asp-controller="Account" asp-action="Login"> Login </a> </li>
+                            <li class="nav-item me-2">
+                                <a class="btn btn-outline-primary btn-sm"
+                                   asp-controller="Account"
+                                   asp-action="Login">
+                                    Login
+                                </a>
+                            </li>
 
-                            <li class="nav-item"> <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Register"> Register </a> </li>
+                            <li class="nav-item">
+                                <a class="btn btn-primary btn-sm"
+                                   asp-controller="Account"
+                                   asp-action="Register">
+                                    Register
+                                </a>
+                            </li>
                         }
                     </ul>
                 </div>

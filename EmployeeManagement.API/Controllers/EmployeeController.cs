@@ -10,13 +10,15 @@ public class EmployeeController : ControllerBase
 {
     private readonly IEmployeeRepository _repo;
 
-    public EmployeeController(IEmployeeRepository repo)
+   // private readonly IHttpClientFactory _factory;
+
+    public EmployeeController(IEmployeeRepository repo )
     {
         _repo = repo;
-    }
+     }
 
      
-    [AllowAnonymous]
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {

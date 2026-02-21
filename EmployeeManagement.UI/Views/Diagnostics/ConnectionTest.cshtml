@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "Connection Test";
+}
+
+<div class="container mt-5">
+    <h2>API Connection Test</h2>
+    
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Connection Checklist</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><strong>Expected API URL:</strong></td>
+                        <td><code>https://localhost:7192/</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Current UI URL:</strong></td>
+                        <td><code>@Context.Request.Scheme://@Context.Request.Host</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Health Endpoint:</strong></td>
+                        <td>
+                            <a href="https://localhost:7192/api/health" target="_blank" class="btn btn-sm btn-info">
+                                Test API
+                            </a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td id="status"><span class="spinner-border spinner-border-sm"></span> Testing...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0">Common Issues</h5>
+        </div>
+        <div class="card-body">
+            <ul>
+                <li>❌ <strong>API not running:</strong> Start the API project first</li>
+                <li>❌ <strong>Wrong port:</strong> Verify API is on port 7192</li>
+                <li>❌ <strong>SSL error:</strong> Check certificate or use HTTP</li>
+                <li>❌ <strong>Firewall:</strong> Allow port 7192 in firewall</li>
+                <li>❌ <strong>No token:</strong> Login first to get JWT token</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function testConnection() {
+        try {
+            const response = await fetch('https://localhost:7192/api/health');
+            if (response.ok) {
+                document.getElementById('status').innerHTML = '<span class="badge bg-success">✓ Connected</span>';
+            } else {
+                document.getElementById('status').innerHTML = '<span class="badge bg-warning">⚠ API returned error</span>';
+            }
+        } catch (error) {
+            document.getElementById('status').innerHTML = 
+                '<span class="badge bg-danger">✗ Cannot connect: ' + error.message + '</span>';
+        }
+    }
+
+    // Test on page load
+    window.addEventListener('load', testConnection);
+</script>

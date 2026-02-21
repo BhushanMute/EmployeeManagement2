@@ -1,0 +1,93 @@
+﻿@inject Microsoft.Extensions.Logging.ILogger<EmployeeManagement.UI.Controllers.DiagnosticsController> _logger
+@{
+    ViewData["Title"] = "Diagnostics";
+}
+
+<div class="container mt-5">
+    <h2>System Diagnostics</h2>
+    
+    <div class="alert alert-info">
+        <h4>Check Your Configuration</h4>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Configuration Checklist</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Check</th>
+                        <th>Expected</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>API Running</td>
+                        <td>https://localhost:7192/api/health</td>
+                        <td><a href="https://localhost:7192/api/health" target="_blank" class="btn btn-sm btn-primary">Test</a></td>
+                    </tr>
+                    <tr>
+                        <td>UI Running</td>
+                        <td>@Context.Request.Scheme://@Context.Request.Host</td>
+                        <td><span class="badge bg-success">✓ OK</span></td>
+                    </tr>
+                    <tr>
+                        <td>Database Connection</td>
+                        <td>SQL Server</td>
+                        <td><a href="@Url.Action("Index", "Employee")" class="btn btn-sm btn-primary">Test</a></td>
+                    </tr>
+                    <tr>
+                        <td>Authentication</td>
+                        <td>JWT Token</td>
+                        <td><a href="@Url.Action("Login", "Account")" class="btn btn-sm btn-primary">Test Login</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h5>Common Issues & Solutions</h5>
+        </div>
+        <div class="card-body">
+            <h6>Issue 1: "Payment initiation failed: 0"</h6>
+            <ul>
+                <li>✅ Ensure API is running on https://localhost:7192/</li>
+                <li>✅ Check firewall allows port 7192</li>
+                <li>✅ Verify JWT token is valid</li>
+            </ul>
+
+            <h6 class="mt-3">Issue 2: "Authentication failed. Please login again."</h6>
+            <ul>
+                <li>✅ Login first before making payment</li>
+                <li>✅ Check session timeout settings</li>
+                <li>✅ Verify token is stored in session</li>
+            </ul>
+
+            <h6 class="mt-3">Issue 3: SSL Certificate Errors</h6>
+            <ul>
+                <li>✅ Development only: Self-signed certs are OK</li>
+                <li>✅ Check Program.cs SSL handling</li>
+                <li>✅ Try using HTTP instead for testing</li>
+            </ul>
+
+            <h6 class="mt-3">Issue 4: CORS Errors</h6>
+            <ul>
+                <li>✅ Check API CORS configuration</li>
+                <li>✅ Verify both projects on correct ports</li>
+                <li>✅ Check browser console for exact error</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@{
+    // In PaymentController
+    // Make sure user is logged in:
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    _logger.LogInformation($"Current User ID: {userId}");
+}

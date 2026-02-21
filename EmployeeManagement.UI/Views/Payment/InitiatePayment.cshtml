@@ -1,0 +1,365 @@
+﻿@model PaymentRequest
+@{
+    ViewData["Title"] = "Make Payment";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-lg">
+
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-credit-card"></i> Initiate Payment
+                    </h4>
+                </div>
+
+                <form asp-action="InitiatePayment" asp-controller="Payment" method="post" id="paymentForm">
+                    <div class="card-body">
+
+                        <!-- Employee ID -->
+                        <div class="mb-3">
+                            <label asp-for="Amount" class="form-label">Amount (₹)</label>
+                            <input asp-for="Amount" class="form-control" type="number" step="0.01" required />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <input asp-for="Description" class="form-control" type="text" />
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PaymentMethod" class="form-label">Payment Method</label>
+
+                            <select asp-for="PaymentMethod"
+                                    class="form-select"
+                                    id="paymentMethod"
+                                    required>
+                                <option value="">Select Payment Method</option>
+                                <option value="Card">Credit/Debit Card</option>
+                                <option value="NetBanking">Net Banking</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Wallet">Wallet</option>
+                            </select>
+
+                            <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                        </div>
+                        <div id="cardSection" style="display:none">
+
+                            <div class="mb-3">
+                                <label>Card Number</label>
+                                <input type="text" name="CardNumber" class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Expiry</label>
+                                <input type="text" name="Expiry" class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>CVV</label>
+                                <input type="password" name="CVV" class="form-control" />
+                            </div>
+
+                        </div>
+
+                        <!-- UPI Details -->
+                        <div id="upiSection" style="display:none">
+
+                            <div class="mb-3">
+                                <label>UPI ID</label>
+                                <input type="text" class="form-control" id="upiId" name="UpiId">
+                            </div>
+
+                        </div>
+
+                        <!-- NetBanking -->
+                        <div id="netBankingSection" style="display:none">
+
+                            <div class="mb-3">
+                                <label>Select Bank</label>
+                                <select name="BankName" class="form-select">
+                                    <option>SBI</option>
+                                    <option>HDFC</option>
+                                    <option>ICICI</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <!-- Wallet -->
+                        <div id="walletSection" style="display:none">
+
+                            <div class="mb-3">
+                                <label>Select Wallet</label>
+                                <select name="WalletName" class="form-select">
+                                    <option>Paytm</option>
+                                    <option>PhonePe</option>
+                                    <option>Amazon Pay</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Proceed to Payment
+                        </button>
+
+                        <a asp-controller="Employee" asp-action="Index"
+                           class="btn btn-secondary w-100 mt-2">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+                <!-- UPI Modal -->
+                <div class="modal fade" id="upiModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Enter UPI Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label>UPI ID</label>
+                                    <input type="text" class="form-control" id="upiId" placeholder="example@upi">
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-success" onclick="submitUPI()">Confirm & Pay</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Card Modal -->
+                <div class="modal fade" id="cardModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Enter Card Details</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label>Card Number</label>
+                                    <input type="text" class="form-control" id="cardNumber">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label>Expiry</label>
+                                    <input type="text" class="form-control" placeholder="MM/YY">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label>CVV</label>
+                                    <input type="password" class="form-control">
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-success" onclick="submitCard()">Confirm & Pay</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Net Banking Modal -->
+                <div class="modal fade" id="netBankingModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Select Bank</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+
+                                <div class="mb-3">
+                                    <label>Choose Bank</label>
+                                    <select class="form-select" id="bankName" name="BankName">
+                                        <option value="">Select Bank</option>
+                                        <option value="SBI">SBI</option>
+                                        <option value="HDFC">HDFC</option>
+                                        <option value="ICICI">ICICI</option>
+                                        <option value="Axis Bank">Axis Bank</option>
+                                    </select>
+                                </div>
+
+                                <!-- Hidden section -->
+                                <div id="bankDetailsSection" style="display:none;">
+
+                                    <div class="mb-3">
+                                        <label>IFSC Code</label>
+                                        <input type="text"
+                                               class="form-control"
+                                               id="ifscCode"
+                                               name="IFSCCode"
+                                               placeholder="Enter IFSC Code">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label>Account Number</label>
+                                        <input type="text"
+                                               class="form-control"
+                                               id="accountNumber"
+                                               name="AccountNumber"
+                                               placeholder="Enter Account Number">
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-success" onclick="submitNetBanking()">Confirm & Pay</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <!-- Wallet Modal -->
+                <div class="modal fade" id="walletModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Select Wallet</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label>Choose Wallet</label>
+                                    <select class="form-select" id="walletName">
+                                        <option value="">Select Wallet</option>
+                                        <option>Paytm</option>
+                                        <option>PhonePe</option>
+                                        <option>Amazon Pay</option>
+                                        <option>Google Pay</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-success" onclick="submitWallet()">Confirm & Pay</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+                        document.getElementById("bankName").addEventListener("change", function () {
+
+                        let selectedBank = this.value;
+                        let detailsSection = document.getElementById("bankDetailsSection");
+
+                        if (selectedBank !== "") {
+                            detailsSection.style.display = "block";   // Show fields
+                        } else { 
+                            detailsSection.style.display = "none";    // Hide fields
+                        }
+                    });
+
+                document.getElementById("paymentMethod").addEventListener("change", function () {
+
+                    let method = this.value;
+
+                    if (method === "UPI") {
+                        new bootstrap.Modal(document.getElementById('upiModal')).show();
+                    }
+
+                    if (method === "Card") {
+                        new bootstrap.Modal(document.getElementById('cardModal')).show();
+                    }
+
+                    if (method === "NetBanking") {
+                        new bootstrap.Modal(document.getElementById('netBankingModal')).show();
+                    }
+
+                    if (method === "Wallet") {
+                        new bootstrap.Modal(document.getElementById('walletModal')).show();
+                    }
+
+                });
+
+                        function submitUPI()
+                {
+                    let upi = document.getElementById("upiId").value;
+
+                    if (!upi)
+                    {
+                        alert("Please enter UPI ID");
+                        return;
+                    }
+
+                    // set hidden field
+                    document.getElementById("paymentMethod").value = "UPI";
+
+                    document.querySelector("form").submit();
+                }
+
+                function submitCard() {
+                    let card = document.getElementById("cardNumber").value;
+                    if (!card) {
+                        alert("Please enter Card Number");
+                        return;
+                    }
+                    document.querySelector("form").submit();
+                }
+
+                                function submitNetBanking() {
+
+                                    let bank = document.getElementById("bankName").value;
+                                    let ifsc = document.getElementById("ifscCode").value;
+                                    let account = document.getElementById("accountNumber").value;
+
+                                    if (!bank) {
+                                        alert("Please select a Bank");
+                                        return;
+                                    }
+
+                                    if (!ifsc || !account) {
+                                        alert("Please fill bank details");
+                                        return;
+                                    }
+
+                                    document.getElementById("paymentMethod").value = "NetBanking";
+
+                                    document.querySelector("form").submit();
+                                }
+                function submitWallet() {
+                    let wallet = document.getElementById("walletName").value;
+                    if (!wallet) {
+                        alert("Please select a Wallet");
+                        return;
+                    }
+                    document.querySelector("form").submit();
+                }
+
+    </script>
+}

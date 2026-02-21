@@ -23,9 +23,9 @@
 
                     <form asp-action="Login" method="post" class="needs-validation" novalidate>
                         <div class="mb-3">
-                            <label asp-for="Username" class="form-label">Username</label>
-                            <input asp-for="Username" class="form-control" placeholder="Enter username" required />
-                            <span asp-validation-for="Username" class="text-danger"></span>
+                            <label asp-for="Email" class="form-label">Username</label>
+                            <input asp-for="Email" class="form-control" placeholder="Enter username" required />
+                            <span asp-validation-for="Email" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
@@ -44,6 +44,15 @@
                         Don't have an account?
                         <a asp-action="Register" class="text-primary">Register here</a>
                     </p>
+                    <div class="social-logins">
+                        <a class="btn btn-primary" href="/Account/FacebookLogin">
+                            <i class="fab fa-facebook"></i> Login with Facebook
+                        </a>
+
+                        <a class="btn btn-danger" href="/Account/GoogleLogin">
+                            <i class="fab fa-google"></i> Login with Google
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

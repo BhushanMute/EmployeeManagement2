@@ -1,0 +1,113 @@
+using EmployeeManagement.UI.Models;
+using EmployeeManagement.UI.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace EmployeeManagement.UI.Controllers
+{
+    [Authorize]
+    public class PaymentController : Controller
+    {
+        private readonly IPaymentService _paymentService;
+        private readonly ILogger<PaymentController> _logger;
+
+        public PaymentController(IPaymentService paymentService, ILogger<PaymentController> logger)
+        {
+            _paymentService = paymentService;
+            _logger = logger;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Index(int employeeId)
+        {
+            try
+            {
+                var payments = await _paymentService.GetEmployeePaymentsAsync(employeeId);
+                var total = await _paymentService.GetTotalPaymentsAsync(employeeId);
+
+                ViewBag.EmployeeId = employeeId;
+                ViewBag.TotalPayments = total;
+
+                return View(payments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in Payment Index: {ex.Message}");
+                ViewBag.Error = "Failed to load payment history";
+                return View(new List<Payment>());
+            }
+        }
+
+        [HttpGet]
+        public IActionResult InitiatePayment(int? employeeId)
+        {
+            var model = new PaymentRequest();
+            if (employeeId.HasValue)
+            {
+                model.EmployeeId = employeeId.Value;
+            }
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> InitiatePayment(PaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Error = "Please fill all required fields";
+                return View(request);
+            }
+
+            try
+            {
+                var response = await _paymentService.InitiatePaymentAsync(request);
+
+                if (!response.Success)
+                {
+                    ViewBag.Error = response.Message;
+                    _logger.LogWarning($"Payment initiation failed: {response.Message}");
+                    return View(request);
+                }
+
+                // Redirect to payment gateway
+                return Redirect(response.PaymentUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error initiating payment: {ex.Message}");
+                ViewBag.Error = "An error occurred while initiating payment";
+                return View(request);
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> Success(string orderId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(orderId))
+                {
+                    return RedirectToAction("Failure", new { orderId = "Unknown" });
+                }
+
+                var response = await _paymentService.GetPaymentStatusAsync(orderId);
+                return View(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in Payment Success: {ex.Message}");
+                return RedirectToAction("Failure", new { orderId = orderId });
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Failure(string orderId)
+        {
+            ViewBag.OrderId = orderId;
+            return View();
+        }
+    }
+}

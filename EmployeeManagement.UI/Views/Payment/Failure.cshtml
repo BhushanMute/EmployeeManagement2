@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Payment Failed";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="alert alert-danger">
+                <h4><i class="fa fa-times-circle"></i> Payment Failed</h4>
+            </div>
+
+                    <p class="text-muted">
+                        Your payment could not be processed. Please check your payment details and try again.
+                        </p>
+                </div>
+            </div>
+
+            <a href="@Url.Action("InitiatePayment", "Payment")" class="btn btn-primary w-100 mt-3">Try Again</a>
+            <a href="@Url.Action("Index", "Employee")" class="btn btn-secondary w-100 mt-2">Back to Employees</a>
+        </div>
+    </div>
+</div>
