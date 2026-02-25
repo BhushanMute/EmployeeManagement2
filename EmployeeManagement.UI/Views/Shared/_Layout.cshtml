@@ -1,114 +1,229 @@
-﻿@using System.IdentityModel.Tokens.Jwt
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContextAccessor
-
-@{
-    var token = HttpContextAccessor.HttpContext.Session.GetString("token");
-    var isLoggedIn = !string.IsNullOrEmpty(token);
-
-    string email = "";
-    JwtSecurityToken jwtToken = null;
-
-    if (isLoggedIn)
-    {
-        var handler = new JwtSecurityTokenHandler();
-        jwtToken = handler.ReadJwtToken(token);
-
-        email = jwtToken.Claims.FirstOrDefault(c => c.Type == "email")?.Value ?? "";
-    }
+﻿@{
+    var username = Context.Session.GetString("Username");
+    var email = Context.Session.GetString("Email");           // ✅ Add this
+    var fullName = Context.Session.GetString("FullName");
+    var roles = Context.Session.GetString("Roles")?.Split(',') ?? Array.Empty<string>();
+    var permissions = Context.Session.GetString("Permissions")?.Split(',') ?? Array.Empty<string>();
+    var isAdmin = roles.Contains("Admin");
+    var isHR = roles.Contains("HR") || isAdmin;
+    var isManager = roles.Contains("Manager") || isHR;
 }
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - EmployeeManagement.UI</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>@ViewData["Title"] - Employee Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/EmployeeManagement.UI.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom shadow-sm mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">EmployeeManagement</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                       @*  <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="@Url.Action("Index", "Home")">
+                <i class="fas fa-users-cog me-2"></i>Employee Management
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                @if (!string.IsNullOrEmpty(username))
+                {
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">
+                                <i class="fas fa-home me-1"></i>Dashboard
+                            </a>
+                        </li>
+
+                        @if (permissions.Contains("Employee.View") || roles.Any())
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Employee" asp-action="Index">
+                                    <i class="fas fa-users me-1"></i>Employees
+                                </a>
+                            </li>
+                        }
+
+                        @if (isHR)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-file-alt me-1"></i>Reports
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">Employee Report</a></li>
+                                    <li><a class="dropdown-item" href="#">Attendance Report</a></li>
+                                    <li><a class="dropdown-item" href="#">Salary Report</a></li>
+                                </ul>
+                            </li>
+                        }
+
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog me-1"></i>Administration
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="User" asp-action="Index">
+                                            <i class="fas fa-users-cog me-2"></i>User Management
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Role" asp-action="Index">
+                                            <i class="fas fa-user-tag me-2"></i>Role Management
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#">
+                                            <i class="fas fa-history me-2"></i>Audit Logs
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                    </ul>
+
+                    <!-- ✅ User Profile Dropdown with Email -->
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle me-1"></i>
+                                @if (!string.IsNullOrEmpty(email))
+                                {
+                                    @email
+                                }
+                                else
+                                {
+                                    @email
+                                }
+@*                                   <span class="badge bg-light text-primary ms-1">@roles.FirstOrDefault()</span>
+ *@                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <!-- ✅ Show Email Here -->
+                                <li class="dropdown-header">
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2">
+                                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                                        </div>
+                                        <div>
+                                             
+                                            <small class="text-muted">
+                                                <i class="fas fa-envelope me-1"></i>@email
+                                            </small>
+                                        </div>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-user me-2"></i>Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                                        <i class="fas fa-key me-2"></i>Change Password
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                             
+                        </li>
+                         
+                    </ul>
+                }
+                else
+                {
+                    <!-- Show Login/Register when not logged in -->
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Account" asp-action="Login">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link" asp-controller="Account" asp-action="Register">
+                                <i class="fas fa-user-plus me-1"></i>Register
+                            </a>
                         </li>
- *@
-                        @if (isLoggedIn)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Employee" asp-action="Index">Employees</a>
-                            </li>
-                        }
                     </ul>
-
-                     
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        @if (isLoggedIn)
-                        {
-                            <li class="nav-item me-2">
-                                <span class="badge bg-primary px-3 py-2">
-                                    @email
-                                </span>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="btn btn-outline-danger btn-sm"
-                                   asp-controller="Account"
-                                   asp-action="Logout">
-                                    Logout
-                                </a>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item me-2">
-                                <a class="btn btn-outline-primary btn-sm"
-                                   asp-controller="Account"
-                                   asp-action="Login">
-                                    Login
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="btn btn-primary btn-sm"
-                                   asp-controller="Account"
-                                   asp-action="Register">
-                                    Register
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                </div>
+                }
             </div>
-        </nav>
-    </header>
+        </div>
+    </nav>
 
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <main class="container mt-4">
+        <!-- Display any TempData messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - EmployeeManagement.UI - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        @RenderBody()
+    </main>
+
+    <footer class="footer mt-5 py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">&copy; @DateTime.Now.Year Employee Management System</span>
         </div>
     </footer>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script>
+        // Token refresh logic
+        var tokenRefreshInterval;
+
+        function refreshToken() {
+            $.post('/Account/RefreshToken', function(response) {
+                if (!response.success) {
+                    clearInterval(tokenRefreshInterval);
+                    window.location.href = '/Account/Login';
+                }
+            }).fail(function() {
+                clearInterval(tokenRefreshInterval);
+                window.location.href = '/Account/Login';
+            });
+        }
+
+        // Refresh token every 10 minutes
+        tokenRefreshInterval = setInterval(refreshToken, 10 * 60 * 1000);
+
+        // Setup AJAX to include token
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                var token = '@Context.Session.GetString("AccessToken")';
+                if (token) {
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+                }
+            }
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,61 +1,305 @@
-﻿@model EmployeeManagement.UI.Models.RegisterModel
+﻿@* @model EmployeeManagement.UI.Models.RegisterModel
 @{
     ViewData["Title"] = "Register";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="container mt-5">
+<div class="container-fluid mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow-lg">
-                <div class="card-header bg-success text-white text-center">
-                    <h2 class="mb-0">Create an Account</h2>
-                </div>
-                <div class="card-body">
+        <div class="col-lg-10 col-xl-9">
+            <div class="card shadow-lg border-0 rounded-4">
 
+                <!-- Header -->
+                <div class="card-header bg-success text-white py-4 rounded-top-4">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-3x"></i>
+                        </div>
+                        <div class="col">
+                            <h2 class="mb-0 fw-bold">Create Your Account</h2>
+                            <p class="mb-0 opacity-75">Fill in your details to register</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-lg-5">
+
+                    <!-- Messages -->
                     @if (TempData["SuccessMessage"] != null)
                     {
-                        <div class="alert alert-success text-center">
-                            @TempData["SuccessMessage"]
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     }
 
                     @if (ViewBag.Error != null)
                     {
-                        <div class="alert alert-danger text-center">
-                            @ViewBag.Error
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>@ViewBag.Error
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     }
 
-                    <form asp-action="Register" method="post" class="needs-validation" novalidate>
-                        <div class="mb-3">
-                            <label asp-for="Username" class="form-label">Username</label>
-                            <input asp-for="Username" class="form-control" placeholder="Enter username" required />
-                            <span asp-validation-for="Username" class="text-danger"></span>
-                        </div>
-                       
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-                        <div class="mb-3">
-                            <label asp-for="Password" class="form-label">Password</label>
-                            <input asp-for="Password" type="password" class="form-control" placeholder="Enter password" required />
-                            <span asp-validation-for="Password" class="text-danger"></span>
-                        </div>
+                    <!-- Registration Form - Horizontal Layout -->
+                    <form asp-action="Register" method="post" id="registerForm">
 
-                        <div class="mb-3">
-                            <label asp-for="Email" class="form-label">Email</label>
-                            <input asp-for="Email" type="email" class="form-control" placeholder="Enter email" required />
-                            <span asp-validation-for="Email" class="text-danger"></span>
+                        <!-- ========== SECTION 1: Personal Information ========== -->
+                        <div class="section-header mb-3">
+                            <h5 class="text-success fw-bold mb-0">
+                                <i class="fas fa-user-circle me-2"></i>Personal Information
+                            </h5>
+                            <hr class="mt-2 mb-3">
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-success btn-lg">Register</button>
+                        <div class="row g-3 mb-4">
+                            <!-- First Name -->
+                            <div class="col-md-4">
+                                <label asp-for="FirstName" class="form-label fw-semibold">
+                                    First Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-user text-success"></i>
+                                    </span>
+                                    <input asp-for="FirstName" class="form-control" placeholder="John" />
+                                </div>
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="col-md-4">
+                                <label asp-for="LastName" class="form-label fw-semibold">
+                                    Last Name <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-user text-success"></i>
+                                    </span>
+                                    <input asp-for="LastName" class="form-control" placeholder="Doe" />
+                                </div>
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Phone Number -->
+                            <div class="col-md-4">
+                                <label asp-for="PhoneNumber" class="form-label fw-semibold">
+                                    Phone Number <span class="text-muted">(Optional)</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-phone text-success"></i>
+                                    </span>
+                                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+1 234 567 8900" />
+                                </div>
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- ========== SECTION 2: Account Information ========== -->
+                        <div class="section-header mb-3">
+                            <h5 class="text-success fw-bold mb-0">
+                                <i class="fas fa-id-card me-2"></i>Account Information
+                            </h5>
+                            <hr class="mt-2 mb-3">
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <!-- Username -->
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label fw-semibold">
+                                    Username <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-at text-success"></i>
+                                    </span>
+                                    <input asp-for="Username" class="form-control" placeholder="Enter username" />
+                                </div>
+                                <span asp-validation-for="Username" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label fw-semibold">
+                                    Email Address <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-envelope text-success"></i>
+                                    </span>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="john.doe@example.com" />
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- ========== SECTION 3: Security ========== -->
+                        <div class="section-header mb-3">
+                            <h5 class="text-success fw-bold mb-0">
+                                <i class="fas fa-shield-alt me-2"></i>Security
+                            </h5>
+                            <hr class="mt-2 mb-3">
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <!-- Password -->
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label fw-semibold">
+                                    Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-lock text-success"></i>
+                                    </span>
+                                    <input asp-for="Password" type="password" class="form-control" id="password" placeholder="Enter password" />
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+
+                                <!-- Password Strength -->
+                                <div class="mt-2">
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-muted" id="passwordStrengthText">Password strength</small>
+                                </div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label fw-semibold">
+                                    Confirm Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-lock text-success"></i>
+                                    </span>
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control" id="confirmPassword" placeholder="Confirm password" />
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                        <i class="fas fa-eye" id="toggleConfirmPasswordIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                                <div id="passwordMatch" class="small mt-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Password Requirements (Horizontal) -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card bg-light border-0">
+                                    <div class="card-body py-2">
+                                        <small class="text-muted fw-bold">Password Requirements:</small>
+                                        <div class="row mt-2">
+                                            <div class="col-md-4 col-6">
+                                                <small id="reqLength"><i class="fas fa-circle me-1"></i>At least 6 characters</small>
+                                            </div>
+                                            <div class="col-md-4 col-6">
+                                                <small id="reqUpper"><i class="fas fa-circle me-1"></i>One uppercase letter</small>
+                                            </div>
+                                            <div class="col-md-4 col-6">
+                                                <small id="reqLower"><i class="fas fa-circle me-1"></i>One lowercase letter</small>
+                                            </div>
+                                            <div class="col-md-4 col-6">
+                                                <small id="reqNumber"><i class="fas fa-circle me-1"></i>One number</small>
+                                            </div>
+                                            <div class="col-md-4 col-6">
+                                                <small id="reqSpecial"><i class="fas fa-circle me-1"></i>One special character</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ========== SECTION 4: Role (Admin Only) ========== -->
+                        @if (ViewBag.ShowRoleSelection == true)
+                        {
+                            <div class="section-header mb-3">
+                                <h5 class="text-success fw-bold mb-0">
+                                    <i class="fas fa-user-tag me-2"></i>Role Assignment
+                                </h5>
+                                <hr class="mt-2 mb-3">
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="RoleId" class="form-label fw-semibold">
+                                        Select Role <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-user-tag text-success"></i>
+                                        </span>
+                                        <select asp-for="RoleId" class="form-select" asp-items="@ViewBag.Roles">
+                                            <option value="">-- Select Role --</option>
+                                        </select>
+                                    </div>
+                                    <span asp-validation-for="RoleId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" asp-for="RoleId" value="4" />
+                        }
+
+                        <!-- ========== Terms & Submit ========== -->
+                        <div class="row align-items-center mt-4 pt-3 border-top">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                                    <label class="form-check-label" for="agreeTerms">
+                                        I agree to the <a href="#" class="text-success">Terms of Service</a> and
+                                        <a href="#" class="text-success">Privacy Policy</a>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                <button type="reset" class="btn btn-outline-secondary me-2">
+                                    <i class="fas fa-undo me-1"></i>Reset
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg px-5" id="submitBtn">
+                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                </button>
+                            </div>
                         </div>
                     </form>
+
+                    <!-- Divider -->
+                    <div class="text-center my-4">
+                        <span class="divider-text text-muted">or register with</span>
+                    </div>
+
+                    <!-- Social Login - Horizontal -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="Google"
+                               class="btn btn-outline-danger btn-lg w-100">
+                                <i class="fab fa-google me-2"></i>Continue with Google
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="Facebook"
+                               class="btn btn-outline-primary btn-lg w-100">
+                                <i class="fab fa-facebook-f me-2"></i>Continue with Facebook
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card-footer text-center">
+                <!-- Footer -->
+                <div class="card-footer text-center py-3 bg-light rounded-bottom-4">
                     <p class="mb-0">
                         Already have an account?
-                        <a asp-action="Login" action="/Account/Login" class="text-success">Login here</a>
+                        <a asp-action="Login" class="text-success fw-bold text-decoration-none">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login here
+                        </a>
                     </p>
                 </div>
             </div>
@@ -63,7 +307,489 @@
     </div>
 </div>
 
+@section Styles {
+    <style>
+        .card {
+            transition: transform 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #198754;
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+        }
+
+        .input-group-text {
+            border-color: #ced4da;
+            min-width: 45px;
+            justify-content: center;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #198754 0%, #157347 100%);
+            border: none;
+        }
+
+            .btn-success:hover {
+                background: linear-gradient(135deg, #157347 0%, #146c43 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+            }
+
+        .requirement-met {
+            color: #198754 !important;
+        }
+
+            .requirement-met i {
+                color: #198754;
+            }
+
+        .rounded-4 {
+            border-radius: 1rem !important;
+        }
+
+        .rounded-top-4 {
+            border-top-left-radius: 1rem !important;
+            border-top-right-radius: 1rem !important;
+        }
+
+        .rounded-bottom-4 {
+            border-bottom-left-radius: 1rem !important;
+            border-bottom-right-radius: 1rem !important;
+        }
+
+        .section-header h5 {
+            position: relative;
+        }
+
+        .divider-text {
+            background: white;
+            padding: 0 15px;
+            position: relative;
+        }
+
+        .text-center.my-4 {
+            position: relative;
+        }
+
+            .text-center.my-4::before {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                border-top: 1px solid #dee2e6;
+                z-index: 0;
+            }
+
+            .text-center.my-4 span {
+                position: relative;
+                z-index: 1;
+                background: white;
+                padding: 0 15px;
+            }
+
+        .card-body {
+            background: #fafafa;
+        }
+
+        .section-header hr {
+            border-color: #198754;
+            opacity: 0.3;
+        }
+    </style>
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-   
+    <script src="~/js/register.js"></script>
+} *@
+
+@model EmployeeManagement.UI.Models.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="register-hero">
+    <div class="container-fluid p-0 h-100">
+        <div class="row g-0 h-100 align-items-center">
+            <!-- Left Side: Hero Image/Gradient -->
+            <div class="col-lg-6 hero-section d-none d-lg-block">
+                <div class="hero-content">
+                    <h1 class="hero-title">Welcome to Your Team</h1>
+                    <p class="hero-subtitle">Join our modern employee management platform and start collaborating today.</p>
+                    <div class="hero-features">
+                        <div class="feature-item">
+                            <i class="fas fa-check-circle text-primary"></i>
+                            <span>Secure & Fast</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check-circle text-primary"></i>
+                            <span>Role Management</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check-circle text-primary"></i>
+                            <span>Easy Access</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Form Card -->
+            <div class="col-lg-6 col-12">
+                <div class="card glass-card shadow-xl mx-auto my-5">
+                    <div class="card-body p-5 p-lg-6">
+
+                        <!-- Messages -->
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (ViewBag.Error != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>@ViewBag.Error
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger rounded-3" role="alert"></div>
+
+                        <!-- Header -->
+                        <div class="text-center mb-5">
+                            <div class="avatar-circle mb-3 mx-auto">
+                                <i class="fas fa-user-plus fa-2x text-white"></i>
+                            </div>
+                            <h2 class="fw-bold mb-2">Create Account</h2>
+                            <p class="text-muted mb-0">Join our team in minutes</p>
+                        </div>
+
+                        <form asp-action="Register" method="post" id="registerForm" novalidate>
+
+                            <!-- Personal Info -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="FirstName" class="form-label fw-semibold text-dark">First Name *</label>
+                                    <input asp-for="FirstName" class="form-control modern-input" placeholder="John" required />
+                                    <span asp-validation-for="FirstName" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="LastName" class="form-label fw-semibold text-dark">Last Name *</label>
+                                    <input asp-for="LastName" class="form-control modern-input" placeholder="Doe" required />
+                                    <span asp-validation-for="LastName" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Contact Info -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Email" class="form-label fw-semibold text-dark">Email *</label>
+                                    <input asp-for="Email" type="email" class="form-control modern-input" placeholder="john@example.com" required />
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="PhoneNumber" class="form-label fw-semibold text-dark">Phone (Optional)</label>
+                                    <input asp-for="PhoneNumber" type="tel" class="form-control modern-input" placeholder="+1 234 567 8900" />
+                                    <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Account Info -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Username" class="form-label fw-semibold text-dark">Username *</label>
+                                    <input asp-for="Username" class="form-control modern-input" placeholder="john_doe" required />
+                                    <span asp-validation-for="Username" class="text-danger small"></span>
+                                </div>
+                            </div>
+
+                            <!-- Password Section -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label asp-for="Password" class="form-label fw-semibold text-dark">Password *</label>
+                                    <div class="password-input-group">
+                                        <input asp-for="Password" type="password" class="form-control modern-input ps-5" id="password" required />
+                                        <button type="button" class="toggle-btn" id="togglePassword">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="strength-bar mt-2">
+                                        <div class="strength-progress" id="passwordStrength"></div>
+                                        <small id="passwordStrengthText" class="text-muted">Enter password</small>
+                                    </div>
+                                    <span asp-validation-for="Password" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ConfirmPassword" class="form-label fw-semibold text-dark">Confirm Password *</label>
+                                    <div class="password-input-group">
+                                        <input asp-for="ConfirmPassword" type="password" class="form-control modern-input ps-5" id="confirmPassword" required />
+                                        <button type="button" class="toggle-btn" id="toggleConfirmPassword">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div id="passwordMatch" class="mt-2 small"></div>
+                                </div>
+                            </div>
+
+                            <!-- Role Selection (Admin Only) -->
+                            @if (ViewBag.ShowRoleSelection == true)
+                            {
+                                <div class="mb-4">
+                                    <label asp-for="RoleId" class="form-label fw-semibold text-dark">Role *</label>
+                                    <select asp-for="RoleId" class="form-select modern-select" required>
+                                        <option value="">Select Role</option>
+                                        @foreach (var role in ViewBag.Roles)
+                                        {
+                                            <option value="@role.Value">@role.Text</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="RoleId" class="text-danger small"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="RoleId" value="4" />
+                            }
+
+                            <!-- Terms & Submit -->
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                                    <label class="form-check-label small text-muted" for="agreeTerms">
+                                        I agree to Terms & Privacy Policy
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg w-100 w-md-auto px-5 py-2" id="submitBtn">
+                                    <i class="fas fa-user-plus me-2"></i>Create Account
+                                </button>
+                            </div>
+
+                            <!-- Social Login -->
+                            <div class="text-center">
+                                <span class="divider">or continue with</span>
+                                <div class="social-buttons mt-3">
+                                    <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="Google" class="btn btn-outline-google">
+                                        <i class="fab fa-google me-2"></i>Google
+                                    </a>
+                                    <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="Facebook" class="btn btn-outline-facebook ms-2">
+                                        <i class="fab fa-facebook-f me-2"></i>Facebook
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Footer -->
+                        <div class="text-center mt-4 pt-3">
+                            <p class="mb-0 text-muted small">
+                                Already have an account?
+                                <a asp-action="Login" class="text-primary fw-semibold text-decoration-none">Sign in</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --shadow-xl: 0 25px 45px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        body {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            min-height: 100vh;
+        }
+
+        @@keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .register-hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-section {
+            background: var(--primary-gradient);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 3rem;
+            color: white;
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, white 0%, rgba(255,255,255,0.8) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 3rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .glass-card {
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            max-width: 480px;
+            box-shadow: var(--shadow-xl);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+            .glass-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 35px 65px -20px rgba(0, 0, 0, 0.3);
+            }
+
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .modern-input, .modern-select {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 16px;
+            padding: 0.875rem 1.25rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+            .modern-input:focus, .modern-select:focus {
+                border-color: #667eea;
+                background: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+                transform: translateY(-2px);
+            }
+
+        .password-input-group {
+            position: relative;
+        }
+
+        .toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .strength-progress {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .divider {
+            position: relative;
+            display: inline-block;
+            padding: 0 1rem;
+            color: #6c757d;
+        }
+
+            .divider::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: rgba(255,255,255,0.3);
+            }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 16px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            }
+
+        .btn-outline-google {
+            color: #dc3545 !important;
+            border-color: rgba(220, 53, 69, 0.3) !important;
+        }
+
+        .btn-outline-facebook {
+            color: #0d6efd !important;
+            border-color: rgba(13, 110, 253, 0.3) !important;
+        }
+
+        @@media (max-width: 768px) {
+            .glass-card {
+                margin: 1rem;
+                max-width: none;
+            }
+        }
+    </style>
+}
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <!-- Reuse your existing register.js with minor adjustments for new selectors -->
+    <script src="~/js/register.js"></script>
 }

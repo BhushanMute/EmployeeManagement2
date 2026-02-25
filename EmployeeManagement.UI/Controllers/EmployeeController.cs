@@ -1,4 +1,5 @@
 ﻿using EmployeeManagement.UI.Models;
+ 
 using EmployeeManagement.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,7 +7,7 @@ using System.Net.Http.Headers;
 
 namespace EmployeeManagement.UI.Controllers
 {
-    [Authorize]
+ 
     public class EmployeeController : Controller
     {
         private readonly HttpClient _client;
@@ -23,7 +24,7 @@ namespace EmployeeManagement.UI.Controllers
         /// </summary>
         private void SetAuthorizationHeader()
         {
-            var token = HttpContext.Session.GetString("token");
+            var token = HttpContext.Session.GetString("AccessToken");
             if (!string.IsNullOrEmpty(token))
             {
                 _client.DefaultRequestHeaders.Authorization =
@@ -74,19 +75,33 @@ namespace EmployeeManagement.UI.Controllers
         {
             try
             {
-              
-
                 SetAuthorizationHeader();
-
                 _logger.LogInformation("Fetching employees from API");
 
-                // Add timeout to prevent hanging
-                var employees = await _client.GetFromJsonAsync<List<EmployeeViewModel>>("api/Employee");
+                using var response = await _client.GetAsync("api/Employee");
 
-                employees = employees?.OrderBy(e => e.Id).ToList() ?? new List<EmployeeViewModel>();
+                if (!response.IsSuccessStatusCode)
+                {
+                    // Handle 401/403 explicitly
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                        response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        TempData["Error"] = "You do not have permission to view employees.";
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    var errorText = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"API returned error {response.StatusCode}: {errorText}");
+                    TempData["Error"] = "Failed to fetch employees from API.";
+                    return View(new List<EmployeeViewModel>());
+                }
+
+                // Now safe to deserialize
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<List<EmployeeViewModel>>>();
+                var employees = apiResponse?.Data ?? new List<EmployeeViewModel>();
+                employees = employees.OrderBy(e => e.Id).ToList();
 
                 _logger.LogInformation($"Successfully fetched {employees.Count} employees");
-
                 return View(employees);
             }
             catch (HttpRequestException ex)

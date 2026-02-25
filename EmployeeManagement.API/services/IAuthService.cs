@@ -1,31 +1,24 @@
-﻿using EmployeeManagement.API.Models;
+﻿using EmployeeManagement.API.Common;
+using EmployeeManagement.API.Models;
 
-namespace EmployeeManagement.API.services
+namespace EmployeeManagement.API.Services
 {
     public interface IAuthService
     {
-        /// <summary>
-        /// Login user with email and password
-        /// </summary>
-        Task<TokenResponse> LoginAsync(LoginRequest request);
+        // 🔐 Authentication
+        Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request, string? ipAddress);
+        Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request, int? createdBy = null);
+        Task<ApiResponse<AuthResponse>> RefreshTokenAsync(RefreshTokenRequest request, string? ipAddress);
+        Task<ApiResponse<bool>> RevokeTokenAsync(string token, string? ipAddress);
 
-        /// <summary>
-        /// Refresh expired access token using refresh token
-        /// </summary>
-        Task<TokenResponse> RefreshTokenAsync(string refreshToken);
+        // 🔎 Permission Check
+        Task<bool> CheckPermissionAsync(int userId, string permissionName);
 
-        /// <summary>
-        /// Revoke a specific refresh token
-        /// </summary>
-        Task RevokeTokenAsync(string refreshToken);
-
-        /// <summary>
-        /// Revoke all tokens for a user (logout)
-        /// </summary>
-        Task RevokeAllUserTokensAsync(int userId);
-
-        Task<TokenResponse> RegisterAsync(RegisterRequest request);
-
-        Task<TokenResponse> SocialLoginAsync( string email, string name, string provider, string socialId);
+        // 🔑 Password Management
+        Task<ApiResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request);
+        Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequest request);
+        Task<ApiResponse<bool>> ResetPasswordWithTokenAsync(ResetPasswordWithTokenRequest request);
+        Task<ApiResponse<bool>> ResetPasswordByAdminAsync(ResetPasswordRequest request, int adminUserId);
+        Task<ApiResponse<bool>> ValidatePasswordResetTokenAsync(string token);
     }
 }

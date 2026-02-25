@@ -1,24 +1,42 @@
-﻿namespace EmployeeManagement.API.Models
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace EmployeeManagement.API.Models
 {
     public class RefreshToken
     {
+        [Key]
         public int Id { get; set; }
+
+        [Required]
         public int UserId { get; set; }
-        public string Token { get; set; }
+
+        [Required]
+        [StringLength(500)]
+        public string Token { get; set; } = string.Empty;
+
+        [Required]
         public DateTime ExpiryDate { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public bool IsRevoked { get; set; }
+
+        [Required]
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+
+        [StringLength(50)]
+        public string? IpAddress { get; set; }
+
+        public bool IsRevoked { get; set; } = false;
+
         public DateTime? RevokedDate { get; set; }
-        public string? ReplacedByToken { get; set; }
 
-        /// <summary>
-        /// Check if token is active (not revoked and not expired)
-        /// </summary>
-        public bool IsActive => !IsRevoked && DateTime.UtcNow < ExpiryDate;
+        public bool IsUsed { get; set; } = false;
 
-        /// <summary>
-        /// Check if token is expired
-        /// </summary>
-        public bool IsExpired => DateTime.UtcNow > ExpiryDate;
+        public DateTime? UsedDate { get; set; }
+
+        // Navigation property
+        [ForeignKey("UserId")]
+        public User User { get; set; } = null!;
+
+        // Computed property
+        public bool IsActive => !IsRevoked && !IsUsed && DateTime.UtcNow < ExpiryDate;
     }
 }

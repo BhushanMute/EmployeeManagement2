@@ -68,8 +68,8 @@ namespace EmployeeManagement.API.Repositories
                         ExpiryDate = reader.GetDateTime("ExpiryDate"),
                         CreatedDate = reader.GetDateTime("CreatedDate"),
                         IsRevoked = reader.GetBoolean("IsRevoked"),
-                        RevokedDate = reader.IsDBNull("RevokedDate") ? null : reader.GetDateTime("RevokedDate"),
-                        ReplacedByToken = reader.IsDBNull("ReplacedByToken") ? null : reader.GetString("ReplacedByToken")
+                        RevokedDate = reader.IsDBNull("RevokedDate") ? null : reader.GetDateTime("RevokedDate")
+                        //ReplacedByToken = reader.IsDBNull("ReplacedByToken") ? null : reader.GetString("ReplacedByToken")
                     };
                 }
 

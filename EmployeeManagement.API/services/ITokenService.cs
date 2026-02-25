@@ -1,13 +1,14 @@
-﻿namespace EmployeeManagement.API.services
+﻿using EmployeeManagement.API.Models;
+using System.Security.Claims;
+
+namespace EmployeeManagement.API.Repositories
 {
     public interface ITokenService
     {
-        Task<string> GetTokenAsync();
-        Task SetTokenAsync(string token);
-        Task RemoveTokenAsync();
-        bool IsTokenExpired(string token);
-        Task<string> RefreshTokenAsync();
-        Task SetRefreshTokenAsync(string refreshToken);
+        string GenerateAccessToken(User user, List<Role> roles, List<Permission> permissions);
+        string GenerateRefreshToken();
+        ClaimsPrincipal? GetPrincipalFromExpiredToken(string token);
+        DateTime GetAccessTokenExpiry();
+        DateTime GetRefreshTokenExpiry();
     }
 }
-

@@ -112,21 +112,27 @@ namespace EmployeeManagement.API.Repositories
                     CommandType = CommandType.StoredProcedure
                 };
 
-                cmd.Parameters.Add("@Username", SqlDbType.NVarChar, 50).Value = model.Username;
-
-                // ✅ ADD THIS
+                cmd.Parameters.Add("@Username", SqlDbType.NVarChar, 100).Value = model.Username;
                 cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 200).Value = model.Email;
 
                 cmd.Parameters.Add("@PasswordHash", SqlDbType.NVarChar, 255).Value =
                     BCrypt.Net.BCrypt.EnhancedHashPassword(model.Password);
 
-                // Optional: You can pass provider explicitly
+                cmd.Parameters.Add("@FirstName", SqlDbType.NVarChar, 100).Value = model.FirstName;
+                cmd.Parameters.Add("@LastName", SqlDbType.NVarChar, 100).Value = model.LastName;
+
+                cmd.Parameters.Add("@PhoneNumber", SqlDbType.NVarChar, 20).Value =
+                    (object?)model.PhoneNumber ?? DBNull.Value;
+
+                cmd.Parameters.Add("@RoleId", SqlDbType.Int).Value = model.RoleId;
+
                 cmd.Parameters.Add("@Provider", SqlDbType.NVarChar, 50).Value = "Local";
 
                 var returnParam = new SqlParameter("@ReturnVal", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.ReturnValue
                 };
+
                 cmd.Parameters.Add(returnParam);
 
                 await cmd.ExecuteNonQueryAsync();
