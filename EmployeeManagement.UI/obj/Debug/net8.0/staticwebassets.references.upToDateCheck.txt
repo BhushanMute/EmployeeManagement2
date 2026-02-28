@@ -215,3 +215,4 @@ D:\demo\Practical\EmployeeManagement\EmployeeManagement.API\obj\Debug\net8.0\sta
 D:\demo\Practical\EmployeeManagement\EmployeeManagement.API\obj\Debug\net8.0\staticwebassets.build.json
 D:\demo\Practical\EmployeeManagement\EmployeeManagement.API\obj\Debug\net8.0\staticwebassets.build.json
 D:\projects\EmployeeManagement2\EmployeeManagemet\EmployeeManagement\EmployeeManagement.API\obj\Debug\net8.0\staticwebassets.build.json
+D:\projects\EmployeeManagement2\EmployeeManagemet\EmployeeManagement\EmployeeManagement.API\obj\Debug\net8.0\staticwebassets.build.json
