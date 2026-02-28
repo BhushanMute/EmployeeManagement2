@@ -6,7 +6,7 @@ namespace EmployeeManagement.UI.Filters
     public class AuthorizeSessionAttribute : ActionFilterAttribute
     {
         private readonly string[] _roles;
-
+        //fgdg
         public AuthorizeSessionAttribute(params string[] roles)
         {
             _roles = roles;
