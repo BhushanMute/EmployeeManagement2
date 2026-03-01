@@ -1,320 +1,37 @@
-﻿ 
-using EmployeeManagement.UI.Models;
+﻿using EmployeeManagement.UI.Models;
 using EmployeeManagement.UI.Services;
 using EmployeeManagement.UI.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Facebook;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
- 
- 
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
-using AuthResponse = EmployeeManagement.UI.Models.AuthResponse;
-using LoginModel = EmployeeManagement.UI.Models.LoginModel;
-using LoginRequest = EmployeeManagement.UI.Models.LoginRequest;
+using ChangePasswordViewModel = EmployeeManagement.UI.ViewModels.ChangePasswordViewModel;
 
 namespace EmployeeManagement.UI.Controllers
 {
-    #region Privous logc
-    //public class AccountController : Controller
-    //{
-    //    private readonly HttpClient _client;
-
-    //    public AccountController(IHttpClientFactory factory)
-    //    {
-    //        _client = factory.CreateClient();
-    //        _client.BaseAddress = new Uri("http://localhost:26024/");                                                                                                                                                                                                                                                   
-    //    }
-
-    //    [HttpGet("Account/Login")]
-    //    public IActionResult Login()
-    //    {
-
-    //        //return Challenge(new AuthenticationProperties
-    //        //{
-    //        //    RedirectUri = "/Account/GoogleResponse",
-
-    //        //}, "Google");
-    //        return View(new LoginModel());
-    //    }
-
-    //    [HttpPost("Account/Login")]
-    //    public async Task<IActionResult> Login(LoginModel model)
-    //    {
-    //        if (!ModelState.IsValid)
-    //            return View(model);
-
-    //        try
-    //        {
-    //            var request = new LoginRequest
-    //            {
-    //                Email = model.Email,   // map correctly
-    //                Password = model.Password
-    //            };
-
-    //            var response = await _client.PostAsJsonAsync("api/auth/login", request);
-
-    //            var content = await response.Content.ReadAsStringAsync();
-
-    //            if (!response.IsSuccessStatusCode)
-    //            {
-    //                ViewBag.Error = content;
-    //                return View(model);
-    //            }
-
-    //            var result = JsonSerializer.Deserialize<AuthResponse>(content,
-    //                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-    //            // Store JWT in Session
-    //            HttpContext.Session.SetString("token", result.Token);
-
-    //            // ✅ ADD THIS BLOCK (IMPORTANT)
-    //            var claims = new List<Claim>
-    //    {
-    //        new Claim(ClaimTypes.Name, model.Email),
-    //        new Claim("JWT", result.Token)
-    //    };
-
-    //            var claimsIdentity = new ClaimsIdentity(
-    //                claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-    //            var authProperties = new AuthenticationProperties
-    //            {
-    //                IsPersistent = true,
-    //                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60)
-    //            };
-
-    //            await HttpContext.SignInAsync(
-    //                CookieAuthenticationDefaults.AuthenticationScheme,
-    //                new ClaimsPrincipal(claimsIdentity),
-    //                authProperties);
-
-    //            // Redirect to Employee Index
-    //            return RedirectToAction("Index", "Employee");
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            ViewBag.Error = ex.Message;
-    //            return View(model);
-    //        }
-    //    }
-
-    //    [HttpGet]
-    //    public async Task<IActionResult> Logout()
-    //    {
-    //        try
-    //        {
-    //            HttpContext.Session.Clear();
-
-    //            await HttpContext.SignOutAsync("Cookies");
-
-    //            return RedirectToAction("Login");
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            ErrorLogger.Log(ex);
-    //            return RedirectToAction("Login");
-    //        }
-    //    }
-    //    [HttpGet]
-    //    public IActionResult Register()
-    //    {
-    //        return View();
-    //    }
-
-    //    [HttpPost]
-    //     public async Task<IActionResult> Register(RegisterModel model)
-    //    {
-    //        if (!ModelState.IsValid)
-    //        {
-    //            return View(model);
-    //        }
-
-    //        try
-    //        {
-    //            var response = await _client.PostAsJsonAsync("api/Auth/Register", model);
-
-    //            if (response.IsSuccessStatusCode)
-    //            {
-    //                TempData["SuccessMessage"] = "Account created successfully. Please login.";
-    //                return RedirectToAction("Login");
-    //            }
-    //            else
-    //            {
-
-    //                var error = await response.Content.ReadAsStringAsync();
-    //                ViewBag.Error = error;
-    //                ErrorLogger.Log(error);
-    //                return View(model);
-    //            }
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            ErrorLogger.Log(ex);
-    //            ViewBag.Error = "Something went wrong: " + ex.Message;
-    //            return View(model);
-    //        }
-    //    }
-    //    public IActionResult GoogleLogin()
-    //    {
-    //        return Challenge(
-    //            new AuthenticationProperties
-    //            {
-    //                RedirectUri = Url.Action("ExternalLoginCallback")
-    //            },
-    //            GoogleDefaults.AuthenticationScheme);
-    //    }
-    //    public async Task<IActionResult> GoogleResponse()
-    //    {
-    //        var result = await HttpContext.AuthenticateAsync("Cookies");
-
-    //        if (!result.Succeeded)
-    //            return RedirectToAction("Login");
-
-    //        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-    //        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-    //        //var Token = result.Principal.FindFirst(ClaimTypes.)?.Value;
-
-    //        if (string.IsNullOrEmpty(email))
-    //            return RedirectToAction("Login");
-
-
-    //        var response = await _client.PostAsJsonAsync("api/auth/social-login", new
-    //        {
-    //            Email = email,
-    //            Name = name,
-    //            Provider = "Google",
-    //            SocialId = email
-    //        });
-
-    //        if (!response.IsSuccessStatusCode)
-    //        {
-    //            TempData["Error"] = "Google login failed";
-    //            return RedirectToAction("Login");
-    //        }
-
-    //        var resultData = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-    //        if (string.IsNullOrEmpty(resultData?.Token))
-    //        {
-    //            TempData["Error"] = "Token generation failed";
-    //            return RedirectToAction("Login");
-    //        }
-
-    //        // ✅ Store JWT in Session
-    //        HttpContext.Session.SetString("token", resultData.Token);
-
-    //        return RedirectToAction("Index", "Employee");
-    //    }
-
-    //    public IActionResult FacebookLogin()
-    //    {
-    //        return Challenge(
-    //            new AuthenticationProperties
-    //            {
-    //                RedirectUri = Url.Action("ExternalLoginCallback")
-    //            },
-    //            FacebookDefaults.AuthenticationScheme);
-    //    }
-
-    //    public async Task<IActionResult> ExternalLoginCallback()
-    //    {
-    //        var authenticateResult = await HttpContext.AuthenticateAsync(
-    //            CookieAuthenticationDefaults.AuthenticationScheme);
-
-    //        if (!authenticateResult.Succeeded)
-    //            return RedirectToAction("Login");
-
-    //        var principal = authenticateResult.Principal;
-
-    //        var email = principal.FindFirst(ClaimTypes.Email)?.Value;
-    //        var name = principal.FindFirst(ClaimTypes.Name)?.Value;
-    //        var socialId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-    //        // detect provider automatically
-    //        var provider = authenticateResult.Properties.Items[".AuthScheme"];
-
-    //        if (string.IsNullOrEmpty(email))
-    //            return RedirectToAction("Login");
-
-    //        // Call your API (COMMON FOR ALL PROVIDERS)
-    //        var response = await _client.PostAsJsonAsync("api/auth/social-login", new
-    //        {
-    //            Email = email,
-    //            Name = name,
-    //            Provider = provider,
-    //            SocialId = socialId
-    //        });
-
-    //        if (!response.IsSuccessStatusCode)
-    //            return RedirectToAction("Login");
-
-    //        var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
-
-    //        HttpContext.Session.SetString("token", result.Token);
-
-    //        return RedirectToAction("Index", "Employee");
-    //    }
-
-    //    public async Task<IActionResult> FacebookResponse()
-    //    {
-    //        var result = await HttpContext.AuthenticateAsync("Cookies");
-
-    //        if (!result.Succeeded)
-    //            return RedirectToAction("Login");
-
-    //        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-    //        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-    //        var facebookId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-    //        if (string.IsNullOrEmpty(email))
-    //            return RedirectToAction("Login");
-
-    //        // Call API to get or insert user + generate JWT
-    //        var response = await _client.PostAsJsonAsync("api/auth/social-login", new
-    //        {
-    //            Email = email,
-    //            Name = name,
-    //            Provider = "Facebook",
-    //            SocialId = facebookId
-    //        });
-
-    //        if (!response.IsSuccessStatusCode)
-    //        {
-    //            TempData["Error"] = "Facebook login failed";
-    //            return RedirectToAction("Login");
-    //        }
-
-    //        var resultData = await response.Content.ReadFromJsonAsync<AuthResponse>();
-    //        if (string.IsNullOrEmpty(resultData?.Token))
-    //        {
-    //            TempData["Error"] = "Token generation failed";
-    //            return RedirectToAction("Login");
-    //        }
-
-    //        // Store JWT in Session
-    //        HttpContext.Session.SetString("token", resultData.Token);
-
-    //        return RedirectToAction("Index", "Employee");
-    //    }
-    //}
-    #endregion
     public class AccountController : Controller
     {
         private readonly IApiService _apiService;
         private readonly ILogger<AccountController> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-        public AccountController(IApiService apiService, ILogger<AccountController> logger)
+        public AccountController(
+            IApiService apiService,
+            ILogger<AccountController> logger,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _apiService = apiService;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
-
         [HttpGet]
-        
         public IActionResult Login(string? returnUrl = null)
         {
             if (User.Identity?.IsAuthenticated == true)
@@ -327,8 +44,7 @@ namespace EmployeeManagement.UI.Controllers
         }
 
         [HttpPost]
-         
-         public async Task<IActionResult> Login(LoginRequest model, string? returnUrl = null)
+        public async Task<IActionResult> Login(LoginRequest model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
 
@@ -339,7 +55,7 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
-                _logger.LogInformation($"Login attempt for user: {model.UsernameOrEmail}");
+                _logger.LogInformation("Login attempt for user: {Username}", model.UsernameOrEmail);
 
                 var result = await _apiService.PostAsync<AuthResponse>("api/auth/login", model);
 
@@ -352,53 +68,67 @@ namespace EmployeeManagement.UI.Controllers
 
                 if (!result.Status || result.Data == null)
                 {
-                    _logger.LogWarning($"Login failed for user {model.UsernameOrEmail}: {result.Message}");
+                    _logger.LogWarning("Login failed for user {Username}: {Message}", model.UsernameOrEmail, result.Message);
                     ModelState.AddModelError("", result.Message ?? "Invalid username or password");
                     return View(model);
                 }
 
                 var authData = result.Data;
 
-                // ✅ Log received data for debugging
-                _logger.LogInformation($"Login successful for user: {authData.Username}");
-                _logger.LogInformation($"Roles received: {string.Join(", ", authData.Roles ?? new List<string>())}");
-                _logger.LogInformation($"Permissions received: {string.Join(", ", authData.Permissions ?? new List<string>())}");
+                _logger.LogInformation("Login successful for user: {Username}", authData.Username);
+                _logger.LogInformation("ProfilePicture from API: {ProfilePicture}", authData.ProfilePicture ?? "NULL");
 
-                // ✅ Store tokens and data in session
-                HttpContext.Session.SetString("AccessToken", authData.AccessToken);
+                // ✅ Clear old session first
+                HttpContext.Session.Clear();
+
+                // ✅ Store in session
+                HttpContext.Session.SetString("AccessToken", authData.AccessToken ?? "");
                 HttpContext.Session.SetString("RefreshToken", authData.RefreshToken ?? "");
                 HttpContext.Session.SetString("UserId", authData.UserId.ToString());
-                HttpContext.Session.SetString("Username", authData.Username);
-                HttpContext.Session.SetString("Email", authData.Email ?? "");           // ✅ Add this
-                HttpContext.Session.SetString("FullName", authData.FullName ?? authData.Username);  // ✅ Add this
+                HttpContext.Session.SetString("Username", authData.Username ?? "");
+                HttpContext.Session.SetString("Email", authData.Email ?? "");
+                HttpContext.Session.SetString("FullName", authData.FullName ?? authData.Username ?? "");
+                HttpContext.Session.SetString("Roles", string.Join(",", authData.Roles ?? new List<string>()));
+                HttpContext.Session.SetString("Permissions", string.Join(",", authData.Permissions ?? new List<string>()));
 
-                HttpContext.Session.SetString("Roles", JsonSerializer.Serialize(authData.Roles ?? new List<string>()));
-                HttpContext.Session.SetString("Permissions", JsonSerializer.Serialize(authData.Permissions ?? new List<string>()));
-
-                // ✅ Create claims list
-                var claims = new List<Claim>
+                // ✅ Store ProfilePicture with full URL
+                var profilePicture = "";
+                if (!string.IsNullOrEmpty(authData.ProfilePicture))
                 {
-                    new Claim(ClaimTypes.NameIdentifier, authData.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, authData.Username),
-                    new Claim(ClaimTypes.Email, authData.Email ?? ""),
-                    new Claim("FullName", authData.FullName ?? authData.Username)
-                };
+                    if (authData.ProfilePicture.StartsWith("http"))
+                    {
+                        profilePicture = authData.ProfilePicture;
+                    }
+                    else
+                    {
+                        var apiBaseUrl = _configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7192";
+                        profilePicture = $"{apiBaseUrl}{authData.ProfilePicture}";
+                    }
+                }
 
-                // ✅ Add role claims - IMPORTANT!
+                HttpContext.Session.SetString("ProfilePicture", profilePicture);
+                _logger.LogInformation("ProfilePicture stored in session: {Url}", profilePicture);
+
+                // ✅ Create claims
+                var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, authData.UserId.ToString()),
+            new Claim(ClaimTypes.Name, authData.Username ?? ""),
+            new Claim(ClaimTypes.Email, authData.Email ?? ""),
+            new Claim("FullName", authData.FullName ?? authData.Username ?? ""),
+            new Claim("ProfilePicture", profilePicture)
+        };
+
+                // Add role claims
                 if (authData.Roles != null && authData.Roles.Any())
                 {
                     foreach (var role in authData.Roles)
                     {
                         claims.Add(new Claim(ClaimTypes.Role, role));
-                        _logger.LogInformation($"Added role claim: {role}");
                     }
                 }
-                else
-                {
-                    _logger.LogWarning("No roles found in auth response!");
-                }
 
-                // ✅ Add permission claims
+                // Add permission claims
                 if (authData.Permissions != null && authData.Permissions.Any())
                 {
                     foreach (var permission in authData.Permissions)
@@ -407,14 +137,9 @@ namespace EmployeeManagement.UI.Controllers
                     }
                 }
 
-                // ✅ Create identity and principal
-                var identity = new ClaimsIdentity(
-                    claims,
-                    CookieAuthenticationDefaults.AuthenticationScheme);
-
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
-                // ✅ Sign in with authentication properties
                 var authProperties = new AuthenticationProperties
                 {
                     IsPersistent = model.RememberMe,
@@ -427,26 +152,22 @@ namespace EmployeeManagement.UI.Controllers
                     principal,
                     authProperties);
 
-                _logger.LogInformation($"User {authData.Username} signed in successfully with roles: {string.Join(", ", authData.Roles ?? new List<string>())}");
+                _logger.LogInformation("User {Username} signed in successfully", authData.Username);
 
-                // ✅ Redirect based on role or return URL
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
                     return Redirect(returnUrl);
                 }
 
-                // Redirect based on role
                 return RedirectBasedOnRole(authData.Roles);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Login error for user {model.UsernameOrEmail}");
+                _logger.LogError(ex, "Login error for user {Username}", model.UsernameOrEmail);
                 ModelState.AddModelError("", "An error occurred during login. Please try again.");
                 return View(model);
             }
         }
-
-
         [HttpGet]
         public IActionResult Register()
         {
@@ -473,7 +194,7 @@ namespace EmployeeManagement.UI.Controllers
                 roleId = model.RoleId
             };
 
-            var result = await _apiService.PostAsync<AuthResponse >("api/auth/register", apiModel);
+            var result = await _apiService.PostAsync<AuthResponse>("api/auth/register", apiModel);
 
             if (result == null || !result.Status)
             {
@@ -496,26 +217,20 @@ namespace EmployeeManagement.UI.Controllers
         }
 
         [HttpPost]
-         public async Task<IActionResult> Logout()
+        [Authorize]
+        public async Task<IActionResult> Logout()
         {
-            // Clear session
             HttpContext.Session.Clear();
-
-            // Sign out
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
             _logger.LogInformation("User logged out");
-
             return RedirectToAction("Login");
         }
-
 
         public IActionResult AccessDenied()
         {
             return View();
         }
 
-        // AJAX endpoint for token refresh
         [HttpPost]
         public async Task<IActionResult> RefreshToken()
         {
@@ -527,21 +242,21 @@ namespace EmployeeManagement.UI.Controllers
                 return Json(new { success = false });
             }
 
-            // ✅ FIX: Use AuthResponseDto instead of AuthResponse
             var result = await _apiService.PostAsync<AuthResponse>("api/auth/refresh-token",
                 new { AccessToken = accessToken, RefreshToken = refreshToken });
 
-            if (result == null || !result.Status)
+            if (result == null || !result.Status || result.Data == null)
             {
                 HttpContext.Session.Clear();
                 return Json(new { success = false });
             }
 
-            HttpContext.Session.SetString("AccessToken", result.Data!.AccessToken);
-            HttpContext.Session.SetString("RefreshToken", result.Data.RefreshToken);
+            HttpContext.Session.SetString("AccessToken", result.Data.AccessToken);
+            HttpContext.Session.SetString("RefreshToken", result.Data.RefreshToken ?? "");
 
             return Json(new { success = true, token = result.Data.AccessToken });
         }
+
         private IActionResult RedirectBasedOnRole(List<string>? roles)
         {
             if (roles == null || !roles.Any())
@@ -551,29 +266,15 @@ namespace EmployeeManagement.UI.Controllers
             }
 
             if (roles.Contains("Admin"))
-            {
                 return RedirectToAction("Index", "Dashboard");
-            }
-            else if (roles.Contains("HR"))
-            {
+            else if (roles.Contains("HR") || roles.Contains("Employee"))
                 return RedirectToAction("Index", "Employee");
-            }
-            else if (roles.Contains("Employee"))
-            {
-                return RedirectToAction("Index", "Employee");
-            }
             else
-            {
                 return RedirectToAction("Index", "Home");
-            }
         }
-
 
         #region Password Management
 
-        /// <summary>
-        /// Change Password - GET
-        /// </summary>
         [HttpGet]
         [Authorize]
         public IActionResult ChangePassword()
@@ -581,12 +282,9 @@ namespace EmployeeManagement.UI.Controllers
             return View(new ChangePasswordViewModel());
         }
 
-        /// <summary>
-        /// Change Password - POST
-        /// </summary>
         [HttpPost]
         [Authorize]
-        
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
         {
             if (!ModelState.IsValid)
@@ -596,38 +294,34 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
-                var token = HttpContext.Session.GetString("AccessToken"); // ✅ Get token
+                var token = HttpContext.Session.GetString("AccessToken");
 
                 var request = new
                 {
                     CurrentPassword = model.CurrentPassword,
                     NewPassword = model.NewPassword,
-                    ConfirmNewPassword = model.ConfirmNewPassword
+                    ConfirmPassword = model.ConfirmPassword
                 };
 
-                var result = await _apiService.PostAsync<object>("api/auth/change-password", request, token); // ✅ Pass token
-
+                var result = await _apiService.PostAsync<object>("api/auth/change-password", request, token);
 
                 if (result == null || !result.Status)
                 {
-                    ModelState.AddModelError("", result?.Message ?? "Failed to change password");
+                    TempData["ErrorMessage"] = result?.Message ?? "Current password is invalid. Please enter valid password";
                     return View(model);
                 }
 
                 TempData["SuccessMessage"] = "Password changed successfully!";
-                return RedirectToAction("Index", "Employee");
+                return RedirectToAction("Profile");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error changing password");
-                ModelState.AddModelError("", "An error occurred while changing password");
+                TempData["ErrorMessage"] = "An error occurred while changing password";
                 return View(model);
             }
         }
 
-        /// <summary>
-        /// Forgot Password - GET
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         public IActionResult ForgotPassword()
@@ -635,9 +329,6 @@ namespace EmployeeManagement.UI.Controllers
             return View(new ForgotPasswordViewModel());
         }
 
-        /// <summary>
-        /// Forgot Password - POST
-        /// </summary>
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -650,9 +341,7 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
-                var result = await _apiService.PostAsync<bool>("api/auth/forgot-password", new { Email = model.Email });
-
-                // Always show success to prevent email enumeration
+                await _apiService.PostAsync<bool>("api/auth/forgot-password", new { Email = model.Email });
                 TempData["SuccessMessage"] = "If the email exists in our system, you will receive a password reset link shortly.";
                 return RedirectToAction("ForgotPasswordConfirmation");
             }
@@ -664,9 +353,6 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        /// <summary>
-        /// Forgot Password Confirmation
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         public IActionResult ForgotPasswordConfirmation()
@@ -674,9 +360,6 @@ namespace EmployeeManagement.UI.Controllers
             return View();
         }
 
-        /// <summary>
-        /// Reset Password - GET
-        /// </summary>
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(string token, string email)
@@ -689,7 +372,6 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
-                // Validate token
                 var result = await _apiService.GetAsync<bool>($"api/auth/validate-reset-token?token={token}");
 
                 if (result == null || !result.Status)
@@ -714,9 +396,6 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        /// <summary>
-        /// Reset Password - POST
-        /// </summary>
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -756,17 +435,14 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        /// <summary>
-        /// Admin Reset Password - GET
-        /// </summary>
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminResetPassword(int userId)
         {
             try
             {
-                // Get user details
-                var user = await _apiService.GetAsync<UserModel>($"api/users/{userId}");
+                var token = HttpContext.Session.GetString("AccessToken");
+                var user = await _apiService.GetAsync<UserModel>($"api/users/{userId}", token);
 
                 if (user == null || !user.Status || user.Data == null)
                 {
@@ -791,9 +467,6 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        /// <summary>
-        /// Admin Reset Password - POST
-        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
@@ -806,6 +479,8 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
+                var token = HttpContext.Session.GetString("AccessToken");
+
                 var request = new
                 {
                     UserId = model.UserId,
@@ -814,7 +489,7 @@ namespace EmployeeManagement.UI.Controllers
                     SendEmailNotification = model.SendEmailNotification
                 };
 
-                var result = await _apiService.PostAsync<bool>("api/auth/reset-password-admin", request);
+                var result = await _apiService.PostAsync<bool>("api/auth/reset-password-admin", request, token);
 
                 if (result == null || !result.Status)
                 {
@@ -830,6 +505,346 @@ namespace EmployeeManagement.UI.Controllers
                 _logger.LogError(ex, "Error in admin reset password for user {UserId}", model.UserId);
                 ModelState.AddModelError("", "An error occurred while resetting password");
                 return View(model);
+            }
+        }
+
+        #endregion
+
+
+
+        #region Profile Management
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            try
+            {
+                var token = HttpContext.Session.GetString("AccessToken");
+
+                _logger.LogInformation("=== Profile GET Started ===");
+                _logger.LogInformation("Token exists: {HasToken}", !string.IsNullOrEmpty(token));
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("No token found, redirecting to Login");
+                    return RedirectToAction("Login");
+                }
+
+                // ✅ Call API
+                _logger.LogInformation("Calling API: api/Profile");
+                var result = await _apiService.GetAsync<ProfileViewModel>("api/Profile", token);
+
+                // ✅ Debug: Log what we received
+                _logger.LogInformation("API Result - IsNull: {IsNull}", result == null);
+
+                if (result != null)
+                {
+                    _logger.LogInformation("API Result - Status: {Status}", result.Status);
+                    _logger.LogInformation("API Result - Message: {Message}", result.Message ?? "null");
+                    _logger.LogInformation("API Result - Data IsNull: {DataIsNull}", result.Data == null);
+                    _logger.LogInformation("API Result - StatusCode: {StatusCode}", result.StatusCode);
+
+                    if (result.Data != null)
+                    {
+                        _logger.LogInformation("Profile Data - Username: {Username}", result.Data.Username);
+                        _logger.LogInformation("Profile Data - Email: {Email}", result.Data.Email);
+                        _logger.LogInformation("Profile Data - ProfilePicture: {ProfilePic}", result.Data.ProfilePicture ?? "null");
+                    }
+                }
+
+                // ✅ Check result
+                if (result != null && result.Status && result.Data != null)
+                {
+                    var profile = result.Data;
+
+                    // Build full URL for profile picture
+                    if (!string.IsNullOrEmpty(profile.ProfilePicture) && !profile.ProfilePicture.StartsWith("http"))
+                    {
+                        var apiBaseUrl = _configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7192";
+                        profile.ProfilePicture = $"{apiBaseUrl}{profile.ProfilePicture}";
+                        _logger.LogInformation("Built ProfilePicture URL: {Url}", profile.ProfilePicture);
+                    }
+
+                    // Update session
+                    HttpContext.Session.SetString("ProfilePicture", profile.ProfilePicture ?? "");
+
+                    _logger.LogInformation("Returning Profile view with data");
+                    return View(profile);
+                }
+
+                // ✅ If we reach here, something failed
+                _logger.LogWarning("Profile load failed - Creating fallback from session");
+
+                var profileFromSession = new ProfileViewModel
+                {
+                    Username = HttpContext.Session.GetString("Username") ?? "Unknown",
+                    Email = HttpContext.Session.GetString("Email") ?? "Unknown",
+                    FullName = HttpContext.Session.GetString("FullName") ?? "Unknown",
+                    FirstName = HttpContext.Session.GetString("FullName")?.Split(' ').FirstOrDefault() ?? "",
+                    LastName = HttpContext.Session.GetString("FullName")?.Split(' ').LastOrDefault() ?? "",
+                    ProfilePicture = HttpContext.Session.GetString("ProfilePicture") ?? ""
+                };
+
+                _logger.LogInformation("Returning Profile view with session data");
+                return View(profileFromSession);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading profile");
+                TempData["Error"] = "Failed to load profile";
+                return RedirectToAction("Index", "Home");
+            }
+        }
+
+        /// <summary>
+        /// Edit Profile - GET (Load profile data for editing)
+        /// </summary>
+        // Update EditProfile method in MVC ProfileController.cs
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> EditProfile(int id)
+        {
+            try
+            {
+                _logger.LogInformation("=== EditProfile Called with ID: {Id} ===", id);
+
+                // ✅ Check if ID is valid
+                if (id <= 0)
+                {
+                    _logger.LogWarning("Invalid ID: {Id}", id);
+                    TempData["Error"] = "Invalid user ID";
+                    return RedirectToAction("Profile");
+                }
+
+                var token = HttpContext.Session.GetString("AccessToken");
+                _logger.LogInformation("Token exists: {HasToken}", !string.IsNullOrEmpty(token));
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("No access token found");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                // ✅ Log the API URL being called
+                var apiUrl = $"api/Profile/{id}";
+                _logger.LogInformation("Calling API: {ApiUrl}", apiUrl);
+
+                var result = await _apiService.GetAsync<ProfileViewModel>(apiUrl, token);
+
+                // ✅ Log the result
+                _logger.LogInformation("API Result - IsNull: {IsNull}, Status: {Status}, HasData: {HasData}",
+                    result == null,
+                    result?.Status,
+                    result?.Data != null);
+
+                if (result != null && result.Status && result.Data != null)
+                {
+                    var profile = result.Data;
+                    _logger.LogInformation("Profile loaded: {FullName}", profile.FullName);
+
+                    // Build full URL for profile picture
+                    if (!string.IsNullOrEmpty(profile.ProfilePicture) && !profile.ProfilePicture.StartsWith("http"))
+                    {
+                        var apiBaseUrl = _configuration["ApiSettings:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7192";
+                        profile.ProfilePicture = $"{apiBaseUrl}{profile.ProfilePicture}";
+                    }
+
+                    HttpContext.Session.SetString("ProfilePicture", profile.ProfilePicture ?? "");
+
+                    _logger.LogInformation("Returning EditProfile View");
+                    return View(profile);  // ✅ Should return view here
+                }
+
+                // ✅ Log why it failed
+                _logger.LogWarning("Failed to load profile. Message: {Message}", result?.Message);
+                TempData["Error"] = result?.Message ?? "Failed to load profile";
+                return RedirectToAction("Profile");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception in EditProfile. ID: {Id}, Error: {Message}", id, ex.Message);
+                TempData["Error"] = "Failed to load profile";
+                return RedirectToAction("Profile");
+            }
+        }
+        /// <summary>
+        /// Edit Profile - POST (Save updated profile data)
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> EditProfile(ProfileViewModel model)
+        {
+            _logger.LogInformation("=== EditProfile POST Called ===");
+            _logger.LogInformation("Model ID: {Id}, Name: {FirstName} {LastName}", model.Id, model.FirstName, model.LastName);
+
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("ModelState Invalid");
+                foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    _logger.LogWarning("Validation Error: {Error}", error.ErrorMessage);
+                }
+                return View(model);
+            }
+
+            var token = HttpContext.Session.GetString("AccessToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("No token found");
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                var updateRequest = new UpdateProfileRequest
+                {
+                    Id = model.Id,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    Email = model.Email,
+                    PhoneNumber = model.PhoneNumber,
+                    Address = model.Address,
+                    DateOfBirth = model.DateOfBirth
+                };
+
+                _logger.LogInformation("Calling PUT api/Profile/UpdateProfile");
+
+                var result = await _apiService.PutAsync<ProfileViewModel>(
+                    "api/Profile/UpdateProfile",
+                    updateRequest,
+                    token
+                );
+
+                _logger.LogInformation("API Result - Status: {Status}, Message: {Message}", result?.Status, result?.Message);
+
+                if (result != null && result.Status)
+                {
+                    // ✅ Update session with new values
+                    HttpContext.Session.SetString("FullName", $"{model.FirstName} {model.LastName}");
+                    HttpContext.Session.SetString("Email", model.Email ?? "");
+
+                    TempData["Success"] = "Profile updated successfully!";
+                    return RedirectToAction("Profile");
+                }
+
+                TempData["Error"] = result?.Message ?? "Failed to update profile";
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "EditProfile POST Exception: {Message}", ex.Message);
+                TempData["Error"] = "An error occurred while updating profile";
+                return View(model);
+            }
+        }
+        /// <summary>
+        /// Upload Profile Picture - AJAX
+        /// </summary>
+        /// <summary>
+        /// Upload Profile Picture - AJAX
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file)
+        {
+            try
+            {
+                var token = HttpContext.Session.GetString("AccessToken");
+
+                _logger.LogInformation("=== Upload Profile Picture Started ===");
+                _logger.LogInformation("Token exists: {HasToken}", !string.IsNullOrEmpty(token));
+                _logger.LogInformation("File: {FileName}, Size: {Size}", file?.FileName, file?.Length);
+
+                if (file == null || file.Length == 0)
+                {
+                    _logger.LogWarning("No file received");
+                    return Json(new { success = false, message = "No file selected" });
+                }
+
+                // Validate file size (5MB max)
+                if (file.Length > 5 * 1024 * 1024)
+                {
+                    return Json(new { success = false, message = "File size must be less than 5MB" });
+                }
+
+                // Validate file type
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(file.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    return Json(new { success = false, message = "Only JPG, PNG, and GIF files are allowed" });
+                }
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("No token found");
+                    return Json(new { success = false, message = "Session expired. Please login again." });
+                }
+
+                // Create multipart form content
+                using var content = new MultipartFormDataContent();
+                using var fileStream = file.OpenReadStream();
+                using var streamContent = new StreamContent(fileStream);
+
+                streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(streamContent, "file", file.FileName);
+
+                // Create HttpClient
+                var client = _httpClientFactory.CreateClient("API");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                var apiUrl = "api/Profile/UploadProfilePicture";
+                _logger.LogInformation("Calling API: {Url}", apiUrl);
+
+                // Call API
+                var response = await client.PostAsync(apiUrl, content);
+
+                _logger.LogInformation("API Response Status: {StatusCode}", response.StatusCode);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation("API Response Content: {Content}", responseContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = JsonSerializer.Deserialize<ApiResponse<string>>(responseContent,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (result != null && result.Status && !string.IsNullOrEmpty(result.Data))
+                    {
+                        // ✅ Get API base URL and create full URL
+                        var apiBaseUrl = _configuration["ApiSettings:BaseUrl"]?.TrimEnd('/')
+                            ?? "https://localhost:26024";
+
+                        var fullImageUrl = result.Data.StartsWith("http")
+                            ? result.Data
+                            : $"{apiBaseUrl}{result.Data}";
+
+                        // ✅ Update session
+                        HttpContext.Session.SetString("ProfilePicture", fullImageUrl);
+
+                        _logger.LogInformation("Profile picture uploaded successfully: {Url}", fullImageUrl);
+
+                        return Json(new
+                        {
+                            success = true,
+                            message = "Profile picture uploaded successfully",
+                            imageUrl = fullImageUrl
+                        });
+                    }
+
+                    return Json(new { success = false, message = result?.Message ?? "Upload failed" });
+                }
+
+                _logger.LogError("API failed with status: {StatusCode}, Content: {Content}",
+                    response.StatusCode, responseContent);
+
+                return Json(new { success = false, message = $"Upload failed: {response.StatusCode}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Upload failed with exception");
+                return Json(new { success = false, message = "An error occurred while uploading" });
             }
         }
 

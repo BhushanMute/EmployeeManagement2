@@ -8,6 +8,8 @@ namespace EmployeeManagement.UI.Services
          Task<ApiResponse<T>> PostAsync<T>(string endpoint, object data, string? token = null);
          Task<ApiResponse<T>> PutAsync<T>(string endpoint, object data, string? token = null);
           Task<ApiResponse<T>> DeleteAsync<T>(string endpoint, string? token = null);
-       
+        Task<ApiResponse<T>> PostFormAsync<T>(string endpoint, MultipartFormDataContent content, string? token = null);
+
+
     }
 }

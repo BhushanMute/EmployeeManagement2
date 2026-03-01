@@ -39,6 +39,7 @@ namespace EmployeeManagement.API.Repositories
             _connectionFactory = connectionFactory;
         }
 
+        // In AuthRepository.cs - GetUserByUsernameOrEmailAsync
         public async Task<User?> GetUserByUsernameOrEmailAsync(string usernameOrEmail)
         {
             using var connection = _connectionFactory.CreateConnection();
@@ -60,18 +61,24 @@ namespace EmployeeManagement.API.Repositories
                     PasswordSalt = reader.GetString(reader.GetOrdinal("PasswordSalt")),
                     FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                     LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                    PhoneNumber = reader.IsDBNull(reader.GetOrdinal("PhoneNumber"))
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("PhoneNumber")),
+                    ProfilePicture = reader.IsDBNull(reader.GetOrdinal("ProfilePicture"))  // ✅ Must read this
+                        ? null
+                        : reader.GetString(reader.GetOrdinal("ProfilePicture")),
                     IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
                     IsDeleted = reader.GetBoolean(reader.GetOrdinal("IsDeleted")),
-                    LockoutEndDate = reader.IsDBNull(reader.GetOrdinal("LockoutEndDate"))
-                        ? null : reader.GetDateTime(reader.GetOrdinal("LockoutEndDate")),
+                    EmailConfirmed = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed")),
                     FailedLoginAttempts = reader.GetInt32(reader.GetOrdinal("FailedLoginAttempts")),
-                    EmailConfirmed = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed"))
+                    LockoutEndDate = reader.IsDBNull(reader.GetOrdinal("LockoutEndDate"))
+                        ? null
+                        : reader.GetDateTime(reader.GetOrdinal("LockoutEndDate"))
                 };
             }
 
             return null;
         }
-
         public async Task<(int UserId, string Message)> RegisterUserAsync(User user, int roleId, int? createdBy)
         {
             await using var connection = (SqlConnection)_connectionFactory.CreateConnection();
@@ -512,7 +519,9 @@ namespace EmployeeManagement.API.Repositories
                         fullName = user.FirstName + user.LastName,
                         user.PhoneNumber,
                         user.IsActive,
-                        user.LastLoginDate
+                        user.LastLoginDate,
+                        ProfilePicture = user.ProfilePicture  // ✅ Add this line
+
                     },
                     commandType: CommandType.StoredProcedure
                 );

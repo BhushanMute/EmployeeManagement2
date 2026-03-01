@@ -1,0 +1,368 @@
+﻿@* Views/Account/Profile.cshtml *@
+@model EmployeeManagement.UI.Models.ProfileViewModel
+@{
+    var UserId = Context.Session.GetString("UserId");
+}
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <!-- Profile Card -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center">
+
+                    <!-- Profile Picture Section -->
+                    <div class="mb-3">
+                        <div class="position-relative d-inline-block">
+                            @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                            {
+                                <img src="@Model.ProfilePicture"
+                                     alt="Profile"
+                                     id="profilePreview"
+                                     class="rounded-circle border border-3 border-primary shadow"
+                                     style="width: 150px; height: 150px; object-fit: cover; cursor: pointer;"
+                                     onclick="document.getElementById('profilePictureInput').click()"
+                                     title="Click to change profile picture">
+                            }
+                            else
+                            {
+                                <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center shadow"
+                                     id="profileInitial"
+                                     style="width: 150px; height: 150px; font-size: 3rem; cursor: pointer;"
+                                     onclick="document.getElementById('profilePictureInput').click()"
+                                     title="Click to add profile picture">
+                                    @(Model.FirstName?.FirstOrDefault())@(Model.LastName?.FirstOrDefault())
+                                </div>
+                                <img src=""
+                                     alt="Profile"
+                                     id="profilePreview"
+                                     class="rounded-circle border border-3 border-primary shadow d-none"
+                                     style="width: 150px; height: 150px; object-fit: cover; cursor: pointer;"
+                                     onclick="document.getElementById('profilePictureInput').click()">
+                            }
+
+                            <!-- Camera Icon -->
+                            <div class="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2 shadow"
+                                 style="cursor: pointer; border: 2px solid white;"
+                                 onclick="document.getElementById('profilePictureInput').click()"
+                                 title="Change profile picture">
+                                <i class="fas fa-camera text-white"></i>
+                            </div>
+                        </div>
+
+                        <!-- Hidden File Input -->
+                        <input type="file"
+                               id="profilePictureInput"
+                               accept="image/jpeg,image/png,image/gif"
+                               class="d-none"
+                               onchange="handleProfilePictureSelect(this)">
+
+                        <!-- Upload Link -->
+                        <div class="mt-2">
+                            <a href="javascript:void(0)"
+                               onclick="document.getElementById('profilePictureInput').click()"
+                               class="text-primary text-decoration-none small">
+                                <i class="fas fa-camera me-1"></i>
+                                @(string.IsNullOrEmpty(Model.ProfilePicture) ? "Add Photo" : "Change Photo")
+                            </a>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div id="uploadProgress" class="mt-2 d-none">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <small class="text-muted ms-2">Uploading...</small>
+                        </div>
+
+                        <!-- Upload Message -->
+                        <div id="uploadMessage" class="mt-2"></div>
+                    </div>
+
+                    <h4 class="mb-1">@Model.FullName</h4>
+                    <p class="text-muted mb-2">@Model.Email</p>
+
+                    @if (Model.Roles != null && Model.Roles.Any())
+                    {
+                        @foreach (var role in Model.Roles)
+                        {
+                            <span class="badge bg-primary me-1">@role</span>
+                        }
+                    }
+
+                    <hr>
+
+                    <div class="d-grid gap-2">
+                        <a asp-action="EditProfile" asp-route-id="@UserId" class="btn btn-outline-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Profile
+                        </a>
+                        <a asp-action="ChangePassword" asp-route-id="@UserId" class="btn btn-outline-secondary">
+                            <i class="fas fa-key me-2"></i>Change Password
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="col-lg-8">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <!-- Personal Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h6>
+                    <a asp-action="EditProfile" asp-route-id="@UserId" class="btn btn-outline-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">First Name</label></div>
+                        <div class="col-sm-8"><strong>@Model.FirstName</strong></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Last Name</label></div>
+                        <div class="col-sm-8"><strong>@Model.LastName</strong></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Username</label></div>
+                        <div class="col-sm-8"><strong>@Model.Username</strong></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Email</label></div>
+                        <div class="col-sm-8"><strong>@Model.Email</strong></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Phone</label></div>
+                        <div class="col-sm-8"><strong>@(Model.PhoneNumber ?? "Not provided")</strong></div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Date of Birth</label></div>
+                        <div class="col-sm-8"><strong>@(Model.DateOfBirth?.ToString("MMMM dd, yyyy") ?? "Not provided")</strong></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-4"><label class="text-muted">Address</label></div>
+                        <div class="col-sm-8"><strong>@(Model.Address ?? "Not provided")</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Status -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Account Status</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Status</label></div>
+                        <div class="col-sm-8">
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Inactive</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-sm-4"><label class="text-muted">Member Since</label></div>
+                        <div class="col-sm-8"><strong>@Model.CreatedDate.ToString("MMMM dd, yyyy")</strong></div>
+                    </div>
+                    @if (Model.LastLoginDate.HasValue)
+                    {
+                        <div class="row">
+                            <div class="col-sm-4"><label class="text-muted">Last Login</label></div>
+                            <div class="col-sm-8"><strong>@Model.LastLoginDate.Value.ToString("MMMM dd, yyyy hh:mm tt")</strong></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        // Handle file selection
+        function handleProfilePictureSelect(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+
+                // Validate file
+                if (!validateFile(file)) {
+                    input.value = '';
+                    return;
+                }
+
+                // Preview image
+                previewImage(file);
+
+                // Upload via AJAX
+                uploadProfilePicture(file);
+            }
+        }
+
+        // Validate file
+        function validateFile(file) {
+            var maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                showMessage('File size must be less than 5MB', 'danger');
+                return false;
+            }
+
+            var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Only JPG, PNG, and GIF files are allowed', 'danger');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Preview image
+        function previewImage(file) {
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                var preview = document.getElementById('profilePreview');
+                var initial = document.getElementById('profileInitial');
+
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+
+                if (initial) {
+                    initial.classList.add('d-none');
+                }
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Upload profile picture via AJAX
+        function uploadProfilePicture(file) {
+            var formData = new FormData();
+            formData.append('file', file);
+
+            // Show progress
+            document.getElementById('uploadProgress').classList.remove('d-none');
+            document.getElementById('uploadMessage').innerHTML = '';
+
+            $.ajax({
+                url: '@Url.Action("UploadProfilePicture", "Account")',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+
+                    if (response.success) {
+                        showMessage('Profile picture updated successfully!', 'success');
+
+                        // Update profile page image
+                        if (response.imageUrl) {
+                            var timestamp = new Date().getTime();
+                            var newImageUrl = response.imageUrl + '?t=' + timestamp;
+
+                            // ✅ Update profile page preview
+                            var preview = document.getElementById('profilePreview');
+                            if (preview) {
+                                preview.src = newImageUrl;
+                                preview.classList.remove('d-none');
+                            }
+
+                            // ✅ Hide initials
+                            var initial = document.getElementById('profileInitial');
+                            if (initial) {
+                                initial.classList.add('d-none');
+                            }
+
+                            // ✅ Update navbar profile picture
+                            updateNavbarProfilePicture(newImageUrl);
+                        }
+                    } else {
+                        showMessage(response.message || 'Failed to upload', 'danger');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+                    showMessage('Error uploading profile picture', 'danger');
+                    console.error('Upload error:', error);
+                }
+            });
+        }
+
+        // ✅ Update navbar profile picture
+        function updateNavbarProfilePicture(imageUrl) {
+            // Update navbar small image
+            var navbarImg = document.getElementById('navbarProfileImg');
+            if (navbarImg) {
+                navbarImg.src = imageUrl;
+                navbarImg.style.display = 'block';
+                navbarImg.classList.remove('d-none');
+            }
+
+            // Hide navbar initials
+            var navbarInitials = document.getElementById('navbarProfileInitials');
+            if (navbarInitials) {
+                navbarInitials.classList.add('d-none');
+                navbarInitials.style.display = 'none';
+            }
+
+            // Update dropdown header image
+            var dropdownImg = document.getElementById('dropdownProfileImg');
+            if (dropdownImg) {
+                dropdownImg.src = imageUrl;
+                dropdownImg.style.display = 'block';
+                dropdownImg.classList.remove('d-none');
+            }
+
+            // Hide dropdown initials
+            var dropdownInitials = document.getElementById('dropdownProfileInitials');
+            if (dropdownInitials) {
+                dropdownInitials.classList.add('d-none');
+                dropdownInitials.style.display = 'none';
+            }
+
+            console.log('Navbar profile picture updated:', imageUrl);
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show py-2 mb-0" role="alert">' +
+                '<i class="fas ' + icon + ' me-1"></i>' +
+                '<small>' + message + '</small>' +
+                '<button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>' +
+                '</div>';
+
+            document.getElementById('uploadMessage').innerHTML = html;
+
+            setTimeout(function () {
+                var alert = document.querySelector('#uploadMessage .alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}

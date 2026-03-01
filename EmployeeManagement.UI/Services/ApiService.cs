@@ -61,6 +61,25 @@ namespace EmployeeManagement.UI.Services
             return client;
         }
 
+        public async Task<ApiResponse<T>> PostFormAsync<T>(string endpoint, MultipartFormDataContent content, string? token = null)
+        {
+            try
+            {
+                var client = CreateClient(token);
+                var response = await client.PostAsync(endpoint, content);
+                return await ProcessResponse<T>(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in PostFormAsync for {Endpoint}", endpoint);
+                return new ApiResponse<T>
+                {
+                    Status = false,
+                    Message = ex.Message,
+                    Data = default
+                };
+            }
+        }
 
 
         private async Task<ApiResponse<T>> ProcessResponse<T>(HttpResponseMessage response)

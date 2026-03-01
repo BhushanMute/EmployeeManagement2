@@ -46,5 +46,7 @@ namespace EmployeeManagement.API.Models
 
         public List<UserRole> Roles { get; set; } = new();
         public List<Permission> Permissions { get; set; } = new();
-     }
+        public string? ProfilePicture { get; set; }  // ✅ Must have this
+
+    }
 }

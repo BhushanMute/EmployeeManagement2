@@ -96,6 +96,7 @@
 
 	<ItemGroup>
 	  <Folder Include="SQl_Script\" />
+	  <Folder Include="wwwroot\uploads\profiles\" />
 	</ItemGroup>
 
 </Project>

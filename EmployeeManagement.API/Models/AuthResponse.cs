@@ -15,6 +15,8 @@
         public DateTime TokenExpiry { get; set; }
         public List<string> Roles { get; set; } = new();
         public List<string> Permissions { get; set; } = new();
+        public string? ProfilePicture { get; set; }  // ✅ Must have this
+
 
     }
 }
