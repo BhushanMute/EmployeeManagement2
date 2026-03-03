@@ -241,6 +241,11 @@ builder.Services.AddHttpClient("API", client =>
 })
 .AddPolicyHandler(GetRetryPolicy())
 .AddPolicyHandler(GetCircuitBreakerPolicy());
+builder.Services.AddHttpClient("EmployeeAPI", client =>
+{
+    client.BaseAddress = new Uri("http://localhost:26024/");  // ✅ Your API URL
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 // =============================================
 // REGISTER SERVICES

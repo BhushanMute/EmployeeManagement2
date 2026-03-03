@@ -50,14 +50,14 @@ namespace EmployeeManagement.API.Controllers
 
         [HttpGet]
         //[Authorize(Roles = "Employee,HR,Admin")]
-        [AuthorizePermission("Employee.View")]
-        public async Task<ActionResult<ApiResponse<List<Employee>>>> GetAll()
+         public async Task<ActionResult<ApiResponse<List<Employee>>>> GetAll()
         {
             try
             {
                 _logger.LogInformation("User {UserId} requesting all employees", GetCurrentUserId());
 
                 var employees = await _repo.GetAll();
+
 
                 return Ok(ApiResponse<List<Employee>>.Success(employees, "Employees retrieved successfully"));
             }

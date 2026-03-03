@@ -1,16 +1,17 @@
 ﻿ 
 @{
-    ViewData["Title"] = "Employees";
+    ViewData["Title"] = "Employee";
     var permissions = Context.Session.GetString("Permissions")?.Split(',') ?? Array.Empty<string>();
     var canCreate = permissions.Contains("Employee.Create");
     var canUpdate = permissions.Contains("Employee.Update");
     var canDelete = permissions.Contains("Employee.Delete");
     var canExport = permissions.Contains("Employee.Export");
     var canImport = permissions.Contains("Employee.Import");
+    var canVeiw = permissions.Contains("Employee.View");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-users me-2"></i>Employees</h2>
+    <h2><i class="fas fa-users me-2"></i>Employee</h2>
     <div>
         @if (canImport)
         {
@@ -148,39 +149,29 @@
             });
         });
 
-        function loadEmployees() {
-            var params = {
-                pageNumber: currentPage,
-                pageSize: pageSize,
-                searchTerm: $('#searchTerm').val(),
-                department: $('#filterDepartment').val(),
-                isActive: $('#filterStatus').val()
-            };
-
+                         function loadEmployees() {
             $.ajax({
-                url: '/api/employees',
+                url: '/Employee/GetEmployees',  // ✅ New action
                 type: 'GET',
-                data: params,
                 success: function(response) {
+                    console.log("Success:", response);
                     if (response.status) {
                         renderTable(response.data);
-                        renderPagination(response.data.totalPages, response.data.pageNumber);
                     }
                 },
-                error: function(xhr) {
-                    if (xhr.status === 401) {
-                        window.location.href = '/Account/Login';
-                    } else {
-                        alert('Error loading employees');
-                    }
+                error: function(xhr, status, error) {
+                    console.log("Status Code:", xhr.status);
+                    console.log("Error:", error);
+                    console.log("Response:", xhr.responseText);
+                    alert('Error loading employees');
                 }
             });
         }
 
-        function renderTable(data) {
+               function renderTable(employees) {
             var html = '';
-            if (data.items && data.items.length > 0) {
-                data.items.forEach(function(emp) {
+            if (employees && employees.length > 0) {
+                employees.forEach(function(emp) {
                     html += '<tr>';
                     html += '<td>' + emp.id + '</td>';
                     html += '<td>' + emp.name + '</td>';
@@ -191,12 +182,12 @@
                         ? '<span class="badge bg-success">Active</span>'
                         : '<span class="badge bg-secondary">Inactive</span>') + '</td>';
                     html += '<td>';
-                    html += '<a href="/Employee/Details/' + emp.id + '" class="btn btn-sm btn-outline-info me-1" title="View"><i class="fas fa-eye"></i></a>';
+                    html += '<a href="/Employee/Details/' + emp.id + '" class="btn btn-sm btn-outline-info me-1"><i class="fas fa-eye"></i></a>';
                     if (canUpdate) {
-                        html += '<a href="/Employee/Edit/' + emp.id + '" class="btn btn-sm btn-outline-primary me-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                        html += '<a href="/Employee/Edit/' + emp.id + '" class="btn btn-sm btn-outline-primary me-1"><i class="fas fa-edit"></i></a>';
                     }
                     if (canDelete) {
-                        html += '<button class="btn btn-sm btn-outline-danger" onclick="showDeleteModal(' + emp.id + ')" title="Delete"><i class="fas fa-trash"></i></button>';
+                        html += '<button class="btn btn-sm btn-outline-danger" onclick="showDeleteModal(' + emp.id + ')"><i class="fas fa-trash"></i></button>';
                     }
                     html += '</td>';
                     html += '</tr>';
@@ -229,7 +220,7 @@
 
         function deleteEmployee(id) {
             $.ajax({
-                url: '/api/employees/' + id,
+                url: '/api/Employee/' + id,
                 type: 'DELETE',
                 success: function(response) {
                     $('#deleteModal').modal('hide');
@@ -241,7 +232,7 @@
                 error: function(xhr) {
                     $('#deleteModal').modal('hide');
                     if (xhr.status === 403) {
-                        alert('You do not have permission to delete employees');
+                        alert('You do not have permission to delete Employee');
                     } else {
                         alert('Error deleting employee');
                     }

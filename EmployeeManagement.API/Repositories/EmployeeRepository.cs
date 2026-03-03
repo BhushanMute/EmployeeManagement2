@@ -1,4 +1,5 @@
-﻿using EmployeeManagement.API.Models;
+﻿using EmployeeManagement.API.Common;
+using EmployeeManagement.API.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Text;
@@ -770,25 +771,25 @@ namespace EmployeeManagement.API.Repositories
             return new Employee
             {
                 Id = reader.GetInt32("Id"),
-                Name = reader["Name"].ToString() ?? string.Empty,
-                Email = reader["Email"].ToString() ?? string.Empty,
+                Name = reader["Name"]?.ToString() ?? string.Empty,
+                Email = reader["Email"]?.ToString() ?? string.Empty,
                 DepartmentId = reader.GetInt32("DepartmentId"),
-                DepartmentName = reader["DepartmentName"]?.ToString(),
+                DepartmentName = reader.GetNullableString("DepartmentName"),
                 Salary = reader.GetDecimal("Salary"),
-                PhoneNumber = reader["PhoneNumber"]?.ToString(),
-                Address = reader["Address"]?.ToString(),
-                DateOfBirth = reader["DateOfBirth"] == DBNull.Value ? null : reader.GetDateTime("DateOfBirth"),
-                JoiningDate = reader["JoiningDate"] == DBNull.Value ? null : reader.GetDateTime("JoiningDate"),
-                ProfileImagePath = reader["ProfileImagePath"]?.ToString(),
-                Role = reader["Role"]?.ToString(),
+                PhoneNumber = reader.GetNullableString("PhoneNumber"),
+                Address = reader.GetNullableString("Address"),
+                DateOfBirth = reader.GetNullableDateTime("DateOfBirth"),
+                JoiningDate = reader.GetNullableDateTime("JoiningDate"),
+                ProfileImagePath = reader.GetNullableString("ProfileImagePath"),
+                Role = reader.GetNullableString("Role"),
                 IsActive = reader.GetBoolean("IsActive"),
                 IsDeleted = reader.GetBoolean("IsDeleted"),
-                CreatedBy = reader["CreatedBy"] == DBNull.Value ? null : reader.GetInt32("CreatedBy"),
+                CreatedBy = reader.GetNullableInt32("CreatedBy"),
                 CreatedDate = reader.GetDateTime("CreatedDate"),
-                UpdatedBy = reader["UpdatedBy"] == DBNull.Value ? null : reader.GetInt32("UpdatedBy"),
-                UpdatedDate = reader["UpdatedDate"] == DBNull.Value ? null : reader.GetDateTime("UpdatedDate"),
-                DeletedBy = reader["DeletedBy"] == DBNull.Value ? null : reader.GetInt32("DeletedBy"),
-                DeletedDate = reader["DeletedDate"] == DBNull.Value ? null : reader.GetDateTime("DeletedDate")
+                UpdatedBy = reader.GetNullableInt32("UpdatedBy"),
+                UpdatedDate = reader.GetNullableDateTime("UpdatedDate"),
+                DeletedBy = reader.GetNullableInt32("DeletedBy"),
+                DeletedDate = reader.GetNullableDateTime("DeletedDate")
             };
         }
 

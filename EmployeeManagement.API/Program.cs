@@ -233,15 +233,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowMVC", policy =>
     {
-        policy.WithOrigins(
-            "https://localhost:5001",  // MVC HTTPS
-            "http://localhost:5000",   // MVC HTTP
-            "https://localhost:7001",  // Additional ports if needed
-            "http://localhost:7000"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+        policy.WithOrigins("https://localhost:44354")  // ✅ Use HTTPS
+               .AllowAnyHeader()
+               .AllowAnyMethod()
+               .AllowCredentials();
     });
 
     options.AddPolicy("AllowAll", policy =>

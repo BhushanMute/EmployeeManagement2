@@ -4,6 +4,7 @@ using EmployeeManagement.UI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace EmployeeManagement.UI.Controllers
 {
@@ -80,9 +81,13 @@ namespace EmployeeManagement.UI.Controllers
 
                 using var response = await _client.GetAsync("api/Employee");
 
+                // ✅ Read content ONCE
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Status: {response.StatusCode}");
+                Console.WriteLine($"Content: {content}");
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Handle 401/403 explicitly
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
                         response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
@@ -90,14 +95,15 @@ namespace EmployeeManagement.UI.Controllers
                         return RedirectToAction("Login", "Account");
                     }
 
-                    var errorText = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"API returned error {response.StatusCode}: {errorText}");
+                    _logger.LogError($"API returned error {response.StatusCode}: {content}");
                     TempData["Error"] = "Failed to fetch employees from API.";
                     return View(new List<EmployeeViewModel>());
                 }
 
-                // Now safe to deserialize
-                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse<List<EmployeeViewModel>>>();
+                // ✅ Use already read content (don't read again)
+                var apiResponse = JsonSerializer.Deserialize<ApiResponse<List<EmployeeViewModel>>>(content,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
                 var employees = apiResponse?.Data ?? new List<EmployeeViewModel>();
                 employees = employees.OrderBy(e => e.Id).ToList();
 
@@ -149,7 +155,29 @@ namespace EmployeeManagement.UI.Controllers
                 return HandleHttpError(ex, nameof(Create));
             }
         }
+        [HttpGet]
+        public async Task<IActionResult> GetEmployees()
+        {
+            try
+            {
+                SetAuthorizationHeader();
 
+                using var response = await _client.GetAsync("api/Employee");
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Json(new { status = false, message = "Error fetching employees" });
+                }
+
+                return Content(content, "application/json");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetEmployees");
+                return Json(new { status = false, message = "Error loading employees" });
+            }
+        }
         [HttpPost]
          public async Task<IActionResult> Create(EmployeeViewModel model)
         {

@@ -37,6 +37,13 @@
             <a class="navbar-brand" asp-controller="Home" asp-action="Index">
                 <i class="fas fa-users-cog me-2"></i>Employee Management
             </a>
+            @if (isManager)
+            {
+                <a class="navbar-brand" asp-controller="Diagnostics" asp-action="Index">
+                    <i class="fas fa-users-cog me-2"></i>Diagnostics
+                </a>
+            }
+             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
