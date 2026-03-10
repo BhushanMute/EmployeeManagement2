@@ -180,7 +180,7 @@
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <button type="button" class="btn btn-danger"
-                                                            onclick="confirmDelete(@student.StudentId, '@student.FullName')" title="Delete">
+                                                            onclick="confirmDelete(@student.Id, '@student.FullName')" title="Delete">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </div>
@@ -222,32 +222,12 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete student: <strong id="deleteStudentName"></strong>?</p>
-                <p class="text-danger small">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-       
+        // ============================================
+        // FILTER FUNCTIONALITY
+        // ============================================
         const searchBox = document.getElementById('searchBox');
         const classFilter = document.getElementById('classFilter');
         const statusFilter = document.getElementById('statusFilter');
@@ -255,7 +235,6 @@
         const table = document.getElementById('studentsTable');
         const rows = table.querySelectorAll('tbody tr[data-class]');
 
-       
         function applyFilters() {
             const searchTerm = searchBox.value.toLowerCase().trim();
             const selectedClass = classFilter.value;
@@ -268,12 +247,10 @@
                 const rowClass = row.getAttribute('data-class');
                 const rowStatus = row.getAttribute('data-status');
 
-                // Check all filter conditions
                 const matchesSearch = searchTerm === '' || rowText.includes(searchTerm);
                 const matchesClass = selectedClass === '' || rowClass === selectedClass;
                 const matchesStatus = selectedStatus === '' || rowStatus === selectedStatus;
 
-                // Show row only if all conditions match
                 if (matchesSearch && matchesClass && matchesStatus) {
                     row.style.display = '';
                     visibleCount++;
@@ -282,19 +259,16 @@
                 }
             });
 
-            // Update counts
             document.getElementById('visibleCount').textContent = visibleCount;
             document.getElementById('recordCount').textContent = `Showing: ${visibleCount}`;
             document.getElementById('filteredCount').textContent =
                 visibleCount < rows.length ? `(${visibleCount} filtered)` : '';
         }
 
-        // Event listeners for filters
         searchBox.addEventListener('keyup', applyFilters);
         classFilter.addEventListener('change', applyFilters);
         statusFilter.addEventListener('change', applyFilters);
 
-        // Clear all filters
         clearFiltersBtn.addEventListener('click', function() {
             searchBox.value = '';
             classFilter.value = '';
@@ -305,7 +279,6 @@
         // ============================================
         // SELECT ALL CHECKBOX
         // ============================================
-
         const selectAllCheckbox = document.getElementById('selectAll');
         const rowCheckboxes = document.querySelectorAll('.row-checkbox');
 
@@ -321,16 +294,12 @@
         // ============================================
         // EXPORT FILTERED DATA
         // ============================================
-
         document.getElementById('exportFilteredBtn').addEventListener('click', function() {
             const selectedClass = classFilter.value;
             const selectedStatus = statusFilter.value;
             const searchTerm = searchBox.value;
 
-             // Build query string
-            // let url = '@Url.Action("ExportToExcel", "Student")';
-            //  let url = 'Action="/Student/ExportToExcel"';
-             let url = '/Student/ExportToExcel';
+            let url = '/Student/ExportToExcel';
             const params = new URLSearchParams();
 
             if (selectedClass) params.append('className', selectedClass);
@@ -345,39 +314,81 @@
         });
 
         // ============================================
-        // DELETE CONFIRMATION
+        // DELETE CONFIRMATION WITH SWEETALERT2
         // ============================================
-
-        // function confirmDelete(id, name) {
-        //     document.getElementById('deleteStudentName').textContent = name;
-        //     document.getElementById('deleteForm').action = '/Student/Delete/' + id;
-
-        //     var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        //     modal.show();
-        // }
         function confirmDelete(studentId, name) {
+            Swal.fire({
+                title: 'Delete Student?',
+                html: `
+                    <div class="text-center">
+                        <p class="mb-1">You are about to delete:</p>
+                        <h5 class="text-danger fw-bold">${name}</h5>
+                        <small class="text-muted">This action cannot be undone!</small>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Yes, Delete',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Deleting...',
+                        html: '<div class="spinner-border text-danger" role="status"></div>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false
+                    });
 
-        document.getElementById('deleteStudentName').textContent = name;
-
-        document.getElementById('deleteForm').action =
-            '/Student/Delete/' + studentId;
-
-        var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        modal.show();
-    }
+                    // Submit delete request
+                    fetch(`/Student/DeleteConfirmed/${studentId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: `${name} has been deleted successfully.`,
+                                icon: 'success',
+                                confirmButtonColor: '#28a745',
+                                timer: 2000,
+                                timerProgressBar: true
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Failed to delete student.',
+                                icon: 'error',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Something went wrong.',
+                            icon: 'error',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
+                }
+            });
+        }
 
         // ============================================
         // KEYBOARD SHORTCUTS
         // ============================================
-
         document.addEventListener('keydown', function(e) {
-            // Ctrl + F = Focus search
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
                 searchBox.focus();
             }
-
-            // Escape = Clear filters
             if (e.key === 'Escape') {
                 clearFiltersBtn.click();
             }

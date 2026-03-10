@@ -279,13 +279,12 @@ namespace EmployeeManagement.UI.Controllers
 
         // POST: Student/Delete/{id}
         [HttpPost]
-        public async Task<IActionResult> Delete(string studentId)
+        public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                //var response = await _client.DeleteAsync($"api/Student/Delete/{id}");
-               var r =   studentId.Substring(4,4);
-                var response = await _client.DeleteAsync($"api/Student/Delete/{r}");
+                var response = await _client.DeleteAsync($"api/Student/Delete/{id}");
+
                 if (response.IsSuccessStatusCode)
                 {
                     TempData["Success"] = "Student deleted successfully";
@@ -297,7 +296,7 @@ namespace EmployeeManagement.UI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting student {Id}", studentId);
+                _logger.LogError(ex, "Error deleting student {Id}", id);
                 TempData["Error"] = "An error occurred while deleting the student";
             }
 
@@ -332,6 +331,27 @@ namespace EmployeeManagement.UI.Controllers
                 TempData["Error"] = "An error occurred";
                 return RedirectToAction("Index");
             }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            try
+            {
+                var response = await _client.DeleteAsync($"api/Student/Delete/{id}");
+
+                if (response.IsSuccessStatusCode)
+                    TempData["Success"] = "Student deleted successfully";
+                else
+                    TempData["Error"] = "Failed to delete student";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting student {Id}", id);
+                TempData["Error"] = "An error occurred while deleting the student";
+            }
+
+            return RedirectToAction("Index");
         }
     }
 

@@ -49,6 +49,14 @@
                             <span class="badge bg-light text-primary px-3 py-2">
                                 ID: @Model.StudentId
                             </span>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success px-3 py-2 ms-2">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger px-3 py-2 ms-2">Inactive</span>
+                            }
                         </div>
                     </div>
                 </div>
@@ -163,12 +171,13 @@
                             <i class="bi bi-arrow-left me-2"></i>Back to List
                         </a>
                         <div>
-                            <a asp-action="Edit" asp-route-id="@Model.StudentId" class="btn btn-primary px-4 me-2">
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary px-4 me-2">
                                 <i class="bi bi-pencil-square me-2"></i>Edit
                             </a>
-                            <a asp-action="Delete" asp-route-id="@Model.StudentId" class="btn btn-danger px-4">
+                            <button type="button" class="btn btn-danger px-4"
+                                    onclick="confirmDelete(@Model.Id, '@Model.FullName')">
                                 <i class="bi bi-trash me-2"></i>Delete
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -216,3 +225,71 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
     }
 </style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function confirmDelete(studentId, name) {
+            Swal.fire({
+                title: 'Delete Student?',
+                html: `
+                    <div class="text-center">
+                        <p class="mt-2 mb-1">You are about to delete:</p>
+                        <h5 class="text-danger fw-bold">${name}</h5>
+                        <small class="text-muted">This action cannot be undone!</small>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-1"></i> Yes, Delete',
+                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Deleting...',
+                        html: '<div class="spinner-border text-danger" role="status"></div>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false
+                    });
+
+                    fetch(`/Student/DeleteConfirmed/${studentId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: `${name} has been deleted successfully.`,
+                                icon: 'success',
+                                confirmButtonColor: '#28a745',
+                                timer: 2000,
+                                timerProgressBar: true
+                            }).then(() => {
+                                window.location.href = '/Student/Index';
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Failed to delete student.',
+                                icon: 'error',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Something went wrong. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    });
+                }
+            });
+        }
+    </script>
+}

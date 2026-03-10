@@ -231,15 +231,15 @@ namespace EmployeeManagement.API.Controllers
         /// Delete student
         /// </summary>
         [HttpDelete("Delete/{id}")]
-        public async Task<ActionResult<ApiResponse<bool>>> Delete(int studentId)
+        public async Task<ActionResult<ApiResponse<bool>>> Delete(int id)
         {
             try
             {
-                var student = await _studentRepo.GetByIdAsync(studentId);
+                var student = await _studentRepo.GetByIdAsync(id);
                 if (student == null)
-                    return NotFound(ApiResponse<bool>.Fail($"Student with ID {studentId} not found"));
+                    return NotFound(ApiResponse<bool>.Fail($"Student with ID {id} not found"));
 
-                var deleted = await _studentRepo.DeleteAsync(studentId);
+                var deleted = await _studentRepo.DeleteAsync(id);
 
                 if (deleted)
                     return Ok(ApiResponse<bool>.Success(true, "Student deleted successfully"));
@@ -248,7 +248,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting student {Id}", studentId);
+                _logger.LogError(ex, "Error deleting student {Id}", id);
                 return StatusCode(500, ApiResponse<bool>.Fail("An error occurred while deleting the student"));
             }
         }
