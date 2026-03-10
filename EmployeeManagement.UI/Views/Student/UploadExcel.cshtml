@@ -1,0 +1,174 @@
+﻿@{
+    ViewData["Title"] = "Upload Students Excel";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-upload"></i> Upload Student Data (Excel)
+                    </h4>
+                </div>
+                <div class="card-body">
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show">
+                            <i class="fas fa-check-circle"></i> @TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Instructions -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> Instructions:</h5>
+                        <ol class="mb-0">
+                            <li>Download the Excel template using the button below</li>
+                            <li>Fill in student information in the template</li>
+                            <li>Upload the completed Excel file</li>
+                            <li>Review the results on the next page</li>
+                        </ol>
+                    </div>
+
+                    <!-- Download Template Button -->
+                    <div class="mb-4 text-center">
+                        <a asp-controller="Student" asp-action="DownloadTemplate" class="btn btn-primary btn-lg">
+                            <i class="fas fa-download"></i> Download Excel Template
+                        </a>
+                    </div>
+
+                    <hr />
+
+                    <!-- Upload Form -->
+                    <form action="/Student/UploadExcel" method="post"
+                          enctype="multipart/form-data" id="uploadForm">
+
+                        <div class="mb-3">
+                            <label for="file" class="form-label fw-bold">
+                                Select Excel File (.xlsx, .xls)
+                            </label>
+                            <input type="file" class="form-control form-control-lg"
+                                   id="file" name="file"
+                                   accept=".xlsx,.xls" required />
+                            <div class="form-text">Maximum file size: 10 MB</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="uploadBtn">
+                                <i class="fas fa-upload"></i> Upload & Process
+                            </button>
+                            <a asp-controller="Student" asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Student List
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Progress Indicator -->
+                    <div id="progressContainer" class="mt-4" style="display: none;">
+                        <div class="text-center mb-2">
+                            <span class="text-primary">Processing file, please wait...</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 role="progressbar" style="width: 100%">
+                                Uploading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expected Format Card -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Expected Excel Format</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>First_Name</th>
+                                    <th>Last_Name</th>
+                                    <th>Full_Name</th>
+                                    <th>Class</th>
+                                    <th>Subjects</th>
+                                    <th>Age</th>
+                                    <th>Joining_Date</th>
+                                    <th>Batch_Time</th>
+                                    <th>Passport_Photo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>John</td>
+                                    <td>Doe</td>
+                                    <td>John Doe</td>
+                                    <td>Class 1</td>
+                                    <td>Math, Science</td>
+                                    <td>10</td>
+                                    <td>2024-01-15</td>
+                                    <td>Morning</td>
+                                    <td>(Optional)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> First_Name, Last_Name, and Class are required fields.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            var fileInput = document.getElementById('file');
+
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                alert('Please select a file to upload');
+                return false;
+            }
+
+            // Show progress
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('uploadBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            document.getElementById('progressContainer').style.display = 'block';
+        });
+
+        // File validation
+        document.getElementById('file').addEventListener('change', function() {
+            var file = this.files[0];
+            if (file) {
+                var extension = file.name.split('.').pop().toLowerCase();
+                if (extension !== 'xlsx' && extension !== 'xls') {
+                    alert('Please select a valid Excel file (.xlsx or .xls)');
+                    this.value = '';
+                    return;
+                }
+
+                // Check file size (10MB limit)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File size exceeds 10MB limit');
+                    this.value = '';
+                    return;
+                }
+            }
+        });
+    </script>
+}

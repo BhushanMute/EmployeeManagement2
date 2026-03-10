@@ -1,0 +1,391 @@
+﻿@model List<EmployeeManagement.UI.ViewModels.StudentViewModel>
+
+@{
+    ViewData["Title"] = "Students";
+
+    // Get unique classes for filter dropdown
+    var uniqueClasses = Model.Select(s => s.Class).Distinct().OrderBy(c => c).ToList();
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-user-graduate"></i> Student Management</h4>
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Download Excel Button -->
+                            <a href="/Student/ExportToExcel" class="btn btn-success" title="Download Excel">
+                                <i class="fas fa-file-excel"></i> Export Excel
+                            </a>
+                            <!-- Upload Excel Button -->
+                            
+                            <a href="/Student/UploadExcel" class="btn btn-warning" title="Download Excel">
+                                <i class="fas fa-file-excel"></i> Upload Excel
+                            </a>
+
+                            <!-- Download Template Button -->
+                            <a asp-action="DownloadTemplate" class="btn btn-info" title="Download Template">
+                                <i class="fas fa-download"></i> Template
+                            </a>
+
+                            <!-- Add Student Button -->
+                            <a asp-action="Create" class="btn btn-light">
+                                <i class="fas fa-plus"></i> Add Student
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- Alerts -->
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show">
+                            <i class="fas fa-check-circle"></i> @TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Search & Filter Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="searchBox" class="form-control" placeholder="Search by name, ID, email...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="classFilter" class="form-select">
+                                <option value="">All Classes</option>
+                                @foreach (var cls in uniqueClasses)
+                                {
+                                    <option value="@cls">@cls</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select id="statusFilter" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <button id="clearFilters" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                            <span class="badge bg-info fs-6" id="recordCount">Total: @Model.Count</span>
+                        </div>
+                    </div>
+
+                    <!-- Export Filtered Data Button -->
+                    <div class="row mb-3"> 
+                        <div class="col-12">
+                            <button id="exportFilteredBtn"  asp-action="ExportToExcel" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-file-export"></i> Export Filtered Data
+                            </button>
+                            <span id="filteredCount" class="ms-2 text-muted small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="studentsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>Photo</th>
+                                    <th>Student ID</th>
+                                    <th>Full Name</th>
+                                    <th>Class</th>
+                                    <th>Subjects</th>
+                                    <th>Age</th>
+                                    <th>Joining Date</th>
+                                    <th>Batch Time</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Any())
+                                {
+                                    @foreach (var student in Model)
+                                    {
+                                        <tr data-class="@student.Class" data-status="@(student.IsActive ? "active" : "inactive")">
+                                            <td>
+                                                <input type="checkbox" class="form-check-input row-checkbox" value="@student.Id">
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(student.PassportPhotoPath))
+                                                {
+                                                    <img src="@student.PassportPhotoPath" alt="Photo"
+                                                         class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-inline-flex justify-content-center align-items-center"
+                                                         style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <a asp-action="Details" asp-route-id="@student.Id" class="fw-bold text-primary">
+                                                    @student.StudentId
+                                                </a>
+                                            </td>
+                                            <td>@student.FullName</td>
+                                            <td><span class="badge bg-primary">@student.Class</span></td>
+                                            <td><small class="text-muted">@student.Subjects</small></td>
+                                            <td>@student.Age</td>
+                                            <td>@student.JoiningDate.ToString("yyyy-MM-dd")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(student.BatchTime))
+                                                {
+                                                    <span class="badge bg-secondary">@student.BatchTime</span>
+                                                }
+                                            </td>
+                                            <td>@student.PhoneNumber</td>
+                                            <td>
+                                                @if (student.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Details" asp-route-id="@student.Id"
+                                                       class="btn btn-info" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a asp-action="Edit" asp-route-id="@student.Id"
+                                                       class="btn btn-warning" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-danger"
+                                                            onclick="confirmDelete(@student.StudentId, '@student.FullName')" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr id="noDataRow">
+                                        <td colspan="12" class="text-center py-4">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                            <p class="text-muted">No students found. Upload Excel or add students manually.</p>
+                                            <a asp-action="UploadExcel" class="btn btn-primary">
+                                                <i class="fas fa-upload"></i> Upload Excel
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination (if needed) -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-0">
+                                Showing <span id="visibleCount">@Model.Count</span> of @Model.Count records
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <!-- Add pagination here if needed -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Confirm Delete</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete student: <strong id="deleteStudentName"></strong>?</p>
+                <p class="text-danger small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+       
+        const searchBox = document.getElementById('searchBox');
+        const classFilter = document.getElementById('classFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const table = document.getElementById('studentsTable');
+        const rows = table.querySelectorAll('tbody tr[data-class]');
+
+       
+        function applyFilters() {
+            const searchTerm = searchBox.value.toLowerCase().trim();
+            const selectedClass = classFilter.value;
+            const selectedStatus = statusFilter.value;
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                const rowClass = row.getAttribute('data-class');
+                const rowStatus = row.getAttribute('data-status');
+
+                // Check all filter conditions
+                const matchesSearch = searchTerm === '' || rowText.includes(searchTerm);
+                const matchesClass = selectedClass === '' || rowClass === selectedClass;
+                const matchesStatus = selectedStatus === '' || rowStatus === selectedStatus;
+
+                // Show row only if all conditions match
+                if (matchesSearch && matchesClass && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            // Update counts
+            document.getElementById('visibleCount').textContent = visibleCount;
+            document.getElementById('recordCount').textContent = `Showing: ${visibleCount}`;
+            document.getElementById('filteredCount').textContent =
+                visibleCount < rows.length ? `(${visibleCount} filtered)` : '';
+        }
+
+        // Event listeners for filters
+        searchBox.addEventListener('keyup', applyFilters);
+        classFilter.addEventListener('change', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+
+        // Clear all filters
+        clearFiltersBtn.addEventListener('click', function() {
+            searchBox.value = '';
+            classFilter.value = '';
+            statusFilter.value = '';
+            applyFilters();
+        });
+
+        // ============================================
+        // SELECT ALL CHECKBOX
+        // ============================================
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+
+        selectAllCheckbox.addEventListener('change', function() {
+            rowCheckboxes.forEach(checkbox => {
+                const row = checkbox.closest('tr');
+                if (row.style.display !== 'none') {
+                    checkbox.checked = this.checked;
+                }
+            });
+        });
+
+        // ============================================
+        // EXPORT FILTERED DATA
+        // ============================================
+
+        document.getElementById('exportFilteredBtn').addEventListener('click', function() {
+            const selectedClass = classFilter.value;
+            const selectedStatus = statusFilter.value;
+            const searchTerm = searchBox.value;
+
+             // Build query string
+            // let url = '@Url.Action("ExportToExcel", "Student")';
+            //  let url = 'Action="/Student/ExportToExcel"';
+             let url = '/Student/ExportToExcel';
+            const params = new URLSearchParams();
+
+            if (selectedClass) params.append('className', selectedClass);
+            if (selectedStatus) params.append('status', selectedStatus);
+            if (searchTerm) params.append('search', searchTerm);
+
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            window.location.href = url;
+        });
+
+        // ============================================
+        // DELETE CONFIRMATION
+        // ============================================
+
+        // function confirmDelete(id, name) {
+        //     document.getElementById('deleteStudentName').textContent = name;
+        //     document.getElementById('deleteForm').action = '/Student/Delete/' + id;
+
+        //     var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        //     modal.show();
+        // }
+        function confirmDelete(studentId, name) {
+
+        document.getElementById('deleteStudentName').textContent = name;
+
+        document.getElementById('deleteForm').action =
+            '/Student/Delete/' + studentId;
+
+        var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+
+        // ============================================
+        // KEYBOARD SHORTCUTS
+        // ============================================
+
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + F = Focus search
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                searchBox.focus();
+            }
+
+            // Escape = Clear filters
+            if (e.key === 'Escape') {
+                clearFiltersBtn.click();
+            }
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            applyFilters();
+        });
+    </script>
+}

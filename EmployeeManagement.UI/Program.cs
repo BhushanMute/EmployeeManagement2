@@ -252,6 +252,7 @@ builder.Services.AddHttpClient("EmployeeAPI", client =>
 // =============================================
 builder.Services.AddScoped<EmployeeManagement.UI.Services.ITokenService, EmployeeManagement.UI.Services.TokenService>();
 builder.Services.AddScoped<IApiService, ApiService>();
+
 //builder.Services.AddScoped<IAuthService, AuthService>();
 
 //builder.Services.AddScoped<IEmployeeService, EmployeeService>();
