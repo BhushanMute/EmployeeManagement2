@@ -1,382 +1,646 @@
 ﻿using Dapper;
 using EmployeeManagement.API.Models;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using System.Data;
 
 namespace EmployeeManagement.API.Repositories
 {
     public class AuthRepository : IAuthRepository
     {
-        //private readonly string _connectionString;
-
-        //public AuthRepository(IConfiguration configuration)
-        //{
-        //    _connectionString = configuration.GetConnectionString("DefaultConnection")
-        //        ?? throw new InvalidOperationException(
-        //            "Connection string 'DefaultConnection' not found.");
-        //}
-
-        //public async Task Register(RegisterRequest model)
-        //{
-        //    using SqlConnection con = new SqlConnection(_connectionString);
-        //    using SqlCommand cmd = new SqlCommand("sp_RegisterUser", con);
-
-        //    cmd.CommandType = CommandType.StoredProcedure;
-
-        //    cmd.Parameters.AddWithValue("@Username", model.Username);
-        //    cmd.Parameters.AddWithValue(
-        //        "@PasswordHash",
-        //        BCrypt.Net.BCrypt.HashPassword(model.Password)
-        //    );
-
-        //    await con.OpenAsync();
-        //    await cmd.ExecuteNonQueryAsync();
-        //}
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ILogger<AuthRepository> _logger;
 
-        public AuthRepository(IDbConnectionFactory connectionFactory)
+        public AuthRepository(IDbConnectionFactory connectionFactory, ILogger<AuthRepository> logger)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
         }
 
-        // In AuthRepository.cs - GetUserByUsernameOrEmailAsync
+        #region Login & Authentication
+
         public async Task<User?> GetUserByUsernameOrEmailAsync(string usernameOrEmail)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_LoginUser", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UsernameOrEmail", usernameOrEmail);
-
-            await ((SqlConnection)connection).OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new User
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                    Username = reader.GetString(reader.GetOrdinal("Username")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
-                    PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                    PasswordSalt = reader.GetString(reader.GetOrdinal("PasswordSalt")),
-                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
-                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                    PhoneNumber = reader.IsDBNull(reader.GetOrdinal("PhoneNumber"))
-                        ? null
-                        : reader.GetString(reader.GetOrdinal("PhoneNumber")),
-                    ProfilePicture = reader.IsDBNull(reader.GetOrdinal("ProfilePicture"))  // ✅ Must read this
-                        ? null
-                        : reader.GetString(reader.GetOrdinal("ProfilePicture")),
-                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                    IsDeleted = reader.GetBoolean(reader.GetOrdinal("IsDeleted")),
-                    EmailConfirmed = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed")),
-                    FailedLoginAttempts = reader.GetInt32(reader.GetOrdinal("FailedLoginAttempts")),
-                    LockoutEndDate = reader.IsDBNull(reader.GetOrdinal("LockoutEndDate"))
-                        ? null
-                        : reader.GetDateTime(reader.GetOrdinal("LockoutEndDate"))
-                };
-            }
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_LoginUser", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UsernameOrEmail", usernameOrEmail);
 
-            return null;
+                await ((SqlConnection)connection).OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new User
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        Username = reader.GetString(reader.GetOrdinal("Username")),
+                        Email = reader.GetString(reader.GetOrdinal("Email")),
+                        PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
+                        PasswordSalt = reader.GetString(reader.GetOrdinal("PasswordSalt")),
+                        FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                        LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                        PhoneNumber = reader.IsDBNull(reader.GetOrdinal("PhoneNumber"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("PhoneNumber")),
+                        ProfilePicture = reader.IsDBNull(reader.GetOrdinal("ProfilePicture"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("ProfilePicture")),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                        IsDeleted = reader.GetBoolean(reader.GetOrdinal("IsDeleted")),
+                        EmailConfirmed = reader.GetBoolean(reader.GetOrdinal("EmailConfirmed")),
+                        FailedLoginAttempts = reader.GetInt32(reader.GetOrdinal("FailedLoginAttempts")),
+                        LockoutEndDate = reader.IsDBNull(reader.GetOrdinal("LockoutEndDate"))
+                            ? null
+                            : reader.GetDateTime(reader.GetOrdinal("LockoutEndDate"))
+                    };
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by username/email: {UsernameOrEmail}", usernameOrEmail);
+                throw;
+            }
         }
+
         public async Task<(int UserId, string Message)> RegisterUserAsync(User user, int roleId, int? createdBy)
         {
-            await using var connection = (SqlConnection)_connectionFactory.CreateConnection();
-            await using var command = new SqlCommand("sp_RegisterUser", connection)
+            try
             {
-                CommandType = CommandType.StoredProcedure
-            };
+                await using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+                await using var command = new SqlCommand("sp_RegisterUser", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
 
-            // 🔹 Explicit parameter types (Best Practice)
-            command.Parameters.Add("@Username", SqlDbType.NVarChar, 100).Value = user.Username;
-            command.Parameters.Add("@Email", SqlDbType.NVarChar, 255).Value = user.Email;
-            command.Parameters.Add("@PasswordHash", SqlDbType.NVarChar, 500).Value = user.PasswordHash;
-            command.Parameters.Add("@PasswordSalt", SqlDbType.NVarChar, 500).Value = user.PasswordSalt;
-            command.Parameters.Add("@FirstName", SqlDbType.NVarChar, 100).Value = user.FirstName;
-            command.Parameters.Add("@LastName", SqlDbType.NVarChar, 100).Value = user.LastName;
-            command.Parameters.Add("@PhoneNumber", SqlDbType.NVarChar, 20).Value =
-                (object?)user.PhoneNumber ?? DBNull.Value;
-            command.Parameters.Add("@RoleId", SqlDbType.Int).Value = roleId;
-            command.Parameters.Add("@CreatedBy", SqlDbType.Int).Value =
-                (object?)createdBy ?? DBNull.Value;
+                command.Parameters.Add("@Username", SqlDbType.NVarChar, 100).Value = user.Username;
+                command.Parameters.Add("@Email", SqlDbType.NVarChar, 255).Value = user.Email;
+                command.Parameters.Add("@PasswordHash", SqlDbType.NVarChar, 500).Value = user.PasswordHash;
+                command.Parameters.Add("@PasswordSalt", SqlDbType.NVarChar, 500).Value = user.PasswordSalt;
+                command.Parameters.Add("@FirstName", SqlDbType.NVarChar, 100).Value = user.FirstName;
+                command.Parameters.Add("@LastName", SqlDbType.NVarChar, 100).Value = user.LastName;
+                command.Parameters.Add("@PhoneNumber", SqlDbType.NVarChar, 20).Value =
+                    (object?)user.PhoneNumber ?? DBNull.Value;
+                command.Parameters.Add("@RoleId", SqlDbType.Int).Value = roleId;
+                command.Parameters.Add("@CreatedBy", SqlDbType.Int).Value =
+                    (object?)createdBy ?? DBNull.Value;
 
-            // 🔹 Output Parameters
-            var userIdParam = new SqlParameter("@UserId", SqlDbType.Int)
+                var userIdParam = new SqlParameter("@UserId", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+
+                var messageParam = new SqlParameter("@Message", SqlDbType.NVarChar, 255)
+                {
+                    Direction = ParameterDirection.Output
+                };
+
+                command.Parameters.Add(userIdParam);
+                command.Parameters.Add(messageParam);
+
+                await connection.OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                int userId = userIdParam.Value != DBNull.Value
+                    ? Convert.ToInt32(userIdParam.Value)
+                    : 0;
+
+                string message = messageParam.Value?.ToString() ?? "Unknown error occurred";
+
+                _logger.LogInformation("User registration result - UserId: {UserId}, Message: {Message}", userId, message);
+
+                return (userId, message);
+            }
+            catch (Exception ex)
             {
-                Direction = ParameterDirection.Output
-            };
-
-            var messageParam = new SqlParameter("@Message", SqlDbType.NVarChar, 255)
-            {
-                Direction = ParameterDirection.Output
-            };
-
-            command.Parameters.Add(userIdParam);
-            command.Parameters.Add(messageParam);
-
-            await connection.OpenAsync();
-            await command.ExecuteNonQueryAsync();
-
-            // 🔹 Safe output handling
-            int userId = userIdParam.Value != DBNull.Value
-                ? Convert.ToInt32(userIdParam.Value)
-                : 0;
-
-            string message = messageParam.Value?.ToString() ?? "Unknown error occurred";
-
-            return (userId, message);
+                _logger.LogError(ex, "Error registering user: {Username}", user.Username);
+                throw;
+            }
         }
+
+        #endregion
+
+        #region Roles & Permissions
+
         public async Task<List<Role>> GetRolesAsync(int userId)
         {
             var roles = new List<Role>();
 
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_GetRoles", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-
-            await ((SqlConnection)connection).OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            try
             {
-                roles.Add(new Role
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("RoleId")),
-                    RoleName = reader.GetString(reader.GetOrdinal("RoleName")),
-                    Description = reader.IsDBNull(reader.GetOrdinal("Description"))
-                        ? null : reader.GetString(reader.GetOrdinal("Description"))
-                });
-            }
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_GetRoles", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
 
-            return roles;
+                await ((SqlConnection)connection).OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    roles.Add(new Role
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                        RoleName = reader.GetString(reader.GetOrdinal("RoleName")),
+                        Description = reader.IsDBNull(reader.GetOrdinal("Description"))
+                            ? null : reader.GetString(reader.GetOrdinal("Description"))
+                    });
+                }
+
+                return roles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting roles for user: {UserId}", userId);
+                throw;
+            }
         }
 
         public async Task<List<Permission>> GetUserPermissionsAsync(int userId)
         {
             var permissions = new List<Permission>();
 
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_GetUserPermissions", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-
-            await ((SqlConnection)connection).OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            try
             {
-                permissions.Add(new Permission
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_GetUserPermissions", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
+
+                await ((SqlConnection)connection).OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
                 {
-                    Id = reader.GetInt32(reader.GetOrdinal("PermissionId")),
-                    PermissionName = reader.GetString(reader.GetOrdinal("PermissionName")),
-                    Description = reader.IsDBNull(reader.GetOrdinal("Description"))
-                        ? null : reader.GetString(reader.GetOrdinal("Description")),
-                    Module = reader.IsDBNull(reader.GetOrdinal("Module"))
-                        ? null : reader.GetString(reader.GetOrdinal("Module"))
-                });
+                    permissions.Add(new Permission
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("PermissionId")),
+                        PermissionName = reader.GetString(reader.GetOrdinal("PermissionName")),
+                        Description = reader.IsDBNull(reader.GetOrdinal("Description"))
+                            ? null : reader.GetString(reader.GetOrdinal("Description")),
+                        Module = reader.IsDBNull(reader.GetOrdinal("Module"))
+                            ? null : reader.GetString(reader.GetOrdinal("Module"))
+                    });
+                }
+
+                return permissions;
             }
-
-            return permissions;
-        }
-
-        public async Task UpdateLoginStatusAsync(int userId, bool isSuccess, string? ipAddress)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_UpdateLoginStatus", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@IsSuccess", isSuccess);
-            command.Parameters.AddWithValue("@IpAddress", (object?)ipAddress ?? DBNull.Value);
-
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
-        }
-
-        public async Task SaveRefreshTokenAsync(int userId, string token, DateTime expiryDate, string? ipAddress)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_SaveRefreshToken", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@Token", token);
-            command.Parameters.AddWithValue("@ExpiryDate", expiryDate);
-            command.Parameters.AddWithValue("@CreatedByIp", (object?)ipAddress ?? DBNull.Value);
-
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
-        }
-
-        public async Task<(RefreshToken? Token, User? User)> ValidateRefreshTokenAsync(string token)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_ValidateRefreshToken", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@Token", token);
-
-            await ((SqlConnection)connection).OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            catch (Exception ex)
             {
-                var refreshToken = new RefreshToken
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Token = reader.GetString(reader.GetOrdinal("Token")),
-                    ExpiryDate = reader.GetDateTime(reader.GetOrdinal("ExpiryDate")),
-                    RevokedDate = reader.IsDBNull(reader.GetOrdinal("RevokedDate"))
-                        ? null : reader.GetDateTime(reader.GetOrdinal("RevokedDate"))
-                };
-
-                var user = new User
-                {
-                    Id = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Username = reader.GetString(reader.GetOrdinal("Username")),
-                    Email = reader.GetString(reader.GetOrdinal("Email")),
-                    FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
-                    LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive"))
-                };
-
-                return (refreshToken, user);
+                _logger.LogError(ex, "Error getting permissions for user: {UserId}", userId);
+                throw;
             }
-
-            return (null, null);
-        }
-
-        public async Task RevokeRefreshTokenAsync(string token, string? ipAddress, string? reason, string? replacedByToken)
-        {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_RevokeRefreshToken", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@Token", token);
-            command.Parameters.AddWithValue("@RevokedByIp", (object?)ipAddress ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ReasonRevoked", (object?)reason ?? DBNull.Value);
-            command.Parameters.AddWithValue("@ReplacedByToken", (object?)replacedByToken ?? DBNull.Value);
-
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
         }
 
         public async Task<bool> CheckUserPermissionAsync(int userId, string permissionName)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_CheckUserPermission", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@PermissionName", permissionName);
-
-            var hasPermissionParam = new SqlParameter("@HasPermission", SqlDbType.Bit)
+            try
             {
-                Direction = ParameterDirection.Output
-            };
-            command.Parameters.Add(hasPermissionParam);
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_CheckUserPermission", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@PermissionName", permissionName);
 
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
+                var hasPermissionParam = new SqlParameter("@HasPermission", SqlDbType.Bit)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(hasPermissionParam);
 
-            return (bool)hasPermissionParam.Value;
+                await ((SqlConnection)connection).OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                return (bool)hasPermissionParam.Value;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking permission {Permission} for user: {UserId}", permissionName, userId);
+                throw;
+            }
         }
 
-        public async Task LogAuditAsync(int? userId, string action, string? tableName, int? recordId,
-            string? oldValues, string? newValues, string? ipAddress, string? userAgent)
+        #endregion
+
+        #region Login Status & Tokens
+
+        public async Task UpdateLoginStatusAsync(int userId, bool isSuccess, string? ipAddress)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_LogAudit", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", (object?)userId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Action", action);
-            command.Parameters.AddWithValue("@TableName", (object?)tableName ?? DBNull.Value);
-            command.Parameters.AddWithValue("@RecordId", (object?)recordId ?? DBNull.Value);
-            command.Parameters.AddWithValue("@OldValues", (object?)oldValues ?? DBNull.Value);
-            command.Parameters.AddWithValue("@NewValues", (object?)newValues ?? DBNull.Value);
-            command.Parameters.AddWithValue("@IpAddress", (object?)ipAddress ?? DBNull.Value);
-            command.Parameters.AddWithValue("@UserAgent", (object?)userAgent ?? DBNull.Value);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_UpdateLoginStatus", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@IsSuccess", isSuccess);
+                command.Parameters.AddWithValue("@IpAddress", (object?)ipAddress ?? DBNull.Value);
 
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
+                await ((SqlConnection)connection).OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Login status updated for user {UserId}: Success={IsSuccess}", userId, isSuccess);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating login status for user: {UserId}", userId);
+                throw;
+            }
         }
+
+        public async Task SaveRefreshTokenAsync(int userId, string token, DateTime expiryDate, string? ipAddress)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_SaveRefreshToken", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
+                command.Parameters.AddWithValue("@Token", token);
+                command.Parameters.AddWithValue("@ExpiryDate", expiryDate);
+                command.Parameters.AddWithValue("@CreatedByIp", (object?)ipAddress ?? DBNull.Value);
+
+                await ((SqlConnection)connection).OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Refresh token saved for user: {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving refresh token for user: {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task<(RefreshToken? Token, User? User)> ValidateRefreshTokenAsync(string token)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_ValidateRefreshToken", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@Token", token);
+
+                await ((SqlConnection)connection).OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    var refreshToken = new RefreshToken
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        Token = reader.GetString(reader.GetOrdinal("Token")),
+                        ExpiryDate = reader.GetDateTime(reader.GetOrdinal("ExpiryDate")),
+                        RevokedDate = reader.IsDBNull(reader.GetOrdinal("RevokedDate"))
+                            ? null : reader.GetDateTime(reader.GetOrdinal("RevokedDate"))
+                    };
+
+                    var user = new User
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        Username = reader.GetString(reader.GetOrdinal("Username")),
+                        Email = reader.GetString(reader.GetOrdinal("Email")),
+                        FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                        LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive"))
+                    };
+
+                    return (refreshToken, user);
+                }
+
+                return (null, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating refresh token");
+                throw;
+            }
+        }
+
+        public async Task RevokeRefreshTokenAsync(string token, string? ipAddress, string? reason, string? replacedByToken)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_RevokeRefreshToken", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@Token", token);
+                command.Parameters.AddWithValue("@RevokedByIp", (object?)ipAddress ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ReasonRevoked", (object?)reason ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ReplacedByToken", (object?)replacedByToken ?? DBNull.Value);
+
+                await ((SqlConnection)connection).OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Refresh token revoked. Reason: {Reason}", reason);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error revoking refresh token");
+                throw;
+            }
+        }
+
+        public async Task RevokeAllUserTokensAsync(int userId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                await connection.ExecuteAsync(
+                    "sp_RevokeAllUserTokens",
+                    new { UserId = userId },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                _logger.LogInformation("Revoked all tokens for user: {UserId}", userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error revoking all tokens for user: {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task<List<RefreshToken>> GetUserActiveTokensAsync(int userId)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                var tokens = await connection.QueryAsync<RefreshToken>(
+                    "sp_GetUserActiveTokens",
+                    new { UserId = userId },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return tokens.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting active tokens for user: {UserId}", userId);
+                throw;
+            }
+        }
+
+        public async Task CleanupExpiredTokensAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                await connection.ExecuteAsync(
+                    "sp_CleanupExpiredTokens",
+                    commandType: CommandType.StoredProcedure
+                );
+
+                _logger.LogInformation("Cleaned up expired tokens");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up expired tokens");
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Password Management
 
         public async Task<string?> GetUserPasswordHashAsync(int userId)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_GetUserPasswordHash", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_GetUserPasswordHash", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", userId);
 
-            await ((SqlConnection)connection).OpenAsync();
-            var result = await command.ExecuteScalarAsync();
+                await ((SqlConnection)connection).OpenAsync();
+                var result = await command.ExecuteScalarAsync();
 
-            return result?.ToString();
+                return result?.ToString();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting password hash for user: {UserId}", userId);
+                throw;
+            }
         }
 
         public async Task<bool> ChangePasswordAsync(int userId, string newPasswordHash, string newPasswordSalt, int? updatedBy)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_ChangePassword", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@NewPasswordHash", newPasswordHash);
-            command.Parameters.AddWithValue("@NewPasswordSalt", newPasswordSalt);  // ✅ Add this
-            command.Parameters.AddWithValue("@UpdatedBy", (object?)updatedBy ?? DBNull.Value);
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_ChangePassword", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
 
-            await ((SqlConnection)connection).OpenAsync();
-            var rowsAffected = await command.ExecuteScalarAsync();
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                command.Parameters.Add("@NewPasswordHash", SqlDbType.NVarChar, 500).Value = newPasswordHash;
+                command.Parameters.Add("@NewPasswordSalt", SqlDbType.NVarChar, 500).Value = newPasswordSalt;
+                command.Parameters.Add("@UpdatedBy", SqlDbType.Int).Value = (object?)updatedBy ?? DBNull.Value;
 
-            return Convert.ToInt32(rowsAffected) > 0;
+                await ((SqlConnection)connection).OpenAsync();
+                var rowsAffected = await command.ExecuteScalarAsync();
+
+                var success = Convert.ToInt32(rowsAffected) > 0;
+
+                _logger.LogInformation("Password change for user {UserId}: {Result}",
+                    userId, success ? "Success" : "Failed");
+
+                return success;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password for user: {UserId}", userId);
+                throw;
+            }
         }
 
-        public async Task SavePasswordResetTokenAsync(int userId, string token, DateTime expiryDate)
+        #endregion
+
+        #region Password Reset Token Management
+
+        /// <summary>
+        /// ✅ UPDATED: Save password reset token with IP address and user agent
+        /// </summary>
+        public async Task SavePasswordResetTokenAsync(int userId, string token, DateTime expiryDate,
+            string? ipAddress = null, string? userAgent = null)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_SavePasswordResetToken", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@UserId", userId);
-            command.Parameters.AddWithValue("@Token", token);
-            command.Parameters.AddWithValue("@ExpiryDate", expiryDate);
+            try
+            {
+                using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_SavePasswordResetToken", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
 
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                command.Parameters.Add("@Token", SqlDbType.NVarChar, 500).Value = token;
+                command.Parameters.Add("@ExpiryDate", SqlDbType.DateTime).Value = expiryDate;
+                command.Parameters.Add("@IpAddress", SqlDbType.NVarChar, 50).Value =
+                    (object?)ipAddress ?? DBNull.Value;
+                command.Parameters.Add("@UserAgent", SqlDbType.NVarChar, 500).Value =
+                    (object?)userAgent ?? DBNull.Value;
+
+                await connection.OpenAsync();
+                await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Password reset token saved for user {UserId}. Expires: {ExpiryDate}",
+                    userId, expiryDate);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving password reset token for user: {UserId}", userId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// ✅ UPDATED: Validate password reset token with all required fields
+        /// </summary>
         public async Task<PasswordResetToken?> ValidatePasswordResetTokenAsync(string token)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_ValidatePasswordResetToken", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@Token", token);
-
-            await ((SqlConnection)connection).OpenAsync();
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new PasswordResetToken
+                using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_ValidatePasswordResetToken", connection)
                 {
-                    Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
-                    Token = reader.GetString(reader.GetOrdinal("Token")),
-                    ExpiryDate = reader.GetDateTime(reader.GetOrdinal("ExpiryDate")),
-                    IsUsed = reader.GetBoolean(reader.GetOrdinal("IsUsed")),
-                    Email = reader.IsDBNull(reader.GetOrdinal("Email")) ? null : reader.GetString(reader.GetOrdinal("Email")),
-                    Username = reader.IsDBNull(reader.GetOrdinal("Username")) ? null : reader.GetString(reader.GetOrdinal("Username"))
+                    CommandType = CommandType.StoredProcedure
                 };
-            }
 
-            return null;
+                command.Parameters.Add("@Token", SqlDbType.NVarChar, 500).Value = token;
+
+                await connection.OpenAsync();
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    var resetToken = new PasswordResetToken
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        Token = reader.GetString(reader.GetOrdinal("Token")),
+                        ExpiryDate = reader.GetDateTime(reader.GetOrdinal("ExpiryDate")),
+                        IsUsed = reader.GetBoolean(reader.GetOrdinal("IsUsed")),
+                        CreatedDate = reader.IsDBNull(reader.GetOrdinal("CreatedDate"))
+                            ? DateTime.UtcNow
+                            : reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                        Email = reader.IsDBNull(reader.GetOrdinal("Email"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("Email")),
+                        Username = reader.IsDBNull(reader.GetOrdinal("Username"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("Username")),
+                        FirstName = reader.IsDBNull(reader.GetOrdinal("FirstName"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("FirstName")),
+                        LastName = reader.IsDBNull(reader.GetOrdinal("LastName"))
+                            ? null
+                            : reader.GetString(reader.GetOrdinal("LastName"))
+                    };
+
+                    _logger.LogInformation("Password reset token validated for user {UserId}. IsUsed: {IsUsed}, Expired: {Expired}",
+                        resetToken.UserId, resetToken.IsUsed, resetToken.ExpiryDate < DateTime.UtcNow);
+
+                    return resetToken;
+                }
+
+                _logger.LogWarning("Password reset token not found or invalid");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating password reset token");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Mark password reset token as used
+        /// </summary>
         public async Task MarkPasswordResetTokenUsedAsync(string token)
         {
-            using var connection = _connectionFactory.CreateConnection();
-            using var command = new SqlCommand("sp_MarkPasswordResetTokenUsed", (SqlConnection)connection);
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("@Token", token);
+            try
+            {
+                using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_MarkPasswordResetTokenUsed", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
 
-            await ((SqlConnection)connection).OpenAsync();
-            await command.ExecuteNonQueryAsync();
+                command.Parameters.Add("@Token", SqlDbType.NVarChar, 500).Value = token;
+
+                await connection.OpenAsync();
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Password reset token marked as used. Rows affected: {Rows}", rowsAffected);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking password reset token as used");
+                throw;
+            }
         }
+
+        /// <summary>
+        /// ✅ NEW: Invalidate all unused password reset tokens for a user
+        /// </summary>
+        public async Task InvalidateAllPasswordResetTokensAsync(int userId)
+        {
+            try
+            {
+                using var connection = (SqlConnection)_connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_InvalidateAllPasswordResetTokens", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+
+                await connection.OpenAsync();
+                var rowsAffected = await command.ExecuteNonQueryAsync();
+
+                _logger.LogInformation("Invalidated {Count} password reset tokens for user {UserId}",
+                    rowsAffected, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invalidating password reset tokens for user: {UserId}", userId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// ✅ NEW: Cleanup expired password reset tokens
+        /// </summary>
+        public async Task CleanupExpiredPasswordResetTokensAsync()
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+
+                var deletedCount = await connection.ExecuteScalarAsync<int>(
+                    "sp_CleanupExpiredPasswordResetTokens",
+                    commandType: CommandType.StoredProcedure
+                );
+
+                _logger.LogInformation("Cleaned up {Count} expired password reset tokens", deletedCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up expired password reset tokens");
+                throw;
+            }
+        }
+
+        #endregion
+
         #region User Methods
 
         public async Task<User?> GetUserByUsernameAsync(string username)
@@ -395,15 +659,15 @@ namespace EmployeeManagement.API.Repositories
 
                 if (user != null)
                 {
-                    var RolesData = await multi.ReadAsync<dynamic>();
-                    user.Roles = MapRoles(RolesData);
+                    var rolesData = await multi.ReadAsync<dynamic>();
+                    user.Roles = MapRoles(rolesData);
                 }
 
                 return user;
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error getting user by username: {Username}", username);
+                _logger.LogError(ex, "Error getting user by username: {Username}", username);
                 throw;
             }
         }
@@ -424,15 +688,15 @@ namespace EmployeeManagement.API.Repositories
 
                 if (user != null)
                 {
-                    var RolesData = await multi.ReadAsync<dynamic>();
-                    user.Roles = MapRoles(RolesData);
+                    var rolesData = await multi.ReadAsync<dynamic>();
+                    user.Roles = MapRoles(rolesData);
                 }
 
                 return user;
             }
             catch (Exception ex)
             {
-              //  _logger.LogError(ex, "Error getting user by email: {Email}", email);
+                _logger.LogError(ex, "Error getting user by email: {Email}", email);
                 throw;
             }
         }
@@ -453,20 +717,18 @@ namespace EmployeeManagement.API.Repositories
 
                 if (user != null)
                 {
-                    var RolesData = await multi.ReadAsync<dynamic>();
-                    user.Roles = MapRoles(RolesData);
+                    var rolesData = await multi.ReadAsync<dynamic>();
+                    user.Roles = MapRoles(rolesData);
                 }
 
                 return user;
             }
             catch (Exception ex)
             {
-              //  _logger.LogError(ex, "Error getting user by ID: {UserId}", userId);
+                _logger.LogError(ex, "Error getting user by ID: {UserId}", userId);
                 throw;
             }
         }
-
-        
 
         public async Task<int> CreateUserAsync(User user)
         {
@@ -490,12 +752,12 @@ namespace EmployeeManagement.API.Repositories
                     commandType: CommandType.StoredProcedure
                 );
 
-               // _logger.LogInformation("Created user with ID: {UserId}", result);
+                _logger.LogInformation("Created user with ID: {UserId}", result);
                 return result;
             }
             catch (Exception ex)
             {
-               // _logger.LogError(ex, "Error creating user: {Username}", user.Username);
+                _logger.LogError(ex, "Error creating user: {Username}", user.Username);
                 throw;
             }
         }
@@ -516,21 +778,20 @@ namespace EmployeeManagement.API.Repositories
                         user.PasswordHash,
                         user.FirstName,
                         user.LastName,
-                        fullName = user.FirstName + user.LastName,
+                        FullName = user.FirstName + " " + user.LastName,
                         user.PhoneNumber,
                         user.IsActive,
                         user.LastLoginDate,
-                        ProfilePicture = user.ProfilePicture  // ✅ Add this line
-
+                        user.ProfilePicture
                     },
                     commandType: CommandType.StoredProcedure
                 );
 
-               // _logger.LogInformation("Updated user: {UserId}", user.Id);
+                _logger.LogInformation("Updated user: {UserId}", user.Id);
             }
             catch (Exception ex)
             {
-               // _logger.LogError(ex, "Error updating user: {UserId}", user.Id);
+                _logger.LogError(ex, "Error updating user: {UserId}", user.Id);
                 throw;
             }
         }
@@ -551,10 +812,12 @@ namespace EmployeeManagement.API.Repositories
                     },
                     commandType: CommandType.StoredProcedure
                 );
+
+                _logger.LogInformation("Updated last login for user: {UserId}", userId);
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error updating last login for user: {UserId}", userId);
+                _logger.LogError(ex, "Error updating last login for user: {UserId}", userId);
                 throw;
             }
         }
@@ -575,7 +838,7 @@ namespace EmployeeManagement.API.Repositories
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error checking username exists: {Username}", username);
+                _logger.LogError(ex, "Error checking username exists: {Username}", username);
                 throw;
             }
         }
@@ -596,83 +859,53 @@ namespace EmployeeManagement.API.Repositories
             }
             catch (Exception ex)
             {
-                //o_logger.LogError(ex, "Error checking email exists: {Email}", email);
+                _logger.LogError(ex, "Error checking email exists: {Email}", email);
                 throw;
             }
         }
-        public async Task RevokeAllUserTokensAsync(int userId)
-        {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-
-                await connection.ExecuteAsync(
-                    "sp_RevokeAllUserTokens",
-                    new { UserId = userId },
-                    commandType: CommandType.StoredProcedure
-                );
-
-                //_logger.LogInformation("Revoked all tokens for user: {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-               // _logger.LogError(ex, "Error revoking all tokens for user: {UserId}", userId);
-                throw;
-            }
-        }
-
-        public async Task<List<RefreshToken>> GetUserActiveTokensAsync(int userId)
-        {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-
-                var tokens = await connection.QueryAsync<RefreshToken>(
-                    "sp_GetUserActiveTokens",
-                    new { UserId = userId },
-                    commandType: CommandType.StoredProcedure
-                );
-
-                return tokens.ToList();
-            }
-            catch (Exception ex)
-            {
-               /// _logger.LogError(ex, "Error getting active tokens for user: {UserId}", userId);
-                throw;
-            }
-        }
-
-        public async Task CleanupExpiredTokensAsync()
-        {
-            try
-            {
-                using var connection = _connectionFactory.CreateConnection();
-
-                await connection.ExecuteAsync(
-                    "sp_CleanupExpiredTokens",
-                    commandType: CommandType.StoredProcedure
-                );
-
-                //_logger.LogInformation("Cleaned up expired tokens");
-            }
-            catch (Exception ex)
-            {
-               // _logger.LogError(ex, "Error cleaning up expired tokens");
-                throw;
-            }
-        }
-
 
         #endregion
+
+        #region Audit Logging
+
+        public async Task LogAuditAsync(int? userId, string action, string? tableName, int? recordId,
+            string? oldValues, string? newValues, string? ipAddress, string? userAgent)
+        {
+            try
+            {
+                using var connection = _connectionFactory.CreateConnection();
+                using var command = new SqlCommand("sp_LogAudit", (SqlConnection)connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@UserId", (object?)userId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Action", action);
+                command.Parameters.AddWithValue("@TableName", (object?)tableName ?? DBNull.Value);
+                command.Parameters.AddWithValue("@RecordId", (object?)recordId ?? DBNull.Value);
+                command.Parameters.AddWithValue("@OldValues", (object?)oldValues ?? DBNull.Value);
+                command.Parameters.AddWithValue("@NewValues", (object?)newValues ?? DBNull.Value);
+                command.Parameters.AddWithValue("@IpAddress", (object?)ipAddress ?? DBNull.Value);
+                command.Parameters.AddWithValue("@UserAgent", (object?)userAgent ?? DBNull.Value);
+
+                await ((SqlConnection)connection).OpenAsync();
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error logging audit for action: {Action}", action);
+                // Don't throw - audit logging failures shouldn't break main operations
+            }
+        }
+
+        #endregion
+
         #region Private Helper Methods
 
-        private List<UserRole> MapRoles(IEnumerable<dynamic> RolesData)
+        private List<UserRole> MapRoles(IEnumerable<dynamic> rolesData)
         {
-            var Roles = new List<UserRole>();
+            var roles = new List<UserRole>();
 
-            foreach (var item in RolesData)
+            foreach (var item in rolesData)
             {
-                Roles.Add(new UserRole
+                roles.Add(new UserRole
                 {
                     Id = item.Id,
                     UserId = item.UserId,
@@ -690,14 +923,9 @@ namespace EmployeeManagement.API.Repositories
                 });
             }
 
-            return Roles;
+            return roles;
         }
 
-#endregion
-
+        #endregion
     }
-
-
-
 }
- 

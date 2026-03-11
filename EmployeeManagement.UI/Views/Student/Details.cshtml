@@ -2,6 +2,16 @@
 
 @{
     ViewData["Title"] = "Student Details";
+
+    // Get initials for fallback
+    var initials = "";
+    if (!string.IsNullOrEmpty(Model.FullName))
+    {
+        var names = Model.FullName.Split(' ');
+        initials = names.Length >= 2
+            ? $"{names[0].FirstOrDefault()}{names[1].FirstOrDefault()}".ToUpper()
+            : $"{names[0].FirstOrDefault()}".ToUpper();
+    }
 }
 
 <div class="container-fluid py-4">
@@ -19,6 +29,23 @@
                 </a>
             </div>
 
+            <!-- Success/Error Messages -->
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show rounded-3" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
             <!-- Main Card -->
             <div class="card border-0 shadow-lg">
 
@@ -26,21 +53,52 @@
                 <div class="card-header bg-gradient-primary text-white border-0 py-4">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            @if (!string.IsNullOrEmpty(Model.PassportPhotoPath))
-                            {
-                                <img src="@Model.PassportPhotoPath"
-                                     class="rounded-circle border border-4 border-white shadow"
-                                     style="width:120px;height:120px;object-fit:cover;"
-                                     alt="@Model.FullName" />
-                            }
-                            else
-                            {
-                                <div class="rounded-circle border border-4 border-white shadow d-flex align-items-center justify-content-center bg-white text-primary fw-bold"
-                                     style="width:120px;height:120px;font-size:48px;">
-                                    @Model.FullName?.Substring(0, 1).ToUpper()
+                            <!-- Profile Picture Section with Upload -->
+                            <div class="position-relative d-inline-block">
+                                @if (!string.IsNullOrEmpty(Model.PassportPhotoPath))
+                                {
+                                    <img src="@Model.PassportPhotoPath"
+                                         id="studentPhotoPreview"
+                                         class="rounded-circle border border-4 border-white shadow"
+                                         style="width:120px;height:120px;object-fit:cover;cursor:pointer;"
+                                         alt="@Model.FullName"
+                                         onclick="document.getElementById('studentPhotoInput').click()"
+                                         title="Click to change photo" />
+                                }
+                                else
+                                {
+                                    <div id="studentPhotoInitial"
+                                         class="rounded-circle border border-4 border-white shadow d-flex align-items-center justify-content-center bg-white text-primary fw-bold"
+                                         style="width:120px;height:120px;font-size:48px;cursor:pointer;"
+                                         onclick="document.getElementById('studentPhotoInput').click()"
+                                         title="Click to add photo">
+                                        @initials
+                                    </div>
+                                    <img src=""
+                                         id="studentPhotoPreview"
+                                         class="rounded-circle border border-4 border-white shadow d-none"
+                                         style="width:120px;height:120px;object-fit:cover;cursor:pointer;"
+                                         alt="@Model.FullName"
+                                         onclick="document.getElementById('studentPhotoInput').click()" />
+                                }
+
+                                <!-- Camera Icon Overlay -->
+                                <div class="position-absolute bottom-0 end-0 bg-white rounded-circle p-2 shadow"
+                                     style="cursor:pointer;border:2px solid #667eea;"
+                                     onclick="document.getElementById('studentPhotoInput').click()"
+                                     title="Change photo">
+                                    <i class="fas fa-camera text-primary"></i>
                                 </div>
-                            }
+                            </div>
+
+                            <!-- Hidden File Input -->
+                            <input type="file"
+                                   id="studentPhotoInput"
+                                   accept="image/jpeg,image/png,image/gif"
+                                   class="d-none"
+                                   onchange="handleStudentPhotoSelect(this)">
                         </div>
+
                         <div class="col">
                             <h3 class="mb-1 fw-bold">@Model.FullName</h3>
                             <p class="mb-2 opacity-90">
@@ -49,6 +107,34 @@
                             <span class="badge bg-light text-primary px-3 py-2">
                                 ID: @Model.StudentId
                             </span>
+
+                            <!-- Photo Upload Links -->
+                            <div class="mt-2">
+                                <a href="javascript:void(0)"
+                                   onclick="document.getElementById('studentPhotoInput').click()"
+                                   class="text-white text-decoration-none small opacity-90">
+                                    <i class="fas fa-camera me-1"></i>
+                                    @(string.IsNullOrEmpty(Model.PassportPhotoPath) ? "Add Photo" : "Change Photo")
+                                </a>
+                                @if (!string.IsNullOrEmpty(Model.PassportPhotoPath))
+                                {
+                                    <span class="mx-2 opacity-75">|</span>
+                                    <a href="javascript:void(0)"
+                                       onclick="removeStudentPhoto()"
+                                       class="text-white text-decoration-none small opacity-90">
+                                        <i class="fas fa-trash me-1"></i>Remove Photo
+                                    </a>
+                                }
+                            </div>
+
+                            <!-- Upload Progress -->
+                            <div id="uploadProgress" class="mt-2 d-none">
+                                <div class="spinner-border spinner-border-sm text-white" role="status"></div>
+                                <small class="text-white ms-2">Uploading...</small>
+                            </div>
+
+                            <!-- Upload Message -->
+                            <div id="uploadMessage" class="mt-2"></div>
                         </div>
                     </div>
                 </div>
@@ -179,6 +265,9 @@
     </div>
 </div>
 
+<!-- Hidden field to store StudentId for JavaScript -->
+<input type="hidden" id="studentId" value="@Model.StudentId" />
+
 <style>
     .bg-gradient-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -216,3 +305,193 @@
         box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
     }
 </style>
+
+@section Scripts {
+    <script>
+        // Handle file selection
+        function handleStudentPhotoSelect(input) {
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+
+                // Validate file
+                if (!validateFile(file)) {
+                    input.value = '';
+                    return;
+                }
+
+                // Preview image
+                previewImage(file);
+
+                // Upload via AJAX
+                uploadStudentPhoto(file);
+            }
+        }
+
+        // Validate file
+        function validateFile(file) {
+            var maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                showMessage('File size must be less than 5MB', 'danger');
+                return false;
+            }
+
+            var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('Only JPG, PNG, and GIF files are allowed', 'danger');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Preview image
+        function previewImage(file) {
+            var reader = new FileReader();
+
+            reader.onload = function (e) {
+                var preview = document.getElementById('studentPhotoPreview');
+                var initial = document.getElementById('studentPhotoInitial');
+
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+
+                if (initial) {
+                    initial.classList.add('d-none');
+                }
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Upload student photo via AJAX
+        function uploadStudentPhoto(file) {
+            var studentId = document.getElementById('studentId').value;
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('studentId', studentId);
+
+            // Show progress
+            document.getElementById('uploadProgress').classList.remove('d-none');
+            document.getElementById('uploadMessage').innerHTML = '';
+
+            $.ajax({
+                url: '@Url.Action("UploadStudentPhoto", "Student")',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+
+                    if (response.success) {
+                        showMessage('Photo updated successfully!', 'success');
+
+                        // Update photo
+                        if (response.imageUrl) {
+                            var timestamp = new Date().getTime();
+                            var newImageUrl = response.imageUrl + '?t=' + timestamp;
+
+                            // Update preview
+                            var preview = document.getElementById('studentPhotoPreview');
+                            if (preview) {
+                                preview.src = newImageUrl;
+                                preview.classList.remove('d-none');
+                            }
+
+                            // Hide initials
+                            var initial = document.getElementById('studentPhotoInitial');
+                            if (initial) {
+                                initial.classList.add('d-none');
+                            }
+                        }
+
+                        // Reload page after short delay to update all elements
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showMessage(response.message || 'Failed to upload', 'danger');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+                    showMessage('Error uploading photo', 'danger');
+                    console.error('Upload error:', error);
+                }
+            });
+        }
+
+        // Remove student photo
+        function removeStudentPhoto() {
+            if (!confirm('Are you sure you want to remove this photo?')) {
+                return;
+            }
+
+            var studentId = document.getElementById('studentId').value;
+
+            // Show progress
+            document.getElementById('uploadProgress').classList.remove('d-none');
+            document.getElementById('uploadMessage').innerHTML = '';
+
+            $.ajax({
+                url: '@Url.Action("RemoveStudentPhoto", "Student")',
+                type: 'POST',
+                data: { studentId: studentId },
+                success: function (response) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+
+                    if (response.success) {
+                        showMessage('Photo removed successfully!', 'success');
+
+                        // Hide photo
+                        var preview = document.getElementById('studentPhotoPreview');
+                        if (preview) {
+                            preview.classList.add('d-none');
+                            preview.src = '';
+                        }
+
+                        // Show initials
+                        var initial = document.getElementById('studentPhotoInitial');
+                        if (initial) {
+                            initial.classList.remove('d-none');
+                        }
+
+                        // Reload page after short delay
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1500);
+
+                    } else {
+                        showMessage(response.message || 'Failed to remove photo.', 'danger');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    document.getElementById('uploadProgress').classList.add('d-none');
+                    showMessage('Error removing photo', 'danger');
+                    console.error('Remove error:', error);
+                }
+            });
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+            var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show py-1 px-2 mb-0 d-inline-block" role="alert" style="font-size: 0.85rem;">' +
+                '<i class="fas ' + icon + ' me-1"></i>' +
+                '<small>' + message + '</small>' +
+                '<button type="button" class="btn-close btn-close-white btn-sm ms-2" data-bs-dismiss="alert" style="font-size: 0.6rem;"></button>' +
+                '</div>';
+
+            document.getElementById('uploadMessage').innerHTML = html;
+
+            setTimeout(function () {
+                var alert = document.querySelector('#uploadMessage .alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}

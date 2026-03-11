@@ -17,12 +17,7 @@ namespace EmployeeManagement.API.Controllers
         private readonly IStudentIdGenerator _idGenerator;
         private readonly ILogger<StudentController> _logger;
 
-        public StudentController(
-            IStudentRepository studentRepo,
-            IExcelService excelService,
-            IFileUploadService fileService,
-            IStudentIdGenerator idGenerator,
-            ILogger<StudentController> logger)
+        public StudentController( IStudentRepository studentRepo, IExcelService excelService, IFileUploadService fileService, IStudentIdGenerator idGenerator, ILogger<StudentController> logger)
         {
             _studentRepo = studentRepo;
             _excelService = excelService;

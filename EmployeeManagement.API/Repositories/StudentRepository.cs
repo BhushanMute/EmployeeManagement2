@@ -2,7 +2,7 @@
 using EmployeeManagement.API.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
-
+ 
 namespace EmployeeManagement.API.Repositories
 {
     public class StudentRepository : IStudentRepository

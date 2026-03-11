@@ -4,14 +4,17 @@ namespace EmployeeManagement.API.Models
 {
     public class ResetPasswordWithTokenRequest
     {
-        [Required]
-        public string Email { get; set; } = string.Empty;
-
-        [Required]
+        [Required(ErrorMessage = "Token is required")]
         public string Token { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        public string Email { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "New password is required")]
-        [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$",
+            ErrorMessage = "Password must contain at least one uppercase, one lowercase, one digit, and one special character")]
         public string NewPassword { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Confirm password is required")]

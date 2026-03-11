@@ -1,5 +1,6 @@
 ﻿using EmployeeManagement.UI.Models;
 using EmployeeManagement.UI.ViewModels;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -335,6 +336,101 @@ namespace EmployeeManagement.UI.Controllers
         }
     }
 
-    // Helper classes (if not already defined elsewhere)
-    
-}
+    [HttpPost]
+        public async Task<IActionResult> UploadStudentPhoto(IFormFile file, int studentId)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return Json(new { success = false, message = "No file selected" });
+                }
+
+                // Validate file size (5MB max)
+                if (file.Length > 5 * 1024 * 1024)
+                {
+                    return Json(new { success = false, message = "File size must be less than 5MB" });
+                }
+
+                // Validate file type
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                {
+                    return Json(new { success = false, message = "Only JPG, PNG, and GIF files are allowed" });
+                }
+
+                // Create uploads folder if not exists
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "students");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                // Generate unique filename
+                var fileName = $"student_{studentId}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(file.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Delete old photo if exists
+                var student = await _studentService.GetStudentByIdAsync(studentId);
+                if (student != null && !string.IsNullOrEmpty(student.PassportPhotoPath))
+                {
+                    var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, student.PassportPhotoPath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
+                // Save new file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Update database
+                var imageUrl = $"/uploads/students/{fileName}";
+                await _studentService.UpdateStudentPhotoAsync(studentId, imageUrl);
+
+                return Json(new { success = true, imageUrl = imageUrl, message = "Photo uploaded successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error uploading photo: " + ex.Message });
+            }
+        }
+
+        // POST: Student/RemoveStudentPhoto
+        [HttpPost]
+        public async Task<IActionResult> RemoveStudentPhoto(int studentId)
+        {
+            try
+            {
+                var student = await _studentService.GetStudentByIdAsync(studentId);
+                if (student == null)
+                {
+                    return Json(new { success = false, message = "Student not found" });
+                }
+
+                // Delete file if exists
+                if (!string.IsNullOrEmpty(student.PassportPhotoPath))
+                {
+                    var filePath = Path.Combine(_webHostEnvironment.WebRootPath, student.PassportPhotoPath.TrimStart('/'));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                }
+
+                // Update database
+                await _studentService.UpdateStudentPhotoAsync(studentId, null);
+
+                return Json(new { success = true, message = "Photo removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error removing photo: " + ex.Message });
+            }
+        }
+        // Helper classes (if not already defined elsewhere)
+
+    }

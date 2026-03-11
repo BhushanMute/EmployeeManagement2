@@ -20,11 +20,7 @@ namespace EmployeeManagement.UI.Controllers
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
 
-        public AccountController(
-            IApiService apiService,
-            ILogger<AccountController> logger,
-            IHttpClientFactory httpClientFactory,
-            IConfiguration configuration)
+        public AccountController( IApiService apiService, ILogger<AccountController> logger, IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _apiService = apiService;
             _logger = logger;
@@ -326,6 +322,12 @@ namespace EmployeeManagement.UI.Controllers
         [AllowAnonymous]
         public IActionResult ForgotPassword()
         {
+            // Redirect if already logged in
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
             return View(new ForgotPasswordViewModel());
         }
 
@@ -341,14 +343,24 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
-                await _apiService.PostAsync<bool>("api/auth/forgot-password", new { Email = model.Email });
+                _logger.LogInformation("Forgot password request for: {Email}", model.Email);
+
+                var request = new { Email = model.Email };
+
+                var result = await _apiService.PostAsync<bool>("api/auth/forgot-password", request);
+
+                // Always show success to prevent email enumeration
                 TempData["SuccessMessage"] = "If the email exists in our system, you will receive a password reset link shortly.";
+
                 return RedirectToAction("ForgotPasswordConfirmation");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in forgot password");
+                _logger.LogError(ex, "Error in forgot password for: {Email}", model.Email);
+
+                // Still show success to prevent information disclosure
                 TempData["SuccessMessage"] = "If the email exists in our system, you will receive a password reset link shortly.";
+
                 return RedirectToAction("ForgotPasswordConfirmation");
             }
         }
@@ -362,22 +374,24 @@ namespace EmployeeManagement.UI.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> ResetPassword(string token, string email)
+        public async Task<IActionResult> ResetPassword(string? token, string? email)
         {
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
+            // Validate parameters
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
             {
-                TempData["Error"] = "Invalid password reset link";
+                TempData["ErrorMessage"] = "Invalid password reset link.";
                 return RedirectToAction("Login");
             }
 
             try
             {
-                var result = await _apiService.GetAsync<bool>($"api/auth/validate-reset-token?token={token}");
+                // Validate token with API
+                var result = await _apiService.GetAsync<bool>($"api/auth/validate-reset-token?token={Uri.EscapeDataString(token)}");
 
                 if (result == null || !result.Status)
                 {
-                    TempData["Error"] = "Invalid or expired password reset link";
-                    return RedirectToAction("Login");
+                    TempData["ErrorMessage"] = result?.Message ?? "Invalid or expired password reset link. Please request a new one.";
+                    return RedirectToAction("ForgotPassword");
                 }
 
                 var model = new ResetPasswordViewModel
@@ -391,8 +405,8 @@ namespace EmployeeManagement.UI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating reset token");
-                TempData["Error"] = "Invalid or expired password reset link";
-                return RedirectToAction("Login");
+                TempData["ErrorMessage"] = "An error occurred. Please try again or request a new reset link.";
+                return RedirectToAction("ForgotPassword");
             }
         }
 
@@ -408,6 +422,8 @@ namespace EmployeeManagement.UI.Controllers
 
             try
             {
+                _logger.LogInformation("Password reset attempt for: {Email}", model.Email);
+
                 var request = new
                 {
                     Token = model.Token,
@@ -420,20 +436,31 @@ namespace EmployeeManagement.UI.Controllers
 
                 if (result == null || !result.Status)
                 {
-                    ModelState.AddModelError("", result?.Message ?? "Failed to reset password");
+                    ModelState.AddModelError("", result?.Message ?? "Failed to reset password. Please try again.");
                     return View(model);
                 }
 
-                TempData["SuccessMessage"] = "Password has been reset successfully. Please login with your new password.";
-                return RedirectToAction("Login");
+                _logger.LogInformation("Password reset successful for: {Email}", model.Email);
+
+                TempData["SuccessMessage"] = "Your password has been reset successfully. You can now log in with your new password.";
+
+                return RedirectToAction("ResetPasswordConfirmation");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error resetting password");
-                ModelState.AddModelError("", "An error occurred while resetting password");
+                _logger.LogError(ex, "Error resetting password for: {Email}", model.Email);
+                ModelState.AddModelError("", "An error occurred while resetting your password. Please try again.");
                 return View(model);
             }
         }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            return View();
+        }
+
 
         [HttpGet]
         [Authorize(Roles = "Admin")]

@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj": {}
+    "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj": {}
   },
   "projects": {
-    "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\EmployeeManagement.API.csproj": {
+    "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\EmployeeManagement.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\EmployeeManagement.API.csproj",
+        "projectUniqueName": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\EmployeeManagement.API.csproj",
         "projectName": "EmployeeManagement.API",
-        "projectPath": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\EmployeeManagement.API.csproj",
-        "packagesPath": "C:\\Users\\bhushan\\.nuget\\packages\\",
-        "outputPath": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\obj\\",
+        "projectPath": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\EmployeeManagement.API.csproj",
+        "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+        "outputPath": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\bhushan\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,7 +26,6 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -63,6 +62,14 @@
               "target": "Package",
               "version": "[2.1.66, )"
             },
+            "EPPlus": {
+              "target": "Package",
+              "version": "[7.0.5, )"
+            },
+            "Emgu.CV": {
+              "target": "Package",
+              "version": "[4.8.1.5350, )"
+            },
             "Google.Apis.Auth": {
               "target": "Package",
               "version": "[1.73.0, )"
@@ -83,9 +90,17 @@
               "target": "Package",
               "version": "[6.1.4, )"
             },
+            "Serilog.AspNetCore": {
+              "target": "Package",
+              "version": "[10.0.0, )"
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.5.0, )"
+            },
+            "System.Data.SqlClient": {
+              "target": "Package",
+              "version": "[4.9.1, )"
             },
             "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",
@@ -111,24 +126,24 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.310/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj": {
+    "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj",
+        "projectUniqueName": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj",
         "projectName": "EmployeeManagement.UI",
-        "projectPath": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj",
-        "packagesPath": "C:\\Users\\bhushan\\.nuget\\packages\\",
-        "outputPath": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.UI\\obj\\",
+        "projectPath": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.UI\\EmployeeManagement.UI.csproj",
+        "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
+        "outputPath": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.UI\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\bhushan\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -137,15 +152,14 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\EmployeeManagement.API.csproj": {
-                "projectPath": "D:\\projects\\EmployeeManagement2\\EmployeeManagemet\\EmployeeManagement\\EmployeeManagement.API\\EmployeeManagement.API.csproj"
+              "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\EmployeeManagement.API.csproj": {
+                "projectPath": "D:\\TfsData\\EmployeeManagement2\\EmployeeManagement.API\\EmployeeManagement.API.csproj"
               }
             }
           }
@@ -173,6 +187,10 @@
             "Microsoft.AspNetCore.Authentication.Google": {
               "target": "Package",
               "version": "[7.0.0, )"
+            },
+            "Microsoft.AspNetCore.Session": {
+              "target": "Package",
+              "version": "[2.2.0, )"
             },
             "Microsoft.Extensions.Http.Polly": {
               "target": "Package",
@@ -210,7 +228,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.310/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

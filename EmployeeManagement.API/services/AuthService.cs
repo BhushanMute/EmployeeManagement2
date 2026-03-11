@@ -5,6 +5,7 @@ using EmployeeManagement.API.Repositories;
 using EmployeeManagement.API.services;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Data;
 using System.Security.Claims;
@@ -14,26 +15,31 @@ using ITokenService = EmployeeManagement.API.Repositories.ITokenService;
 namespace EmployeeManagement.API.Services
 {
     public class AuthService : IAuthService
-{
-     
+    {
         private readonly IAuthRepository _authRepository;
-        private readonly  ITokenService _tokenService;
+        private readonly ITokenService _tokenService;
         private readonly IPasswordService _passwordService;
         private readonly IAuditService _auditService;
         private readonly ILogger<AuthService> _logger;
+        private readonly IEmailService _emailService;           // ✅ Fixed: Added underscore
+        private readonly IConfiguration _configuration;         // ✅ Fixed: Added missing field
 
         public AuthService(
             IAuthRepository authRepository,
-             ITokenService tokenService,
+            ITokenService tokenService,
             IPasswordService passwordService,
             IAuditService auditService,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IEmailService emailService,
+            IConfiguration configuration)                       // ✅ Fixed: Added to constructor
         {
             _authRepository = authRepository;
             _tokenService = tokenService;
             _passwordService = passwordService;
             _auditService = auditService;
             _logger = logger;
+            _emailService = emailService;                       // ✅ Fixed: Proper assignment
+            _configuration = configuration;                     // ✅ Fixed: Proper assignment
         }
 
         public async Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request, string? ipAddress)
@@ -74,7 +80,6 @@ namespace EmployeeManagement.API.Services
             var accessToken = _tokenService.GenerateAccessToken(user, roles, permissions);
             var refreshToken = _tokenService.GenerateRefreshToken();
 
-
             // Save refresh token
             await _authRepository.SaveRefreshTokenAsync(
                 user.Id,
@@ -87,6 +92,7 @@ namespace EmployeeManagement.API.Services
 
             // Log audit
             await _authRepository.LogAuditAsync(user.Id, "Login", "Users", user.Id, null, null, ipAddress, null);
+
             var profilePictureUrl = "";
             if (!string.IsNullOrEmpty(user.ProfilePicture))
             {
@@ -94,6 +100,7 @@ namespace EmployeeManagement.API.Services
                     ? user.ProfilePicture
                     : $"/uploads/profiles/{user.ProfilePicture}";
             }
+
             var response = new AuthResponse
             {
                 UserId = user.Id,
@@ -105,15 +112,13 @@ namespace EmployeeManagement.API.Services
                 TokenExpiry = _tokenService.GetAccessTokenExpiry(),
                 Roles = roles.Select(r => r.RoleName).ToList(),
                 Permissions = permissions.Select(p => p.PermissionName).ToList(),
-                ProfilePicture = profilePictureUrl  // ✅ Add this
-
+                ProfilePicture = profilePictureUrl
             };
 
             return ApiResponse<AuthResponse>.Success(response, "Login successful");
         }
 
-
-        public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest  request, int? createdBy = null)
+        public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request, int? createdBy = null)
         {
             // Hash password
             var (hash, salt) = _passwordService.HashPassword(request.Password);
@@ -126,7 +131,7 @@ namespace EmployeeManagement.API.Services
                 PasswordSalt = salt,
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber 
+                PhoneNumber = request.PhoneNumber
             };
 
             // Register user
@@ -142,7 +147,7 @@ namespace EmployeeManagement.API.Services
             // Get roles and permissions
             var roles = await _authRepository.GetRolesAsync(userId);
             var permissions = await _authRepository.GetUserPermissionsAsync(userId);
-             
+
             // Generate tokens
             var accessToken = _tokenService.GenerateAccessToken(user, roles, permissions);
             var refreshToken = _tokenService.GenerateRefreshToken();
@@ -240,14 +245,13 @@ namespace EmployeeManagement.API.Services
             return await _authRepository.CheckUserPermissionAsync(userId, permissionName);
         }
 
-
         #region Password Management Methods
 
         public async Task<ApiResponse<bool>> ChangePasswordAsync(int userId, ChangePasswordRequest request)
         {
             try
             {
-                // ✅ Get user with PasswordHash AND PasswordSalt
+                // Get user with PasswordHash AND PasswordSalt
                 var user = await _authRepository.GetUserByIdAsync(userId);
 
                 if (user == null)
@@ -255,23 +259,23 @@ namespace EmployeeManagement.API.Services
                     return ApiResponse<bool>.Fail("User not found");
                 }
 
-                // ✅ Verify current password with both hash and salt
+                // Verify current password with both hash and salt
                 if (!VerifyPassword(request.CurrentPassword, user.PasswordHash, user.PasswordSalt))
                 {
                     _logger.LogWarning("Password change failed: incorrect current password for user {UserId}", userId);
                     return ApiResponse<bool>.Fail("Current password is incorrect");
                 }
 
-                // ✅ Check if new password is same as current
+                // Check if new password is same as current
                 if (VerifyPassword(request.NewPassword, user.PasswordHash, user.PasswordSalt))
                 {
                     return ApiResponse<bool>.Fail("New password cannot be the same as current password");
                 }
 
-                // ✅ Hash new password (returns both hash and salt)
+                // Hash new password (returns both hash and salt)
                 var (newHash, newSalt) = _passwordService.HashPassword(request.NewPassword);
 
-                // ✅ Update password with both hash and salt
+                // Update password with both hash and salt
                 var success = await _authRepository.ChangePasswordAsync(userId, newHash, newSalt, userId);
 
                 if (success)
@@ -295,43 +299,81 @@ namespace EmployeeManagement.API.Services
             }
         }
 
-        public async Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequest request)
+        public async Task<ApiResponse<bool>> ForgotPasswordAsync(ForgotPasswordRequest request,
+            string? ipAddress = null, string? userAgent = null)
         {
             try
             {
+                _logger.LogInformation("Forgot password request for email: {Email}", request.Email);
+
+                // Get user by email
                 var user = await _authRepository.GetUserByEmailAsync(request.Email);
 
-                // Always return success to prevent email enumeration
-                if (user == null)
+                // Security: Always return success to prevent email enumeration
+                if (user == null || !user.IsActive || user.IsDeleted)
                 {
-                    //_logger.LogWarning("Forgot password requested for non-existent email: {Email}", request.Email);
-                    return ApiResponse<bool>.Success(true, "If the email exists, a password reset link will be sent.");
+                    _logger.LogWarning("Forgot password: User not found or inactive for email: {Email}", request.Email);
+
+                    // Return success to prevent email enumeration attack
+                    return ApiResponse<bool>.Success(true,
+                        "If the email exists in our system, you will receive a password reset link shortly.");
                 }
 
-                // Generate reset token
-                var token = GeneratePasswordResetToken();
-                var expiryDate = DateTime.UtcNow.AddHours(1); // Token valid for 1 hour
+                // ✅ Fixed: Use the correct method name
+                var token = GenerateSecureToken();
 
-                // Save token
-                await _authRepository.SavePasswordResetTokenAsync(user.Id, token, expiryDate);
+                // Token expires in 30 minutes
+                var expiryDate = DateTime.UtcNow.AddMinutes(30);
 
-                // TODO: Send email with reset link
-                // var resetLink = $"{_configuration["AppSettings:FrontendUrl"]}/Account/ResetPassword?token={token}&email={user.Email}";
-                // await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
+                // Save token to database
+                await _authRepository.SavePasswordResetTokenAsync(
+                    user.Id,
+                    token,
+                    expiryDate,
+                    ipAddress,
+                    userAgent);
 
-               // _logger.LogInformation("Password reset token generated for user {UserId}. Token: {Token}", user.Id, token);
+                // Build reset link
+                var frontendUrl = _configuration["AppSettings:FrontendUrl"]?.TrimEnd('/')
+                    ?? "https://localhost:44354";
+                var resetLink = $"{frontendUrl}/Account/ResetPassword?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(user.Email)}";
 
-                // For development - return token in message (remove in production!)
-               #if DEBUG
-                return ApiResponse<bool>.Success(true, $"Password reset token: {token}");
-             #else
-                return ApiResponse<bool>.Success(true, "Password reset link sent to your email.");
-               #endif
+                // Send email
+                var emailSent = await _emailService.SendPasswordResetEmailAsync(
+                    user.Email,
+                    $"{user.FirstName} {user.LastName}",
+                    resetLink);
+
+                if (!emailSent)
+                {
+                    _logger.LogWarning("Failed to send password reset email to {Email}", user.Email);
+                }
+                else
+                {
+                    _logger.LogInformation("Password reset email sent successfully to {Email}", user.Email);
+                }
+
+                // Log audit
+                await _auditService.LogAsync(
+                    user.Id,
+                    "Password Reset Requested",
+                    "Users",
+                    user.Id,
+                    null,
+                    $"Password reset requested from IP: {ipAddress}",
+                    ipAddress,
+                    userAgent);
+
+                return ApiResponse<bool>.Success(true,
+                    "If the email exists in our system, you will receive a password reset link shortly.");
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error processing forgot password for email {Email}", request.Email);
-                return ApiResponse<bool>.Fail("An error occurred while processing your request");
+                _logger.LogError(ex, "Error processing forgot password for email: {Email}", request.Email);
+
+                // Return success to prevent information disclosure
+                return ApiResponse<bool>.Success(true,
+                    "If the email exists in our system, you will receive a password reset link shortly.");
             }
         }
 
@@ -339,46 +381,88 @@ namespace EmployeeManagement.API.Services
         {
             try
             {
+                _logger.LogInformation("Password reset attempt with token for email: {Email}", request.Email);
+
                 // Validate token
                 var tokenData = await _authRepository.ValidatePasswordResetTokenAsync(request.Token);
 
                 if (tokenData == null)
                 {
-                    return ApiResponse<bool>.Fail("Invalid or expired reset token");
+                    _logger.LogWarning("Invalid or expired reset token");
+                    return ApiResponse<bool>.Fail("Invalid or expired password reset link. Please request a new one.");
                 }
 
-                // Verify email matches
+                // Verify email matches the token
                 if (!string.Equals(tokenData.Email, request.Email, StringComparison.OrdinalIgnoreCase))
                 {
-                    return ApiResponse<bool>.Fail("Invalid reset request");
+                    _logger.LogWarning("Email mismatch for password reset token");
+                    return ApiResponse<bool>.Fail("Invalid password reset request.");
                 }
 
-                // ✅ Hash new password (returns both hash and salt)
+                // Check token expiry
+                if (tokenData.ExpiryDate < DateTime.UtcNow)
+                {
+                    _logger.LogWarning("Password reset token expired for user {UserId}", tokenData.UserId);
+                    return ApiResponse<bool>.Fail("Password reset link has expired. Please request a new one.");
+                }
+
+                // Check if token is already used
+                if (tokenData.IsUsed)
+                {
+                    _logger.LogWarning("Password reset token already used for user {UserId}", tokenData.UserId);
+                    return ApiResponse<bool>.Fail("This password reset link has already been used.");
+                }
+
+                // Validate password confirmation
+                if (request.NewPassword != request.ConfirmPassword)
+                {
+                    return ApiResponse<bool>.Fail("Passwords do not match.");
+                }
+
+                // Hash new password (returns both hash and salt)
                 var (newHash, newSalt) = _passwordService.HashPassword(request.NewPassword);
 
-                // ✅ Update password with both hash and salt
+                // Update password with both hash and salt
                 var success = await _authRepository.ChangePasswordAsync(tokenData.UserId, newHash, newSalt, null);
 
-                if (success)
+                if (!success)
                 {
-                    // Mark token as used
-                    await _authRepository.MarkPasswordResetTokenUsedAsync(request.Token);
-
-                    // Revoke all refresh tokens
-                    await _authRepository.RevokeAllUserTokensAsync(tokenData.UserId);
-
-                    // Log audit
-                    await _auditService.LogAsync(tokenData.UserId, "Password Reset via Token", "Users", tokenData.UserId);
-
-                    return ApiResponse<bool>.Success(true, "Password reset successfully. Please login with your new password.");
+                    _logger.LogError("Failed to update password for user {UserId}", tokenData.UserId);
+                    return ApiResponse<bool>.Fail("Failed to reset password. Please try again.");
                 }
 
-                return ApiResponse<bool>.Fail("Failed to reset password");
+                // Mark token as used
+                await _authRepository.MarkPasswordResetTokenUsedAsync(request.Token);
+
+                // Revoke all existing refresh tokens for security
+                await _authRepository.RevokeAllUserTokensAsync(tokenData.UserId);
+
+                // Send notification email
+                if (!string.IsNullOrEmpty(tokenData.Email))
+                {
+                    await _emailService.SendPasswordChangedNotificationAsync(
+                        tokenData.Email,
+                        $"{tokenData.FirstName} {tokenData.LastName}");
+                }
+
+                // Log audit
+                await _auditService.LogAsync(
+                    tokenData.UserId,
+                    "Password Reset Completed",
+                    "Users",
+                    tokenData.UserId,
+                    null,
+                    "Password reset via email link");
+
+                _logger.LogInformation("Password reset successful for user {UserId}", tokenData.UserId);
+
+                return ApiResponse<bool>.Success(true,
+                    "Password has been reset successfully. You can now log in with your new password.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error resetting password with token");
-                return ApiResponse<bool>.Fail("An error occurred while resetting password");
+                return ApiResponse<bool>.Fail("An error occurred while resetting your password. Please try again.");
             }
         }
 
@@ -393,10 +477,10 @@ namespace EmployeeManagement.API.Services
                     return ApiResponse<bool>.Fail("User not found");
                 }
 
-                // ✅ Hash new password (returns both hash and salt)
+                // Hash new password (returns both hash and salt)
                 var (newHash, newSalt) = _passwordService.HashPassword(request.NewPassword);
 
-                // ✅ Update password with correct parameter order
+                // Update password with correct parameter order
                 var success = await _authRepository.ChangePasswordAsync(request.UserId, newHash, newSalt, adminUserId);
 
                 if (success)
@@ -432,23 +516,39 @@ namespace EmployeeManagement.API.Services
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    return ApiResponse<bool>.Fail("Token is required.");
+                }
+
                 var tokenData = await _authRepository.ValidatePasswordResetTokenAsync(token);
 
                 if (tokenData == null)
                 {
-                    return ApiResponse<bool>.Fail("Invalid or expired reset token");
+                    return ApiResponse<bool>.Fail("Invalid or expired password reset link.");
                 }
 
-                return ApiResponse<bool>.Success(true, "Token is valid");
+                if (tokenData.IsUsed)
+                {
+                    return ApiResponse<bool>.Fail("This password reset link has already been used.");
+                }
+
+                if (tokenData.ExpiryDate < DateTime.UtcNow)
+                {
+                    return ApiResponse<bool>.Fail("Password reset link has expired.");
+                }
+
+                return ApiResponse<bool>.Success(true, "Token is valid.");
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error validating password reset token");
-                return ApiResponse<bool>.Fail("An error occurred while validating token");
+                _logger.LogError(ex, "Error validating password reset token");
+                return ApiResponse<bool>.Fail("An error occurred while validating the token.");
             }
         }
 
         #endregion
+
         #region Private Helper Methods
 
         private string HashPassword(string password)
@@ -481,26 +581,36 @@ namespace EmployeeManagement.API.Services
             }
         }
 
-        private string GeneratePasswordResetToken()
+        /// <summary>
+        /// ✅ Fixed: Added this method (was missing but being called)
+        /// Generates a cryptographically secure token for password reset
+        /// </summary>
+        private string GenerateSecureToken()
         {
-            var randomBytes = new byte[32];
+            var randomBytes = new byte[64];
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomBytes);
+
+            // Convert to URL-safe base64
             return Convert.ToBase64String(randomBytes)
                 .Replace("+", "-")
                 .Replace("/", "_")
                 .TrimEnd('=');
         }
 
+        /// <summary>
+        /// Alternative method name (kept for backward compatibility)
+        /// </summary>
+        private string GeneratePasswordResetToken()
+        {
+            return GenerateSecureToken();
+        }
+
         private async Task<List<Permission>> GetUserPermissionsAsync(int userId)
         {
-            // TODO: Implement get user permissions from repository
-            // This should get permissions based on user's roles
-            return new List<Permission>();
+            return await _authRepository.GetUserPermissionsAsync(userId);
         }
 
         #endregion
-
-
     }
 }

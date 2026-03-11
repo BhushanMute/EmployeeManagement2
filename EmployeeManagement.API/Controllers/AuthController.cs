@@ -155,14 +155,7 @@ namespace EmployeeManagement.API.Controllers
             return Ok(ApiResponse<object>.Success(userInfo));
         }
 
-        private string? GetIpAddress()
-        {
-            if (Request.Headers.ContainsKey("X-Forwarded-For"))
-            {
-                return Request.Headers["X-Forwarded-For"];
-            }
-            return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString();
-        }
+        
 
         private int GetCurrentUserId()
         {
@@ -221,67 +214,58 @@ namespace EmployeeManagement.API.Controllers
         /// Forgot Password - Send reset link to email
         /// </summary>
         [HttpPost("forgot-password")]
-        
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<bool>>> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ApiResponse<bool>.Fail("Please provide a valid email address"));
-                }
-
-                _logger.LogInformation("Forgot password request for email: {Email}", request.Email);
-
-                var result = await _authService.ForgotPasswordAsync(request);
-
-                // Always return success to prevent email enumeration
-                return Ok(ApiResponse<bool>.Success(true, "If the email exists, a password reset link will be sent"));
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(ApiResponse<bool>.Fail("Validation failed", errors));
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing forgot password for email: {Email}", request.Email);
-                // Still return success to prevent email enumeration
-                return Ok(ApiResponse<bool>.Success(true, "If the email exists, a password reset link will be sent"));
-            }
+
+            var ipAddress = GetIpAddress();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+
+            var result = await _authService.ForgotPasswordAsync(request);
+
+            // Always return OK to prevent email enumeration
+            return Ok(result);
         }
+
 
         /// <summary>
         /// Reset Password - Using reset token
         /// </summary>
         [HttpPost("reset-password")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<bool>>> ResetPassword([FromBody] ResetPasswordWithTokenRequest request)
         {
-            try
+            if (!ModelState.IsValid)
             {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage)
-                        .ToList();
-                    return BadRequest(ApiResponse<bool>.Fail("Validation failed", errors));
-                }
-
-                _logger.LogInformation("Password reset attempt for email: {Email}", request.Email);
-
-                var result = await _authService.ResetPasswordWithTokenAsync(request);
-
-                if (!result.Status)
-                {
-                    _logger.LogWarning("Password reset failed for email: {Email}", request.Email);
-                    return BadRequest(result);
-                }
-
-                _logger.LogInformation("Password reset successful for email: {Email}", request.Email);
-                return Ok(result);
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(ApiResponse<bool>.Fail("Validation failed", errors));
             }
-            catch (Exception ex)
+
+            _logger.LogInformation("Password reset request for email: {Email}", request.Email);
+
+            var result = await _authService.ResetPasswordWithTokenAsync(request);
+
+            if (!result.Status)
             {
-                _logger.LogError(ex, "Error resetting password for email: {Email}", request.Email);
-                return StatusCode(500, ApiResponse<bool>.Fail("An error occurred while resetting password"));
+                return BadRequest(result);
             }
+
+            return Ok(result);
         }
 
         /// <summary>
@@ -331,29 +315,45 @@ namespace EmployeeManagement.API.Controllers
         /// </summary>
         [HttpGet("validate-reset-token")]
         [AllowAnonymous]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ApiResponse<bool>>> ValidateResetToken([FromQuery] string token)
         {
-            try
+            if (string.IsNullOrWhiteSpace(token))
             {
-                if (string.IsNullOrEmpty(token))
-                {
-                    return BadRequest(ApiResponse<bool>.Fail("Token is required"));
-                }
-
-                var result = await _authService.ValidatePasswordResetTokenAsync(token);
-
-                if (!result.Status)
-                {
-                    return BadRequest(result);
-                }
-
-                return Ok(result);
+                return BadRequest(ApiResponse<bool>.Fail("Token is required"));
             }
-            catch (Exception ex)
+
+            var result = await _authService.ValidatePasswordResetTokenAsync(token);
+
+            if (!result.Status)
             {
-                _logger.LogError(ex, "Error validating reset token");
-                return StatusCode(500, ApiResponse<bool>.Fail("An error occurred while validating token"));
+                return BadRequest(result);
             }
+
+            return Ok(result);
+        }
+
+
+        #endregion
+
+        #region Helper Methods
+
+        private string? GetIpAddress()
+        {
+            // Check for forwarded IP (when behind proxy/load balancer)
+            if (Request.Headers.ContainsKey("X-Forwarded-For"))
+            {
+                return Request.Headers["X-Forwarded-For"].ToString().Split(',').FirstOrDefault()?.Trim();
+            }
+
+            // Check for real IP header
+            if (Request.Headers.ContainsKey("X-Real-IP"))
+            {
+                return Request.Headers["X-Real-IP"].ToString();
+            }
+
+            return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString();
         }
 
         #endregion

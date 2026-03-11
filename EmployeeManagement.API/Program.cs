@@ -57,6 +57,9 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
 
 // =============================================
 // ✅ REGISTER STUDENT ATTENDANCE SERVICES (NEW)
@@ -313,7 +316,7 @@ if (app.Environment.IsDevelopment())
 
 // Global Exception Handling
 app.UseMiddleware<ExceptionMiddleware>();
-
+ 
 app.UseHttpsRedirection();
 
 // ✅ Static Files (for uploaded photos)
