@@ -187,10 +187,9 @@ namespace EmployeeManagement.API.Repositories
                 using var cmd = new SqlCommand("sp_DeleteStudent", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.AddWithValue("@Id", id);
-                cmd.Parameters.AddWithValue("@DeletedBy", DBNull.Value);
 
                 await conn.OpenAsync();
-                var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                var rowsAffected = (int)await cmd.ExecuteScalarAsync();  // Changed to ExecuteScalarAsync
 
                 return rowsAffected > 0;
             }

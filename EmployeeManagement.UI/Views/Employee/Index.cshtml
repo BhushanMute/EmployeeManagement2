@@ -220,7 +220,7 @@
 
         function deleteEmployee(id) {
             $.ajax({
-                url: '/api/Employee/' + id,
+                url: '/Employee/GetEmployees/' + id,
                 type: 'DELETE',
                 success: function(response) {
                     $('#deleteModal').modal('hide');
