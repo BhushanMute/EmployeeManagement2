@@ -1,6 +1,6 @@
-﻿namespace EmployeeManagement.UI.Services
+﻿namespace EmployeeManagement.API.Services
 {
-    public class StudentService
+    public class StudentService : IStudentService
     {
         public async Task UpdateStudentPhotoAsync(int studentId, string photoPath)
         {
