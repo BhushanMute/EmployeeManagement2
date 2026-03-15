@@ -1,0 +1,569 @@
+﻿@model EmployeeManagement.UI.ViewModels.AdminLeaveDashboardViewModel
+@{
+    ViewData["Title"] = "Leave Analytics Dashboard";
+    var monthNames = new[] { "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+    var leaveTypeColors = new[] { "#4facfe", "#f5576c", "#43e97b", "#fa709a", "#a18cd1", "#fcb69f", "#667eea", "#ffd93d" };
+}
+
+@section Styles {
+    <style>
+        .dash-hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 20px;
+            padding: 35px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .dash-hero::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -20%;
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(102,126,234,0.2) 0%, transparent 70%);
+                border-radius: 50%;
+            }
+
+        .glass-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+
+            .glass-card:hover {
+                background: rgba(255,255,255,0.15);
+                transform: translateY(-2px);
+            }
+
+            .glass-card .card-value {
+                font-size: 2rem;
+                font-weight: 800;
+            }
+
+            .glass-card .card-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                opacity: 0.8;
+            }
+
+        .analytics-card {
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s;
+        }
+
+            .analytics-card:hover {
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+            }
+
+        .chart-bar-container {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            height: 120px;
+        }
+
+        .chart-bar {
+            width: 28px;
+            border-radius: 6px 6px 0 0;
+            transition: height 1s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+            .chart-bar:hover {
+                opacity: 0.8;
+            }
+
+                .chart-bar:hover::after {
+                    content: attr(data-value);
+                    position: absolute;
+                    top: -25px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: #333;
+                    color: white;
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 0.7rem;
+                    white-space: nowrap;
+                }
+
+        .donut-chart {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .today-badge {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            border-radius: 12px;
+            padding: 3px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ✅ HERO SECTION -->
+    <div class="dash-hero shadow-lg mb-4 fade-in">
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-1">
+                    <i class="fas fa-chart-line me-2"></i>Leave Analytics Dashboard
+                </h2>
+                <p class="opacity-75 mb-0">
+                    Comprehensive leave analytics for @Model.SelectedYear
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-clock me-1"></i>@DateTime.Now.ToString("dd MMM yyyy, hh:mm tt")
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-inline-flex gap-2">
+                    @for (int y = DateTime.Now.Year - 1; y <= DateTime.Now.Year + 1; y++)
+                    {
+                        var btnClass = y == Model.SelectedYear ? "btn-light text-primary fw-bold" : "btn-outline-light";
+                        <a asp-action="AdminDashboard" asp-route-year="@y"
+                           class="btn btn-sm @btnClass" style="border-radius: 20px;">@y</a>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row g-3">
+            <div class="col-6 col-md-2">
+                <div class="glass-card">
+                    <div class="card-value">@Model.TotalRequests</div>
+                    <div class="card-label"><i class="fas fa-inbox me-1"></i>Total Requests</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="glass-card" style="border-left: 3px solid #28a745;">
+                    <div class="card-value" style="color: #51cf66;">@Model.ApprovedRequests</div>
+                    <div class="card-label"><i class="fas fa-check me-1"></i>Approved</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="glass-card" style="border-left: 3px solid #ffc107;">
+                    <div class="card-value" style="color: #ffd93d;">@Model.PendingRequests</div>
+                    <div class="card-label"><i class="fas fa-clock me-1"></i>Pending</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="glass-card" style="border-left: 3px solid #dc3545;">
+                    <div class="card-value" style="color: #ff6b6b;">@Model.RejectedRequests</div>
+                    <div class="card-label"><i class="fas fa-times me-1"></i>Rejected</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="glass-card">
+                    <div class="card-value">@Model.TotalApprovedDays</div>
+                    <div class="card-label"><i class="fas fa-calendar-check me-1"></i>Days Taken</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-2">
+                <div class="glass-card" style="border-left: 3px solid #e74c3c;">
+                    <div class="card-value" style="color: #ff6b6b;">@Model.OnLeaveToday</div>
+                    <div class="card-label"><i class="fas fa-user-slash me-1"></i>On Leave Today</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ✅ MONTHLY CHART -->
+        <div class="col-lg-8">
+            <div class="card analytics-card shadow-sm fade-in" style="animation-delay: 0.1s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-chart-bar me-2 text-primary"></i>Monthly Leave Trends
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.MonthlyData.Any())
+                    {
+                        var maxVal = Model.MonthlyData.Max(m => m.TotalRequests);
+                        maxVal = maxVal == 0 ? 1 : maxVal;
+
+                        <div class="chart-bar-container">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                var data = Model.MonthlyData.FirstOrDefault(d => d.MonthNumber == m);
+                                var approved = data?.Approved ?? 0;
+                                var rejected = data?.Rejected ?? 0;
+                                var pending = data?.Pending ?? 0;
+                                var total = approved + rejected + pending;
+                                var barHeight = maxVal > 0 ? (int)((double)total / maxVal * 100) : 0;
+
+                                <div class="text-center">
+                                    <div class="chart-bar"
+                                         style="height: @(Math.Max(barHeight, 5))px; background: linear-gradient(to top, #667eea, #764ba2);"
+                                         data-value="@total requests"
+                                         title="@monthNames[m]: @total requests">
+                                    </div>
+                                    <small class="d-block mt-1 text-muted" style="font-size: 0.65rem;">@monthNames[m]</small>
+                                    <small class="fw-bold" style="font-size: 0.7rem;">@total</small>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="d-flex justify-content-center gap-4 mt-3 pt-3 border-top">
+                            <small><span class="status-dot" style="background: #28a745;"></span> Approved</small>
+                            <small><span class="status-dot" style="background: #ffc107;"></span> Pending</small>
+                            <small><span class="status-dot" style="background: #dc3545;"></span> Rejected</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                            <p>No data available for @Model.SelectedYear</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ ON LEAVE TODAY -->
+        <div class="col-lg-4">
+            <div class="card analytics-card shadow-sm fade-in" style="animation-delay: 0.2s;">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-user-clock me-2 text-danger"></i>On Leave Today
+                    </h6>
+                    <span class="today-badge">@Model.OnLeaveToday</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.OnLeaveTodayList.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var emp in Model.OnLeaveTodayList)
+                            {
+                                <li class="list-group-item d-flex align-items-center py-3 px-4">
+                                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center me-3 flex-shrink-0"
+                                         style="width: 40px; height: 40px; font-size: 0.9rem; font-weight: 700;">
+                                        @emp.EmployeeName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <strong style="font-size: 0.9rem;">@emp.EmployeeName</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            @emp.DepartmentName • @emp.LeaveTypeName • @emp.TotalDays day(s)
+                                        </small>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                            <p class="mb-0">No one is on leave today 👍</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <!-- ✅ LEAVE TYPE BREAKDOWN -->
+        <div class="col-lg-4">
+            <div class="card analytics-card shadow-sm fade-in" style="animation-delay: 0.3s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-layer-group me-2 text-info"></i>By Leave Type
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.LeaveTypeData.Any())
+                    {
+                        var maxLT = Model.LeaveTypeData.Max(l => l.TotalRequests);
+                        maxLT = maxLT == 0 ? 1 : maxLT;
+                        var colorIdx = 0;
+
+                        foreach (var lt in Model.LeaveTypeData)
+                        {
+                            var barPct = (int)((double)lt.TotalRequests / maxLT * 100);
+                            var color = leaveTypeColors[colorIdx % leaveTypeColors.Length];
+                            colorIdx++;
+
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3" style="width: 40px;">
+                                    <span class="badge text-white" style="background: @color; font-size: 0.7rem;">
+                                        @lt.LeaveTypeCode
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small class="fw-bold">@lt.LeaveTypeName</small>
+                                        <small class="text-muted">@lt.TotalRequests req</small>
+                                    </div>
+                                    <div class="progress" style="height: 6px; border-radius: 10px;">
+                                        <div class="progress-bar" style="width: @barPct%; background: @color; border-radius: 10px;"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <small class="text-success" style="font-size: 0.65rem;">@lt.ApprovedDays approved days</small>
+                                        <small class="text-warning" style="font-size: 0.65rem;">@lt.PendingDays pending</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3 text-muted">No data</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ DEPARTMENT BREAKDOWN -->
+        <div class="col-lg-4">
+            <div class="card analytics-card shadow-sm fade-in" style="animation-delay: 0.4s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-building me-2 text-warning"></i>By Department
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.DepartmentData.Any())
+                    {
+                        foreach (var dept in Model.DepartmentData)
+                        {
+                            <div class="mb-3 p-3 rounded" style="background: #f8f9fc;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong style="font-size: 0.9rem;">@dept.DepartmentName</strong>
+                                    <span class="badge bg-light text-dark border">@dept.TotalEmployees emp</span>
+                                </div>
+                                <div class="row text-center g-1">
+                                    <div class="col-4">
+                                        <div class="fw-bold text-primary">@dept.TotalRequests</div>
+                                        <small class="text-muted" style="font-size: 0.6rem;">Requests</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="fw-bold text-success">@dept.ApprovedDays</div>
+                                        <small class="text-muted" style="font-size: 0.6rem;">Days Taken</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="fw-bold text-warning">@dept.PendingCount</div>
+                                        <small class="text-muted" style="font-size: 0.6rem;">Pending</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-3 text-muted">No data</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ QUICK ACTIONS & INFO -->
+        <div class="col-lg-4">
+            <div class="card analytics-card shadow-sm fade-in mb-4" style="animation-delay: 0.5s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-bolt me-2 text-warning"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-action="PendingApprovals" class="btn btn-warning text-dark" style="border-radius: 10px;">
+                            <i class="fas fa-clipboard-check me-2"></i>
+                            Pending Approvals
+                            @if (Model.PendingRequests > 0)
+                            {
+                                <span class="badge bg-danger ms-2">@Model.PendingRequests</span>
+                            }
+                        </a>
+                        <a asp-action="Calendar" class="btn btn-outline-info" style="border-radius: 10px;">
+                            <i class="fas fa-calendar-alt me-2"></i>Team Calendar
+                        </a>
+                        <a asp-action="Reports" class="btn btn-outline-success" style="border-radius: 10px;">
+                            <i class="fas fa-chart-bar me-2"></i>Detailed Reports
+                        </a>
+                        <a asp-action="ManageAllocation" class="btn btn-outline-primary" style="border-radius: 10px;">
+                            <i class="fas fa-tasks me-2"></i>Manage Allocation
+                        </a>
+                        <a asp-action="Holidays" class="btn btn-outline-secondary" style="border-radius: 10px;">
+                            <i class="fas fa-calendar me-2"></i>
+                            Holiday Calendar
+                            <span class="badge bg-info ms-2">@Model.UpcomingHolidays upcoming</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card analytics-card shadow-sm border-start border-4 border-info fade-in" style="animation-delay: 0.6s;">
+                <div class="card-body">
+                    <h6 class="fw-bold"><i class="fas fa-info-circle me-2 text-info"></i>Summary</h6>
+                    <ul class="list-unstyled mb-0 mt-3">
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Total Employees</span>
+                            <strong>@Model.TotalEmployees</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Employees Used Leave</span>
+                            <strong>@Model.EmployeesOnLeave</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-2 border-bottom">
+                            <span class="text-muted">Total Holidays (@Model.SelectedYear)</span>
+                            <strong>@Model.TotalHolidays</strong>
+                        </li>
+                        <li class="d-flex justify-content-between py-2">
+                            <span class="text-muted">Avg Days/Employee</span>
+                            <strong>
+                                @(Model.EmployeesOnLeave > 0
+                                                                ? (Model.TotalApprovedDays / Model.EmployeesOnLeave).ToString("F1")
+                                                                : "0")
+                            </strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ RECENT REQUESTS TABLE -->
+    <div class="card analytics-card shadow-sm mt-4 fade-in" style="animation-delay: 0.7s;">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                    <i class="fas fa-history me-2 text-primary"></i>Recent Leave Requests
+                </h6>
+                <a asp-action="Reports" class="btn btn-sm btn-outline-primary" style="border-radius: 20px;">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.RecentRequests.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Employee</th>
+                                <th>Department</th>
+                                <th>Leave Type</th>
+                                <th class="text-center">From</th>
+                                <th class="text-center">To</th>
+                                <th class="text-center">Days</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Applied</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var req in Model.RecentRequests)
+                            {
+                                var statusClass = req.Status switch
+                                {
+                                    "Approved" => "bg-success",
+                                    "Rejected" => "bg-danger",
+                                    "Cancelled" => "bg-secondary",
+                                    _ => "bg-warning text-dark"
+                                };
+
+                                <tr>
+                                    <td class="ps-4">
+                                        <strong>@req.EmployeeName</strong>
+                                    </td>
+                                    <td><small class="text-muted">@req.DepartmentName</small></td>
+                                    <td>
+                                        <span class="badge bg-primary" style="font-size: 0.7rem;">@req.LeaveTypeName</span>
+                                    </td>
+                                    <td class="text-center">@req.StartDate.ToString("dd MMM")</td>
+                                    <td class="text-center">@req.EndDate.ToString("dd MMM")</td>
+                                    <td class="text-center fw-bold">@req.TotalDays</td>
+                                    <td class="text-center">
+                                        <span class="badge @statusClass" style="font-size: 0.7rem;">@req.Status</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <small class="text-muted">@req.AppliedDate.ToString("dd MMM")</small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4 text-muted">
+                    <p>No recent requests</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Animate bars on load
+        document.addEventListener('DOMContentLoaded', function () {
+            var bars = document.querySelectorAll('.chart-bar');
+            bars.forEach(function (bar) {
+                var targetHeight = bar.style.height;
+                bar.style.height = '5px';
+                setTimeout(function () {
+                    bar.style.height = targetHeight;
+                }, 300);
+            });
+        });
+    </script>
+}

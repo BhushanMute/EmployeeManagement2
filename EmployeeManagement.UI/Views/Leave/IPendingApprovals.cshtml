@@ -1,0 +1,150 @@
+﻿@model EmployeeManagement.UI.ViewModels.LeaveApprovalDashboardViewModel
+@{
+    ViewData["Title"] = "Pending Leave Approvals";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-check me-2 text-primary"></i>Pending Leave Approvals</h2>
+        <span class="badge bg-warning fs-6">@Model.TotalPending Pending</span>
+    </div>
+
+    @if (Model.PendingRequests.Any())
+    {
+        @foreach (var request in Model.PendingRequests)
+        {
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3"
+                                     style="width: 45px; height: 45px; font-size: 16px;">
+                                    @(request.EmployeeName?.Substring(0, 1).ToUpper())
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">@request.EmployeeName</h5>
+                                    <small class="text-muted">@request.DepartmentName • @request.EmployeeEmail</small>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-auto">
+                                    <small class="text-muted">Type:</small>
+                                    <br><strong>@request.LeaveTypeName</strong>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted">From:</small>
+                                    <br><strong>@request.StartDate.ToString("dd MMM yyyy")</strong>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted">To:</small>
+                                    <br><strong>@request.EndDate.ToString("dd MMM yyyy")</strong>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted">Days:</small>
+                                    <br><strong class="text-primary">@request.TotalDays</strong>
+                                </div>
+                                <div class="col-auto">
+                                    <small class="text-muted">Applied:</small>
+                                    <br><strong>@request.AppliedDate.ToString("dd MMM yyyy")</strong>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">Reason:</small>
+                                <p class="mb-0">@request.Reason</p>
+                            </div>
+                            @if (!string.IsNullOrEmpty(request.AttachmentPath))
+                            {
+                                <a href="@request.AttachmentPath" target="_blank" class="btn btn-sm btn-outline-info mt-2">
+                                    <i class="fas fa-paperclip me-1"></i>View Attachment
+                                </a>
+                            }
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex flex-column gap-2">
+                                <button class="btn btn-success"
+                                        onclick="showApprovalModal(@request.Id, 'approve', '@request.EmployeeName')">
+                                    <i class="fas fa-check me-1"></i>Approve
+                                </button>
+                                <button class="btn btn-danger"
+                                        onclick="showApprovalModal(@request.Id, 'reject', '@request.EmployeeName')">
+                                    <i class="fas fa-times me-1"></i>Reject
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5 text-muted">
+                <i class="fas fa-check-double fa-3x mb-3 text-success"></i>
+                <h5>All caught up!</h5>
+                <p>No pending leave requests to review.</p>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="approvalForm" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="leaveRequestId" id="modalLeaveId" />
+                <div class="modal-header" id="modalHeader">
+                    <h5 class="modal-title" id="modalTitle"></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="modalMessage"></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Remarks (Optional)</label>
+                        <textarea name="remarks" class="form-control" rows="3"
+                                  placeholder="Add remarks..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn" id="modalSubmitBtn">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showApprovalModal(id, action, employeeName) {
+            document.getElementById('modalLeaveId').value = id;
+
+            var form = document.getElementById('approvalForm');
+            var header = document.getElementById('modalHeader');
+            var title = document.getElementById('modalTitle');
+            var message = document.getElementById('modalMessage');
+            var submitBtn = document.getElementById('modalSubmitBtn');
+
+            if (action === 'approve') {
+                form.action = '/Leave/Approve';
+                header.className = 'modal-header bg-success text-white';
+                title.innerHTML = '<i class="fas fa-check-circle me-2"></i>Approve Leave';
+                message.textContent = `Are you sure you want to approve leave for ${employeeName}?`;
+                submitBtn.className = 'btn btn-success';
+                submitBtn.textContent = 'Approve';
+            } else {
+                form.action = '/Leave/Reject';
+                header.className = 'modal-header bg-danger text-white';
+                title.innerHTML = '<i class="fas fa-times-circle me-2"></i>Reject Leave';
+                message.textContent = `Are you sure you want to reject leave for ${employeeName}?`;
+                submitBtn.className = 'btn btn-danger';
+                submitBtn.textContent = 'Reject';
+            }
+
+            new bootstrap.Modal(document.getElementById('approvalModal')).show();
+        }
+    </script>
+}

@@ -1,0 +1,904 @@
+﻿@{
+    ViewData["Title"] = "Salary Report";
+    var reportJson = ViewBag.ReportData as string ?? "{}";
+    var selectedMonth = (int)(ViewBag.Month ?? DateTime.Now.Month);
+    var selectedYear = (int)(ViewBag.Year ?? DateTime.Now.Year);
+    var selectedDepartmentId = ViewBag.DepartmentId as int?;
+    var apiSuccess = (bool)(ViewBag.ApiSuccess ?? false);
+    var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December" };
+}
+
+@section Styles {
+    <style>
+        /* ===== Hero Section ===== */
+        .sal-hero {
+            background: linear-gradient(135deg, #f39c12 0%, #e74c3c 50%, #c0392b 100%);
+            border-radius: 20px;
+            padding: 35px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .sal-hero::before {
+                content: '💰';
+                position: absolute;
+                top: 10px;
+                right: 40px;
+                font-size: 80px;
+                opacity: 0.1;
+            }
+
+            .sal-hero::after {
+                content: '';
+                position: absolute;
+                bottom: -40%;
+                left: -10%;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 50%;
+            }
+
+        /* ===== Glass Cards ===== */
+        .stat-glass {
+            background: rgba(255,255,255,0.15);
+            border-radius: 14px;
+            padding: 18px 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+
+            .stat-glass:hover {
+                background: rgba(255,255,255,0.22);
+                transform: translateY(-2px);
+            }
+
+            .stat-glass .stat-value {
+                font-size: 1.5rem;
+                font-weight: 800;
+                line-height: 1.2;
+            }
+
+            .stat-glass .stat-label {
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                opacity: 0.8;
+                margin-top: 4px;
+            }
+
+        /* ===== Department Card ===== */
+        .dept-salary-card {
+            border: none;
+            border-radius: 14px;
+            transition: all 0.3s;
+            border-left: 4px solid #f39c12;
+            overflow: hidden;
+        }
+
+            .dept-salary-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 30px rgba(0,0,0,0.12) !important;
+            }
+
+            .dept-salary-card .dept-icon {
+                width: 45px;
+                height: 45px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.1rem;
+            }
+
+        /* ===== Table Styles ===== */
+        .salary-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .salary-table .deduction-badge {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+            color: #d63031;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .salary-table .net-salary {
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .salary-table .has-deduction {
+            background: #fff5f5 !important;
+        }
+
+        /* ===== Salary Bar ===== */
+        .salary-bar {
+            height: 6px;
+            border-radius: 10px;
+            background: #e9ecef;
+            overflow: hidden;
+        }
+
+            .salary-bar .salary-fill {
+                height: 100%;
+                border-radius: 10px;
+                transition: width 1s ease;
+            }
+
+        /* ===== Breakdown Chip ===== */
+        .breakdown-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #f8f9fc;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            margin: 2px;
+        }
+
+        /* ===== Print Styles ===== */
+        @@media print {
+            .sal-hero {
+                background: #f39c12 !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .card {
+                break-inside: avoid;
+            }
+
+            .stat-glass {
+                border: 1px solid #ddd;
+            }
+        }
+
+        /* ===== Animation ===== */
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== Responsive ===== */
+        @@media (max-width: 768px) {
+            .sal-hero {
+                padding: 20px;
+            }
+
+            .stat-glass .stat-value {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ================================================================ -->
+    <!-- ✅ HERO SECTION -->
+    <!-- ================================================================ -->
+    <div class="sal-hero shadow-lg mb-4 fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-1">
+                    <i class="fas fa-money-bill-wave me-2"></i>Salary Report
+                </h2>
+                <p class="opacity-75 mb-3">
+                    <i class="fas fa-calendar me-1"></i>@monthNames[selectedMonth] @selectedYear
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-clock me-1"></i>Generated: @DateTime.Now.ToString("dd MMM yyyy, hh:mm tt")
+                </p>
+
+                <!-- Filters -->
+                <div class="d-flex gap-2 flex-wrap no-print">
+                    <select class="form-select form-select-sm"
+                            style="width: auto; border-radius: 10px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);"
+                            onchange="updateSalaryFilters();" id="monthFilter">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" style="color: black;"
+                                    selected="@(m == selectedMonth)">
+                                @monthNames[m]
+                            </option>
+                        }
+                    </select>
+
+                    <select class="form-select form-select-sm"
+                            style="width: auto; border-radius: 10px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);"
+                            onchange="updateSalaryFilters();" id="yearFilter">
+                        @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 3; y--)
+                        {
+                            <option value="@y" style="color: black;"
+                                    selected="@(y == selectedYear)">
+                                @y
+                            </option>
+                        }
+                    </select>
+
+                    <button class="btn btn-sm btn-light" style="border-radius: 20px;" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+
+                    <button class="btn btn-sm btn-outline-light" style="border-radius: 20px;"
+                            onclick="exportToExcel()">
+                        <i class="fas fa-file-excel me-1"></i>Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div class="col-md-6 mt-3 mt-md-0">
+                <div class="row g-2" id="heroStats">
+                    <!-- Filled by JavaScript -->
+                    <div class="text-center py-3 opacity-50">
+                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                        <small class="d-block mt-1">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ DEPARTMENT SALARY CARDS -->
+    <!-- ================================================================ -->
+    <div class="row g-3 mb-4" id="deptCards">
+        <!-- Filled by JavaScript -->
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ SALARY BREAKDOWN SUMMARY -->
+    <!-- ================================================================ -->
+    <div class="row g-4 mb-4">
+        <!-- Total Salary Pie -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm fade-in" style="border-radius: 16px; animation-delay: 0.2s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-chart-pie me-2 text-warning"></i>Salary Distribution
+                    </h6>
+                </div>
+                <div class="card-body" id="salaryDistribution">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Deduction Summary -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm fade-in" style="border-radius: 16px; animation-delay: 0.3s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-minus-circle me-2 text-danger"></i>Deduction Summary
+                    </h6>
+                </div>
+                <div class="card-body" id="deductionSummary">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm fade-in" style="border-radius: 16px; animation-delay: 0.4s;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="fw-bold mb-0">
+                        <i class="fas fa-info-circle me-2 text-info"></i>Payroll Summary
+                    </h6>
+                </div>
+                <div class="card-body" id="payrollSummary">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ EMPLOYEE SALARY TABLE -->
+    <!-- ================================================================ -->
+    <div class="card border-0 shadow-sm fade-in" style="border-radius: 16px; animation-delay: 0.5s;">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                    <i class="fas fa-table me-2 text-warning"></i>Employee Salary Details
+                </h6>
+                <div class="d-flex gap-2 no-print">
+                    <input type="text" class="form-control form-control-sm"
+                           style="width: 200px; border-radius: 20px;"
+                           placeholder="🔍 Search employee..."
+                           oninput="filterSalaryTable(this.value)" id="searchInput">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary active" onclick="showAll()" id="btnAll">All</button>
+                        <button class="btn btn-outline-danger" onclick="showDeductions()" id="btnDeductions">
+                            With Deductions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0" id="salaryTable">
+            <!-- Filled by JavaScript -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-warning" role="status"></div>
+                <p class="mt-2 text-muted">Loading salary data...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ FOOTER TOTALS (Visible on Print) -->
+    <!-- ================================================================ -->
+    <div class="card border-0 shadow-sm mt-4 fade-in" style="border-radius: 16px; animation-delay: 0.6s;" id="footerTotals">
+        <!-- Filled by JavaScript -->
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        // =============================================
+        // ✅ PARSE REPORT DATA
+        // =============================================
+        var reportData = @Html.Raw(reportJson);
+        var allEmployees = [];
+
+        // =============================================
+        // ✅ CURRENCY FORMATTER
+        // =============================================
+        function formatCurrency(amount) {
+            if (amount === null || amount === undefined) amount = 0;
+            return '₹' + Math.round(amount).toLocaleString('en-IN');
+        }
+
+        function formatCurrencyDecimal(amount) {
+            if (amount === null || amount === undefined) amount = 0;
+            return '₹' + amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // =============================================
+        // ✅ MAIN RENDER FUNCTION
+        // =============================================
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!reportData || !reportData.data) {
+                document.getElementById('heroStats').innerHTML =
+                    '<p class="text-white opacity-75">No salary data available for the selected period.</p>';
+                document.getElementById('salaryTable').innerHTML =
+                    '<div class="text-center py-5 text-muted"><i class="fas fa-money-bill-wave fa-3x mb-3"></i><h5>No data available</h5></div>';
+                return;
+            }
+
+            var data = reportData.data;
+            var summary = data.summary || {};
+            var employees = data.employees || [];
+            var departments = data.departmentSummary || [];
+            allEmployees = employees;
+
+            renderHeroStats(summary);
+            renderDepartmentCards(departments);
+            renderSalaryDistribution(departments);
+            renderDeductionSummary(employees, summary);
+            renderPayrollSummary(employees, summary);
+            renderSalaryTable(employees, summary);
+            renderFooterTotals(employees, summary);
+        });
+
+        // =============================================
+        // ✅ RENDER HERO STATS
+        // =============================================
+        function renderHeroStats(summary) {
+            document.getElementById('heroStats').innerHTML = `
+                <div class="col-6 col-md-4">
+                    <div class="stat-glass">
+                        <div class="stat-value">${summary.totalEmployees || 0}</div>
+                        <div class="stat-label"><i class="fas fa-users me-1"></i>Employees</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="stat-glass" style="border-left: 3px solid #fff;">
+                        <div class="stat-value">${formatCurrency(summary.totalMonthlySalary)}</div>
+                        <div class="stat-label"><i class="fas fa-wallet me-1"></i>Total Payroll</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-4">
+                    <div class="stat-glass">
+                        <div class="stat-value">${formatCurrency(summary.averageSalary)}</div>
+                        <div class="stat-label"><i class="fas fa-balance-scale me-1"></i>Average Salary</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-glass">
+                        <div class="stat-value" style="font-size: 1.2rem;">${formatCurrency(summary.highestSalary)}</div>
+                        <div class="stat-label"><i class="fas fa-arrow-up me-1"></i>Highest</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-glass">
+                        <div class="stat-value" style="font-size: 1.2rem;">${formatCurrency(summary.lowestSalary)}</div>
+                        <div class="stat-label"><i class="fas fa-arrow-down me-1"></i>Lowest</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-glass">
+                        <div class="stat-value" style="font-size: 1.2rem;">${summary.workingDays || 0}</div>
+                        <div class="stat-label"><i class="fas fa-calendar-day me-1"></i>Working Days</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // =============================================
+        // ✅ RENDER DEPARTMENT CARDS
+        // =============================================
+        function renderDepartmentCards(departments) {
+            if (!departments.length) {
+                document.getElementById('deptCards').innerHTML = '';
+                return;
+            }
+
+            var deptColors = ['#4facfe', '#f5576c', '#43e97b', '#fa709a', '#a18cd1', '#fcb69f', '#667eea', '#ffd93d'];
+            var deptIcons = ['fas fa-code', 'fas fa-chart-line', 'fas fa-headset', 'fas fa-cogs', 'fas fa-palette', 'fas fa-database', 'fas fa-building', 'fas fa-users'];
+            var maxSalary = Math.max(...departments.map(d => d.totalSalary || 0), 1);
+
+            var html = '';
+            departments.forEach(function (dept, idx) {
+                var color = deptColors[idx % deptColors.length];
+                var icon = deptIcons[idx % deptIcons.length];
+                var barPct = Math.round(((dept.totalSalary || 0) / maxSalary) * 100);
+
+                html += `
+                    <div class="col-md-6 col-lg-3">
+                        <div class="card dept-salary-card shadow-sm" style="border-left-color: ${color};">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="dept-icon me-2" style="background: ${color}20; color: ${color};">
+                                        <i class="${icon}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0" style="font-size: 0.9rem;">${dept.departmentName}</h6>
+                                        <small class="text-muted">${dept.employeeCount} employees</small>
+                                    </div>
+                                </div>
+
+                                <div class="salary-bar mb-2">
+                                    <div class="salary-fill" style="width: ${barPct}%; background: ${color};"></div>
+                                </div>
+
+                                <div class="row text-center g-1" style="font-size: 0.75rem;">
+                                    <div class="col-4">
+                                        <div class="text-muted">Total</div>
+                                        <strong style="color: ${color};">${formatCurrency(dept.totalSalary)}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-muted">Avg</div>
+                                        <strong>${formatCurrency(dept.avgSalary)}</strong>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-muted">Max</div>
+                                        <strong>${formatCurrency(dept.maxSalary)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('deptCards').innerHTML = html;
+        }
+
+        // =============================================
+        // ✅ RENDER SALARY DISTRIBUTION
+        // =============================================
+        function renderSalaryDistribution(departments) {
+            if (!departments.length) {
+                document.getElementById('salaryDistribution').innerHTML = '<p class="text-muted text-center">No data</p>';
+                return;
+            }
+
+            var totalSalary = departments.reduce((s, d) => s + (d.totalSalary || 0), 0);
+            var deptColors = ['#4facfe', '#f5576c', '#43e97b', '#fa709a', '#a18cd1', '#fcb69f', '#667eea', '#ffd93d'];
+
+            var html = '';
+            departments.forEach(function (dept, idx) {
+                var pct = totalSalary > 0 ? ((dept.totalSalary || 0) / totalSalary * 100).toFixed(1) : 0;
+                var color = deptColors[idx % deptColors.length];
+
+                html += `
+                    <div class="d-flex align-items-center mb-3">
+                        <span style="width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0;" class="me-2"></span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="fw-bold">${dept.departmentName}</small>
+                                <small class="text-muted">${pct}%</small>
+                            </div>
+                            <div class="progress" style="height:6px;border-radius:10px;">
+                                <div class="progress-bar" style="width:${pct}%;background:${color};border-radius:10px;"></div>
+                            </div>
+                        </div>
+                        <div class="ms-2 text-end" style="min-width:80px;">
+                            <strong style="font-size:0.8rem;">${formatCurrency(dept.totalSalary)}</strong>
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('salaryDistribution').innerHTML = html;
+        }
+
+        // =============================================
+        // ✅ RENDER DEDUCTION SUMMARY
+        // =============================================
+        function renderDeductionSummary(employees, summary) {
+            var totalDeductions = employees.reduce((s, e) => s + (e.deductionAmount || 0), 0);
+            var totalLWPDays = employees.reduce((s, e) => s + (e.unpaidLeaveDays || 0), 0);
+            var empWithDeductions = employees.filter(e => (e.deductionAmount || 0) > 0).length;
+            var totalGross = employees.reduce((s, e) => s + (e.monthlySalary || 0), 0);
+            var totalNet = employees.reduce((s, e) => s + (e.netSalary || 0), 0);
+
+            document.getElementById('deductionSummary').innerHTML = `
+                <div class="text-center mb-3">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width:70px;height:70px;background:#ffeaa720;">
+                        <i class="fas fa-exclamation-triangle fa-2x" style="color:#f39c12;"></i>
+                    </div>
+                    <h4 class="fw-bold text-danger mb-0">${formatCurrency(totalDeductions)}</h4>
+                    <small class="text-muted">Total Deductions</small>
+                </div>
+                <hr>
+                <div class="row text-center g-2">
+                    <div class="col-6">
+                        <div class="p-2 rounded" style="background:#fff5f5;">
+                            <div class="fw-bold text-danger">${empWithDeductions}</div>
+                            <small class="text-muted" style="font-size:0.65rem;">Employees with LWP</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded" style="background:#fff5f5;">
+                            <div class="fw-bold text-danger">${totalLWPDays}</div>
+                            <small class="text-muted" style="font-size:0.65rem;">Total LWP Days</small>
+                        </div>
+                    </div>
+                </div>
+                ${empWithDeductions === 0 ? '<div class="text-center mt-3"><small class="text-success"><i class="fas fa-check-circle me-1"></i>No deductions this month!</small></div>' : ''}
+            `;
+        }
+
+        // =============================================
+        // ✅ RENDER PAYROLL SUMMARY
+        // =============================================
+        function renderPayrollSummary(employees, summary) {
+            var totalGross = employees.reduce((s, e) => s + (e.monthlySalary || 0), 0);
+            var totalDeductions = employees.reduce((s, e) => s + (e.deductionAmount || 0), 0);
+            var totalNet = employees.reduce((s, e) => s + (e.netSalary || 0), 0);
+            var avgPresent = employees.length > 0
+                ? (employees.reduce((s, e) => s + (e.presentDays || 0), 0) / employees.length).toFixed(1) : 0;
+            var avgLeave = employees.length > 0
+                ? (employees.reduce((s, e) => s + (e.leaveDays || 0), 0) / employees.length).toFixed(1) : 0;
+
+            document.getElementById('payrollSummary').innerHTML = `
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="fas fa-money-bill me-2"></i>Gross Payroll</span>
+                        <strong>${formatCurrency(totalGross)}</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="fas fa-minus-circle me-2 text-danger"></i>Total Deductions</span>
+                        <strong class="text-danger">-${formatCurrency(totalDeductions)}</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="fas fa-check-circle me-2 text-success"></i>Net Payroll</span>
+                        <strong class="text-success fs-5">${formatCurrency(totalNet)}</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="fas fa-calendar-check me-2"></i>Avg Present Days</span>
+                        <strong>${avgPresent} / ${summary.workingDays || 0}</strong>
+                    </li>
+                    <li class="d-flex justify-content-between py-2">
+                        <span class="text-muted"><i class="fas fa-calendar-times me-2"></i>Avg Leave Days</span>
+                        <strong>${avgLeave}</strong>
+                    </li>
+                </ul>
+            `;
+        }
+
+        // =============================================
+        // ✅ RENDER SALARY TABLE
+        // =============================================
+        function renderSalaryTable(employees, summary) {
+            if (!employees.length) {
+                document.getElementById('salaryTable').innerHTML = `
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-money-bill-wave fa-3x mb-3"></i>
+                        <h5>No salary data available</h5>
+                        <p>No employees found for the selected period.</p>
+                    </div>`;
+                return;
+            }
+
+            var maxSalary = Math.max(...employees.map(e => e.monthlySalary || 0), 1);
+
+            var html = `
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 salary-table" id="salTable">
+                        <thead style="background: linear-gradient(135deg, #f39c12, #e74c3c); color: white;">
+                            <tr>
+                                <th class="ps-4 border-0 py-3" style="min-width: 200px;">
+                                    <i class="fas fa-user me-1"></i> Employee
+                                </th>
+                                <th class="border-0 py-3">Department</th>
+                                <th class="text-end border-0 py-3">
+                                    <i class="fas fa-money-bill me-1"></i> Gross Salary
+                                </th>
+                                <th class="text-center border-0 py-3">
+                                    <i class="fas fa-calculator me-1"></i> Daily Rate
+                                </th>
+                                <th class="text-center border-0 py-3">
+                                    <i class="fas fa-calendar-check me-1"></i> Present
+                                </th>
+                                <th class="text-center border-0 py-3">
+                                    <i class="fas fa-calendar-times me-1"></i> Leave
+                                </th>
+                                <th class="text-center border-0 py-3">
+                                    <i class="fas fa-ban me-1"></i> LWP
+                                </th>
+                                <th class="text-end border-0 py-3">
+                                    <i class="fas fa-minus-circle me-1"></i> Deduction
+                                </th>
+                                <th class="text-end border-0 py-3">
+                                    <i class="fas fa-wallet me-1"></i> Net Salary
+                                </th>
+                                <th class="text-center border-0 py-3" style="width: 80px;">
+                                    Salary Bar
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            employees.forEach(function (emp, idx) {
+                var hasDeduction = (emp.deductionAmount || 0) > 0;
+                var rowClass = hasDeduction ? 'has-deduction' : '';
+                var salaryPct = Math.round(((emp.monthlySalary || 0) / maxSalary) * 100);
+                var salaryColor = emp.monthlySalary >= (summary.averageSalary || 0) ? '#43e97b' : '#4facfe';
+
+                html += `
+                    <tr class="emp-salary-row ${rowClass}" style="animation: fadeIn 0.3s ease ${idx * 0.03}s forwards; opacity: 0;">
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                     style="width:35px;height:35px;font-size:0.8rem;font-weight:700;background:${salaryColor};">
+                                    ${emp.employeeName.substring(0, 1).toUpperCase()}
+                                </div>
+                                <div>
+                                    <strong style="font-size:0.85rem;">${emp.employeeName}</strong>
+                                    <br><small class="text-muted">${emp.role || 'N/A'}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border" style="font-size:0.7rem;">
+                                ${emp.departmentName || '-'}
+                            </span>
+                        </td>
+                        <td class="text-end fw-bold" style="font-size:0.95rem;">
+                            ${formatCurrency(emp.monthlySalary)}
+                        </td>
+                        <td class="text-center">
+                            <small class="text-muted">${formatCurrency(emp.dailySalary)}</small>
+                            <br><small class="text-muted" style="font-size:0.6rem;">/day</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="fw-bold text-success">${emp.presentDays}</span>
+                            <small class="text-muted">/${emp.workingDays}</small>
+                        </td>
+                        <td class="text-center">
+                            ${emp.leaveDays > 0
+                                ? '<span class="fw-bold text-warning">' + emp.leaveDays + '</span>'
+                                : '<span class="text-muted">0</span>'}
+                        </td>
+                        <td class="text-center">
+                            ${emp.unpaidLeaveDays > 0
+                                ? '<span class="deduction-badge">' + emp.unpaidLeaveDays + ' days</span>'
+                                : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td class="text-end">
+                            ${hasDeduction
+                                ? '<span class="text-danger fw-bold">-' + formatCurrency(emp.deductionAmount) + '</span>'
+                                : '<span class="text-muted">-</span>'}
+                        </td>
+                        <td class="text-end">
+                            <span class="net-salary ${hasDeduction ? 'text-warning' : 'text-success'}">
+                                ${formatCurrency(emp.netSalary)}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="salary-bar">
+                                <div class="salary-fill" style="width:${salaryPct}%;background:${salaryColor};"></div>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+
+            // Footer Totals
+            var totalGross = employees.reduce((s, e) => s + (e.monthlySalary || 0), 0);
+            var totalDeductions = employees.reduce((s, e) => s + (e.deductionAmount || 0), 0);
+            var totalNet = employees.reduce((s, e) => s + (e.netSalary || 0), 0);
+
+            html += `
+                        </tbody>
+                        <tfoot style="background: linear-gradient(135deg, #2d3436, #636e72); color: white;">
+                            <tr>
+                                <td class="ps-4 py-3 border-0" colspan="2">
+                                    <strong><i class="fas fa-calculator me-2"></i>GRAND TOTAL</strong>
+                                    <br><small class="opacity-75">${employees.length} employees</small>
+                                </td>
+                                <td class="text-end border-0 py-3">
+                                    <strong style="font-size:1.1rem;">${formatCurrency(totalGross)}</strong>
+                                    <br><small class="opacity-75">Gross</small>
+                                </td>
+                                <td class="text-center border-0 py-3" colspan="4">
+                                    <div class="d-flex justify-content-center gap-3">
+                                        <div>
+                                            <small class="opacity-75 d-block">Total Leave</small>
+                                            <strong>${employees.reduce((s, e) => s + (e.leaveDays || 0), 0)}</strong>
+                                        </div>
+                                        <div>
+                                            <small class="opacity-75 d-block">Total LWP</small>
+                                            <strong class="text-warning">${employees.reduce((s, e) => s + (e.unpaidLeaveDays || 0), 0)}</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end border-0 py-3">
+                                    <strong class="text-danger" style="font-size:1rem;">-${formatCurrency(totalDeductions)}</strong>
+                                    <br><small class="opacity-75">Deductions</small>
+                                </td>
+                                <td class="text-end border-0 py-3" colspan="2">
+                                    <strong style="font-size:1.3rem; color:#51cf66;">${formatCurrency(totalNet)}</strong>
+                                    <br><small class="opacity-75">Net Payroll</small>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>`;
+
+            document.getElementById('salaryTable').innerHTML = html;
+
+            // Animate salary bars
+            setTimeout(function () {
+                document.querySelectorAll('.salary-fill').forEach(function (bar) {
+                    var w = bar.style.width;
+                    bar.style.width = '0%';
+                    setTimeout(function () { bar.style.width = w; }, 100);
+                });
+            }, 300);
+        }
+
+        // =============================================
+        // ✅ RENDER FOOTER TOTALS (Print Summary)
+        // =============================================
+        function renderFooterTotals(employees, summary) {
+            var totalGross = employees.reduce((s, e) => s + (e.monthlySalary || 0), 0);
+            var totalDeductions = employees.reduce((s, e) => s + (e.deductionAmount || 0), 0);
+            var totalNet = employees.reduce((s, e) => s + (e.netSalary || 0), 0);
+
+            document.getElementById('footerTotals').innerHTML = `
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#f0f9ff;">
+                                <small class="text-muted text-uppercase" style="font-size:0.65rem;letter-spacing:1px;">Gross Payroll</small>
+                                <h4 class="fw-bold text-primary mb-0">${formatCurrency(totalGross)}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-minus fa-lg text-muted"></i>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3 rounded" style="background:#fff5f5;">
+                                <small class="text-muted text-uppercase" style="font-size:0.65rem;letter-spacing:1px;">Deductions</small>
+                                <h4 class="fw-bold text-danger mb-0">${formatCurrency(totalDeductions)}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center justify-content-center">
+                            <i class="fas fa-equals fa-lg text-muted"></i>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 rounded" style="background:#f0fff4;">
+                                <small class="text-muted text-uppercase" style="font-size:0.65rem;letter-spacing:1px;">Net Payroll</small>
+                                <h3 class="fw-bold text-success mb-0">${formatCurrency(totalNet)}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        // =============================================
+        // ✅ FILTER TABLE - Search
+        // =============================================
+        function filterSalaryTable(term) {
+            var rows = document.querySelectorAll('.emp-salary-row');
+            rows.forEach(function (row) {
+                var text = row.textContent.toLowerCase();
+                row.style.display = text.includes(term.toLowerCase()) ? '' : 'none';
+            });
+        }
+
+        // =============================================
+        // ✅ FILTER TABLE - Show Deductions Only
+        // =============================================
+        function showDeductions() {
+            document.getElementById('btnAll').classList.remove('active');
+            document.getElementById('btnDeductions').classList.add('active');
+
+            var rows = document.querySelectorAll('.emp-salary-row');
+            rows.forEach(function (row) {
+                row.style.display = row.classList.contains('has-deduction') ? '' : 'none';
+            });
+        }
+
+        function showAll() {
+            document.getElementById('btnAll').classList.add('active');
+            document.getElementById('btnDeductions').classList.remove('active');
+
+            var rows = document.querySelectorAll('.emp-salary-row');
+            rows.forEach(function (row) {
+                row.style.display = '';
+            });
+        }
+
+        // =============================================
+        // ✅ UPDATE FILTERS
+        // =============================================
+        function updateSalaryFilters() {
+            var month = document.getElementById('monthFilter').value;
+            var year = document.getElementById('yearFilter').value;
+            window.location.href = '/Report/SalaryReport?month=' + month + '&year=' + year;
+        }
+
+        // =============================================
+        // ✅ EXPORT TO EXCEL (Basic CSV)
+        // =============================================
+        function exportToExcel() {
+            if (!allEmployees.length) {
+                alert('No data to export');
+                return;
+            }
+
+            var csv = 'Employee,Department,Role,Gross Salary,Daily Rate,Working Days,Present Days,Leave Days,LWP Days,Deduction,Net Salary\n';
+
+            allEmployees.forEach(function (emp) {
+                csv += `"${emp.employeeName}","${emp.departmentName || ''}","${emp.role || ''}",${emp.monthlySalary || 0},${emp.dailySalary || 0},${emp.workingDays || 0},${emp.presentDays || 0},${emp.leaveDays || 0},${emp.unpaidLeaveDays || 0},${emp.deductionAmount || 0},${emp.netSalary || 0}\n`;
+            });
+
+            var blob = new Blob([csv], { type: 'text/csv' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'SalaryReport_@(monthNames[selectedMonth])_@(selectedYear).csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+}

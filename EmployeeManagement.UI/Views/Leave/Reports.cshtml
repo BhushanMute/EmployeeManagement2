@@ -1,0 +1,382 @@
+﻿@model EmployeeManagement.UI.ViewModels.LeaveReportPageViewModel
+@{
+    ViewData["Title"] = "Leave Reports";
+    var stats = Model.DashboardStats;
+    var monthNames = new[] { "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+}
+
+@section Styles {
+    <style>
+        .report-hero {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+        .stat-card .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            opacity: 0.8;
+            letter-spacing: 1px;
+        }
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .dept-card {
+            border-radius: 12px;
+            transition: all 0.3s;
+            border: none;
+        }
+        .dept-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ✅ PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-chart-bar me-2 text-primary"></i>Leave Reports</h2>
+            <p class="text-muted mb-0">Comprehensive leave analytics and reports</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Year Filter -->
+            <select class="form-select" style="width: auto;"
+                    onchange="updateFilters();" id="yearFilter">
+                @for (int y = DateTime.Now.Year + 1; y >= DateTime.Now.Year - 2; y--)
+                {
+                    <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
+                }
+            </select>
+
+            <!-- Department Filter -->
+            <select class="form-select" style="width: auto;" id="deptFilter" onchange="updateFilters();">
+                <option value="">All Departments</option>
+                @if (Model.Departments != null)
+                {
+                    foreach (var dept in Model.Departments)
+                    {
+                        <option value="@dept.Id"
+                                selected="@(dept.Id == Model.SelectedDepartmentId)">
+                            @dept.Name
+                        </option>
+                    }
+                }
+            </select>
+
+            <!-- Export Buttons -->
+            <div class="btn-group">
+                <a asp-action="ExportExcel"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-departmentId="@Model.SelectedDepartmentId"
+                   class="btn btn-success">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </a>
+                <a asp-action="ExportCsv"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-departmentId="@Model.SelectedDepartmentId"
+                   class="btn btn-outline-success">
+                    <i class="fas fa-file-csv me-1"></i>CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ DASHBOARD STATS HERO -->
+    @if (stats != null)
+    {
+        <div class="report-hero shadow-lg mb-4">
+            <div class="row g-3">
+                <div class="col-md-2 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">@stats.TotalRequests</div>
+                        <div class="stat-label"><i class="fas fa-inbox me-1"></i>Total Requests</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="stat-card" style="border-left: 3px solid #28a745;">
+                        <div class="stat-value text-danger">@stats.ApprovedRequests</div>
+                        <div class="stat-label"><i class="fas fa-check me-1"></i>Approved</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="stat-card" style="border-left: 3px solid #ffc107;">
+                        <div class="stat-value" style="color: #ffc107;">@stats.PendingRequests</div>
+                        <div class="stat-label"><i class="fas fa-clock me-1"></i>Pending</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="stat-card" style="border-left: 3px solid #dc3545;">
+                        <div class="stat-value text-danger">@stats.RejectedRequests</div>
+                        <div class="stat-label"><i class="fas fa-times me-1"></i>Rejected</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">@stats.TotalApprovedDays</div>
+                        <div class="stat-label"><i class="fas fa-calendar-check me-1"></i>Days Taken</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">
+                            @stats.EmployeesWithLeave/@stats.TotalActiveEmployees
+                        </div>
+                        <div class="stat-label"><i class="fas fa-users me-1"></i>Employees</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Chart -->
+            @if (stats.MonthlyData != null && stats.MonthlyData.Any())
+            {
+                var maxRequests = stats.MonthlyData.Max(x => x.TotalRequests);
+
+                <div class="mt-4">
+                    <h6 class="opacity-75 mb-3">
+                        <i class="fas fa-chart-line me-1"></i>Monthly Trend
+                    </h6>
+                    <div class="row g-2">
+                        @foreach (var m in stats.MonthlyData)
+                        {
+                            var barWidth = maxRequests > 0
+                                ? (int)((double)m.TotalRequests / maxRequests * 100)
+                                : 0;
+
+                            <div class="col-md-1 col-4 text-center">
+                                <div style="height: 80px; display: flex; align-items: flex-end; justify-content: center;">
+                                    <div style="width: 30px; height: @(barWidth)%; min-height: 5px;
+                                            background: linear-gradient(to top, rgba(255,255,255,0.3), rgba(255,255,255,0.8));
+                                            border-radius: 5px 5px 0 0;">
+                                    </div>
+                                </div>
+                                <small class="opacity-75 d-block">
+                                    @(m.MonthName.Length >= 3 ? m.MonthName.Substring(0, 3) : m.MonthName)
+                                </small>
+                                <small class="fw-bold">@m.TotalRequests</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- ✅ REPORT TABS -->
+    <ul class="nav nav-pills mb-4" id="reportTabs">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="pill" href="#deptReport">
+                <i class="fas fa-building me-1"></i>Department Report
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="pill" href="#empReport">
+                <i class="fas fa-users me-1"></i>Employee Report
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        <!-- ✅ DEPARTMENT REPORT TAB -->
+        <div class="tab-pane fade show active" id="deptReport">
+            @if (Model.DepartmentReport != null && Model.DepartmentReport.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var dept in Model.DepartmentReport)
+                    {
+                        var totalRequests = dept.ApprovedRequests + dept.PendingRequests + dept.RejectedRequests;
+                        var usagePercent = dept.TotalAllocated > 0
+                            ? (int)((double)(float)dept.TotalUsed / (float)dept.TotalAllocated * 100)
+                            : 0;
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card dept-card shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h5 class="fw-bold mb-0">@dept.DepartmentName</h5>
+                                            <small class="text-muted">@dept.TotalEmployees employees</small>
+                                        </div>
+                                        <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                             style="width: 45px; height: 45px;">
+                                            <i class="fas fa-building text-primary"></i>
+                                        </div>
+                                    </div>
+
+                                    <!-- Usage Bar -->
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between small mb-1">
+                                            <span class="text-muted">Leave Usage</span>
+                                            <span class="fw-bold">@usagePercent%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px; border-radius: 10px;">
+                                            <div class="progress-bar bg-primary"
+                                                 style="width: @usagePercent%; border-radius: 10px;">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Stats Grid -->
+                                    <div class="row g-2 text-center">
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: #e8f5e9;">
+                                                <div class="fw-bold text-success">@dept.ApprovedRequests</div>
+                                                <small class="text-muted">Approved</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: #fff3e0;">
+                                                <div class="fw-bold text-warning">@dept.PendingRequests</div>
+                                                <small class="text-muted">Pending</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: #fce4ec;">
+                                                <div class="fw-bold text-danger">@dept.RejectedRequests</div>
+                                                <small class="text-muted">Rejected</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Allocated: <strong>@dept.TotalAllocated</strong></span>
+                                        <span>Used: <strong class="text-danger">@dept.TotalUsed</strong></span>
+                                        <span>Available: <strong class="text-success">@dept.TotalAvailable</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-building fa-3x mb-3"></i>
+                    <h5>No department data available</h5>
+                    <p>No leave data found for the selected filters.</p>
+                </div>
+            }
+        </div>
+
+        <!-- ✅ EMPLOYEE REPORT TAB -->
+        <div class="tab-pane fade" id="empReport">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    @if (Model.EmployeeReport != null && Model.EmployeeReport.Any())
+                    {
+                        var grouped = Model.EmployeeReport
+                            .GroupBy(r => new {
+                                r.EmployeeId,
+                                r.EmployeeName,
+                                r.EmployeeEmail,
+                                r.DepartmentName
+                            })
+                            .OrderBy(g => g.Key.EmployeeName);
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Department</th>
+                                        <th>Leave Type</th>
+                                        <th class="text-center">Allocated</th>
+                                        <th class="text-center">Used</th>
+                                        <th class="text-center">Pending</th>
+                                        <th class="text-center">Available</th>
+                                        <th class="text-center">Usage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var group in grouped)
+                                    {
+                                        var isFirst = true;
+                                        var rowCount = group.Count();
+
+                                        foreach (var item in group)
+                                        {
+                                            var usage = item.TotalAllocated > 0
+                                                ? (int)((double)(float)item.TotalUsed / (float)item.TotalAllocated * 100)
+                                                : 0;
+                                            var rowClass = item.TotalAvailable <= 0 ? "table-danger" : "";
+
+                                            <tr class="@rowClass">
+                                                @if (isFirst)
+                                                {
+                                                    <td rowspan="@rowCount">
+                                                        <strong>@item.EmployeeName</strong>
+                                                        <br>
+                                                        <small class="text-muted">@item.EmployeeEmail</small>
+                                                    </td>
+                                                    <td rowspan="@rowCount">@item.DepartmentName</td>
+                                                    isFirst = false;
+                                                }
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">
+                                                        @item.LeaveTypeName
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">@item.TotalAllocated</td>
+                                                <td class="text-center text-danger fw-bold">@item.TotalUsed</td>
+                                                <td class="text-center text-warning">@item.TotalPending</td>
+                                                <td class="text-center text-success fw-bold">@item.TotalAvailable</td>
+                                                <td class="text-center">
+                                                    <div class="progress"
+                                                         style="height: 6px; width: 60px; margin: 0 auto;">
+                                                        <div class="progress-bar @(usage > 80 ? "bg-danger" : usage > 50 ? "bg-warning" : "bg-success")"
+                                                             style="width: @usage%;">
+                                                        </div>
+                                                    </div>
+                                                    <small>@usage%</small>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                            <h5>No report data available</h5>
+                            <p>No employee leave data found for the selected filters.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateFilters() {
+            var year = document.getElementById('yearFilter').value;
+            var dept = document.getElementById('deptFilter').value;
+            var url = '/Leave/Reports?year=' + year;
+            if (dept) url += '&departmentId=' + dept;
+            window.location.href = url;
+        }
+    </script>
+}

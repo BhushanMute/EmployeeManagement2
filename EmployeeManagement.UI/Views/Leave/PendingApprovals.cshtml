@@ -1,0 +1,1288 @@
+﻿@model EmployeeManagement.UI.ViewModels.LeaveApprovalDashboardViewModel
+@{
+    ViewData["Title"] = "Pending Leave Approvals";
+    var pendingRequests = Model.PendingRequests ?? new List<EmployeeManagement.UI.ViewModels.LeaveRequestViewModel>();
+}
+
+@section Styles {
+    <style>
+        /* ===== Hero Section ===== */
+        .approval-hero {
+            background: linear-gradient(135deg, #f39c12 0%, #e74c3c 100%);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .approval-hero::before {
+                content: '';
+                position: absolute;
+                top: -40%;
+                right: -15%;
+                width: 250px;
+                height: 250px;
+                background: rgba(255,255,255,0.08);
+                border-radius: 50%;
+            }
+
+        /* ===== Stats Pills ===== */
+        .hero-pill {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 10px 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+            .hero-pill .pill-value {
+                font-size: 1.8rem;
+                font-weight: 800;
+            }
+
+            .hero-pill .pill-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                opacity: 0.85;
+            }
+
+        /* ===== Request Card ===== */
+        .request-card {
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            border-left: 5px solid #f39c12;
+            overflow: hidden;
+        }
+
+            .request-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(0,0,0,0.12) !important;
+            }
+
+            .request-card.urgent {
+                border-left-color: #e74c3c;
+                animation: pulseGlow 2s infinite;
+            }
+
+        @@keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(231, 76, 60, 0.1);
+            }
+
+            50% {
+                box-shadow: 0 4px 20px rgba(231, 76, 60, 0.25);
+            }
+        }
+
+        /* ===== Employee Avatar ===== */
+        .emp-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* ===== Info Badge ===== */
+        .info-badge {
+            background: #f8f9fc;
+            border-radius: 10px;
+            padding: 8px 12px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+            .info-badge:hover {
+                background: #eef0f7;
+            }
+
+            .info-badge .badge-value {
+                font-size: 1rem;
+                font-weight: 700;
+            }
+
+            .info-badge .badge-label {
+                font-size: 0.65rem;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+        /* ===== Action Buttons ===== */
+        .btn-approve {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+            .btn-approve:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+                color: white;
+            }
+
+        .btn-reject {
+            background: linear-gradient(135deg, #dc3545, #c0392b);
+            border: none;
+            color: white;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+            .btn-reject:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+                color: white;
+            }
+
+        /* ===== Leave Type Colors ===== */
+        .leave-cl {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .leave-sl {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .leave-el {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+        }
+
+        .leave-ml {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
+
+        .leave-pl {
+            background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+        }
+
+        .leave-co {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+        }
+
+        .leave-lwp {
+            background: linear-gradient(135deg, #a8caba, #5d4157);
+        }
+
+        .leave-default {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        /* ===== Tab Styles ===== */
+        .view-toggle .btn {
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+        }
+
+            .view-toggle .btn.active {
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                border-color: transparent;
+                color: white;
+            }
+
+        /* ===== Reason Tooltip ===== */
+        .reason-text {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+            .reason-text:hover {
+                white-space: normal;
+                overflow: visible;
+            }
+
+        /* ===== Animations ===== */
+        .fade-in {
+            opacity: 1 !important; /* ✅ Force visible */
+        }
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== Modal Styles ===== */
+        .modal-custom .modal-content {
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .modal-custom .modal-header {
+            border-bottom: none;
+            padding: 20px 25px 10px;
+        }
+
+        .modal-custom .modal-footer {
+            border-top: none;
+            padding: 10px 25px 20px;
+        }
+
+        /* ===== Empty State ===== */
+        .empty-state-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        /* ===== Responsive ===== */
+        @@media (max-width: 768px) {
+            .approval-hero {
+                padding: 20px;
+            }
+
+            .hero-pill .pill-value {
+                font-size: 1.3rem;
+            }
+
+            .request-card .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ================================================================ -->
+    <!-- ✅ HERO SECTION -->
+    <!-- ================================================================ -->
+    <div class="approval-hero shadow-lg mb-4 fade-in">
+        <div class="row align-items-center">
+            <div class="col-md-7">
+                <h2 class="fw-bold mb-1">
+                    <i class="fas fa-clipboard-check me-2"></i>Pending Approvals
+                </h2>
+                <p class="opacity-75 mb-3">Review and manage leave requests from your team</p>
+
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="hero-pill">
+                            <div class="pill-value">@Model.TotalPending</div>
+                            <div class="pill-label">
+                                <i class="fas fa-clock me-1"></i>Pending
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="hero-pill">
+                            <div class="pill-value">
+                                @(pendingRequests.Where(r => (r.StartDate - DateTime.Today).TotalDays <= 3).Count())
+                            </div>
+                            <div class="pill-label">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Urgent
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="hero-pill">
+                            <div class="pill-value">
+                                @(pendingRequests.Sum(r => r.TotalDays))
+                            </div>
+                            <div class="pill-label">
+                                <i class="fas fa-calendar me-1"></i>Total Days
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 text-end d-none d-md-block">
+                <div style="font-size: 6rem; opacity: 0.15;">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ VIEW TOGGLE & FILTERS -->
+    <!-- ================================================================ -->
+    @if (pendingRequests.Any())
+    {
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="text-muted">
+                    Showing <strong>@pendingRequests.Count</strong> pending request(s)
+                </span>
+            </div>
+            <div class="view-toggle btn-group">
+                <button class="btn btn-outline-primary btn-sm active" onclick="toggleView('card')" id="btnCardView">
+                    <i class="fas fa-th-large me-1"></i>Cards
+                </button>
+                <button class="btn btn-outline-primary btn-sm" onclick="toggleView('table')" id="btnTableView">
+                    <i class="fas fa-table me-1"></i>Table
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- ================================================================ -->
+    <!-- ✅ CARD VIEW (FIXED) -->
+    <!-- ================================================================ -->
+    <div id="cardView">
+        @if (pendingRequests.Any())
+        {
+            var cardIndex = 0;
+            @foreach (var request in pendingRequests)
+            {
+                var daysUntilLeave = (request.StartDate - DateTime.Today).TotalDays;
+                var isUrgent = daysUntilLeave <= 3;
+                var daysSinceApplied = (DateTime.Now - request.AppliedDate).Days;
+
+                // Avatar color based on name
+                var avatarColors = new[] { "#4facfe", "#f093fb", "#43e97b", "#fa709a", "#a18cd1", "#fcb69f", "#667eea" };
+                var colorIndex = Math.Abs((request.EmployeeName ?? "A").GetHashCode()) % avatarColors.Length;
+                var avatarColor = avatarColors[colorIndex];
+
+                // Leave type CSS class
+                var leaveClass = (request.LeaveTypeCode ?? "").ToUpper() switch
+                {
+                    "CL" => "leave-cl",
+                    "SL" => "leave-sl",
+                    "EL" => "leave-el",
+                    "ML" => "leave-ml",
+                    "PL" => "leave-pl",
+                    "CO" => "leave-co",
+                    "LWP" => "leave-lwp",
+                    _ => "leave-default"
+                };
+
+                // Safe strings for JavaScript (escape quotes)
+                var safeName = (request.EmployeeName ?? "").Replace("'", "\\'").Replace("\"", "\\\"");
+                var safeLeaveType = (request.LeaveTypeName ?? "").Replace("'", "\\'");
+                var safeFromDate = request.StartDate.ToString("dd MMM yyyy");
+                var safeToDate = request.EndDate.ToString("dd MMM yyyy");
+                var safeDays = request.TotalDays.ToString();
+
+                <div class="card request-card shadow-sm mb-3 @(isUrgent ? "urgent" : "")"
+                     style="opacity: 1; animation: slideIn 0.4s ease @(cardIndex * 0.08)s both;">
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <!-- Employee Info -->
+                            <div class="col-md-7">
+                                <div class="d-flex align-items-start">
+                                    <!-- Avatar -->
+                                    <div class="emp-avatar me-3 flex-shrink-0"
+                                         style="background: @avatarColor;">
+                                        @(request.EmployeeName?.Substring(0, 1).ToUpper() ?? "?")
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <!-- Name & Department -->
+                                        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                            <h5 class="fw-bold mb-0">@request.EmployeeName</h5>
+                                            @if (isUrgent)
+                                            {
+                                                <span class="badge bg-danger" style="font-size: 0.65rem;">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>URGENT
+                                                </span>
+                                            }
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-building me-1"></i>@request.DepartmentName
+                                            <span class="mx-1">•</span>
+                                            <i class="fas fa-envelope me-1"></i>@request.EmployeeEmail
+                                        </small>
+
+                                        <!-- Leave Details Row -->
+                                        <div class="row g-2 mt-3">
+                                            <div class="col-auto">
+                                                <div class="info-badge">
+                                                    <div class="badge-label">Leave Type</div>
+                                                    <div class="badge-value">
+                                                        <span class="badge @leaveClass text-white">
+                                                            @request.LeaveTypeName
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <div class="info-badge">
+                                                    <div class="badge-label">From</div>
+                                                    <div class="badge-value text-primary">
+                                                        @request.StartDate.ToString("dd MMM")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <div class="info-badge">
+                                                    <div class="badge-label">To</div>
+                                                    <div class="badge-value text-primary">
+                                                        @request.EndDate.ToString("dd MMM")
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <div class="info-badge">
+                                                    <div class="badge-label">Days</div>
+                                                    <div class="badge-value text-danger fw-bold">
+                                                        @request.TotalDays
+                                                        @if (request.IsHalfDay)
+                                                        {
+                                                            <small class="text-info">(Half)</small>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <div class="info-badge">
+                                                    <div class="badge-label">Applied</div>
+                                                    <div class="badge-value">
+                                                        @request.AppliedDate.ToString("dd MMM")
+                                                        @if (daysSinceApplied > 0)
+                                                        {
+                                                            <br>
+                                                            <small class="text-muted">@daysSinceApplied day(s) ago</small>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Reason -->
+                                        <div class="mt-3 p-3 rounded" style="background: #f8f9fc;">
+                                            <small class="text-muted fw-bold">
+                                                <i class="fas fa-comment-alt me-1"></i>Reason:
+                                            </small>
+                                            <p class="mb-0 mt-1">@request.Reason</p>
+                                        </div>
+
+                                        <!-- Attachment -->
+                                        @if (!string.IsNullOrEmpty(request.AttachmentPath))
+                                        {
+                                            var previewUrlTable = Url.Action("PreviewAttachment", "Leave", new { filePath = request.AttachmentPath });
+                                            var downloadUrlTable = Url.Action("ViewAttachment", "Leave", new { filePath = request.AttachmentPath });
+                                            var docTitleTable = $"{request.EmployeeName} - {request.LeaveTypeName}";
+
+                                            <button class="btn btn-sm btn-outline-info ms-1"
+                                                    onclick="showDocument('@previewUrlTable', '@downloadUrlTable', '@docTitleTable.Replace("'", "\\'")' )"
+                                                    title="View Attachment">
+                                                <i class="fas fa-paperclip me-1"></i> View Attachment
+                                            </button>
+                                        }
+
+                                        <!-- Half Day Info -->
+                                        @if (request.IsHalfDay)
+                                        {
+                                            <div class="mt-2">
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-adjust me-1"></i>
+                                                    Half Day - @(request.HalfDayType == "FirstHalf" ? "Morning" : "Afternoon")
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="col-md-5 mt-3 mt-md-0">
+                                <div class="d-flex flex-column gap-2 action-buttons">
+                                    <!-- Starts In Info -->
+                                    <div class="text-center mb-2">
+                                        @if (daysUntilLeave > 0)
+                                        {
+                                            <small class="text-muted">Leave starts in</small>
+                                            <h4 class="fw-bold mb-0 @(isUrgent ? "text-danger" : "text-primary")">
+                                                @((int)daysUntilLeave) day@(daysUntilLeave > 1 ? "s" : "")
+                                            </h4>
+                                        }
+                                        else if (daysUntilLeave == 0)
+                                        {
+                                            <span class="badge bg-danger fs-6">
+                                                <i class="fas fa-exclamation-circle me-1"></i>Starts TODAY!
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-dark fs-6">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Already Started
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- ✅ FIXED: Approve Button with safe JS parameters -->
+                                    <button class="btn btn-approve w-100"
+                                            onclick="showActionModal(@request.Id, 'approve', '@safeName', '@safeLeaveType', '@safeFromDate', '@safeToDate', '@safeDays')">
+                                        <i class="fas fa-check-circle me-2"></i>Approve Leave
+                                    </button>
+
+                                    <!-- ✅ FIXED: Reject Button with safe JS parameters -->
+                                    <button class="btn btn-reject w-100"
+                                            onclick="showActionModal(@request.Id, 'reject', '@safeName', '@safeLeaveType', '@safeFromDate', '@safeToDate', '@safeDays')">
+                                        <i class="fas fa-times-circle me-2"></i>Reject Leave
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                cardIndex++;
+            }
+        }
+        else
+        {
+            <!-- ✅ EMPTY STATE -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-check-double fa-3x text-success"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">All Caught Up! 🎉</h3>
+                    <p class="text-muted mb-4">
+                        There are no pending leave requests to review.
+                        <br>All leave requests have been processed.
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a asp-action="Index" class="btn btn-primary" style="border-radius: 20px;">
+                            <i class="fas fa-tachometer-alt me-1"></i>Leave Dashboard
+                        </a>
+                        <a asp-action="Reports" class="btn btn-outline-primary" style="border-radius: 20px;">
+                            <i class="fas fa-chart-bar me-1"></i>View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ TABLE VIEW (Hidden by default) -->
+    <!-- ================================================================ -->
+    <div id="tableView" style="display: none;">
+        @if (pendingRequests.Any())
+        {
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background: linear-gradient(135deg, #f39c12, #e74c3c); color: white;">
+                                <tr>
+                                    <th class="border-0 ps-4 py-3">#</th>
+                                    <th class="border-0 py-3">Employee</th>
+                                    <th class="border-0 py-3">Department</th>
+                                    <th class="border-0 py-3">Leave Type</th>
+                                    <th class="border-0 py-3 text-center">From</th>
+                                    <th class="border-0 py-3 text-center">To</th>
+                                    <th class="border-0 py-3 text-center">Days</th>
+                                    <th class="border-0 py-3">Reason</th>
+                                    <th class="border-0 py-3 text-center">Applied</th>
+                                    <th class="border-0 py-3 text-center">Urgency</th>
+                                    <th class="border-0 py-3 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var request in pendingRequests)
+                                {
+                                    var daysUntilLeave = (request.StartDate - DateTime.Today).TotalDays;
+                                    var isUrgent = daysUntilLeave <= 3;
+                                    var rowClass = isUrgent ? "table-warning" : "";
+
+                                    <tr class="@rowClass">
+                                        <td class="ps-4">@request.Id</td>
+                                        <td>
+                                            <strong>@request.EmployeeName</strong>
+                                            <br>
+                                            <small class="text-muted">@request.EmployeeEmail</small>
+                                        </td>
+                                        <td>@request.DepartmentName</td>
+                                        <td>
+                                            <span class="badge bg-primary">@request.LeaveTypeName</span>
+                                            @if (request.IsHalfDay)
+                                            {
+                                                <br>
+                                                <small class="text-info">Half Day</small>
+                                            }
+                                        </td>
+                                        <td class="text-center">@request.StartDate.ToString("dd MMM yyyy")</td>
+                                        <td class="text-center">@request.EndDate.ToString("dd MMM yyyy")</td>
+                                        <td class="text-center fw-bold">@request.TotalDays</td>
+                                        <td style="max-width: 200px;">
+                                            <span class="reason-text d-block" title="@request.Reason">
+                                                @(request.Reason.Length > 60 ? request.Reason.Substring(0, 60) + "..." : request.Reason)
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @request.AppliedDate.ToString("dd MMM")
+                                        </td>
+                                        <td class="text-center">
+                                            @if (daysUntilLeave <= 0)
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation me-1"></i>NOW
+                                                </span>
+                                            }
+                                            else if (isUrgent)
+                                            {
+                                                <span class="badge bg-warning text-dark">
+                                                    @((int)daysUntilLeave)d
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info">
+                                                    @((int)daysUntilLeave)d
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-success"
+                                                        onclick="showActionModal(@request.Id, 'approve', '@request.EmployeeName?.Replace("'", "\\'")', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')"
+                                                        title="Approve">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger"
+                                                        onclick="showActionModal(@request.Id, 'reject', '@request.EmployeeName?.Replace("'", "\\'")', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')"
+                                                        title="Reject">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ APPROVE / REJECT ACTION MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade modal-custom" id="actionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="actionForm" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="leaveRequestId" id="actionLeaveId" />
+
+                <!-- Header -->
+                <div class="modal-header" id="actionModalHeader">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="actionModalTitle">
+                            <i class="fas fa-check-circle me-2" id="actionModalIcon"></i>
+                            <span id="actionModalTitleText">Approve Leave</span>
+                        </h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body px-4">
+                    <!-- Leave Summary Card -->
+                    <div class="card border-0 mb-4" style="background: #f8f9fc; border-radius: 12px;">
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6 border-end">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Employee</small>
+                                    <div class="fw-bold mt-1" id="modalEmployeeName">-</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Leave Type</small>
+                                    <div class="fw-bold mt-1" id="modalLeaveType">-</div>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">From</small>
+                                    <div class="fw-bold text-primary mt-1" id="modalFromDate">-</div>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">To</small>
+                                    <div class="fw-bold text-primary mt-1" id="modalToDate">-</div>
+                                </div>
+                                <div class="col-4">
+                                    <small class="text-muted text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Days</small>
+                                    <div class="fw-bold text-danger fs-5 mt-1" id="modalDays">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Message -->
+                    <div class="text-center mb-3">
+                        <div id="approveMessage">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
+                                 style="width: 60px; height: 60px;">
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            </div>
+                            <p class="text-muted" id="actionConfirmText">
+                                Are you sure you want to approve this leave request?
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-comment me-1"></i>
+                            Remarks <small class="text-muted fw-normal">(Optional)</small>
+                        </label>
+                        <textarea name="remarks" id="actionRemarks" class="form-control" rows="3"
+                                  placeholder="Add any comments or notes..." maxlength="500"
+                                  style="border-radius: 10px;"></textarea>
+                        <small class="text-muted">
+                            <span id="remarkCharCount">0</span>/500 characters
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
+                            style="border-radius: 10px;">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn px-4" id="actionSubmitBtn"
+                            style="border-radius: 10px;">
+                        <i class="fas fa-check me-1" id="submitBtnIcon"></i>
+                        <span id="submitBtnText">Confirm</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- ================================================================ -->
+<!-- ✅ DOCUMENT VIEWER MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden;">
+            <!-- Header -->
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0984e3, #6c5ce7);">
+                <h5 class="modal-title" id="documentModalLabel">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span id="docModalTitle">Document Preview</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0" style="min-height: 350px; background: #f0f2f5;">
+
+                <!-- Loading -->
+                <div id="docLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading document...</p>
+                </div>
+
+                <!-- Image Viewer -->
+                <div id="docImageContainer" class="text-center p-3" style="display:none;">
+                    <img id="docImage" src="" alt="Document"
+                         class="img-fluid rounded shadow"
+                         style="max-height: 70vh; object-fit: contain; cursor: zoom-in; transition: transform 0.3s;"
+                         onclick="toggleImageZoom(this)">
+                </div>
+
+                <!-- PDF Viewer -->
+                <div id="docPdfContainer" style="display:none;">
+                    <iframe id="docPdf" src=""
+                            style="width: 100%; height: 75vh; border: none; background: #525659;">
+                    </iframe>
+                </div>
+
+                <!-- Unsupported File -->
+                <div id="docUnsupported" class="text-center py-5" style="display:none;">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                             style="width: 80px; height: 80px; background: #fff3cd;">
+                            <i class="fas fa-file-alt fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Preview Not Available</h5>
+                    <p class="text-muted">This file type cannot be previewed in the browser.</p>
+                    <a id="docDownloadLinkAlt" href="" class="btn btn-primary" style="border-radius: 20px;">
+                        <i class="fas fa-download me-1"></i>Download File
+                    </a>
+                </div>
+
+                <!-- Error -->
+                <div id="docError" class="text-center py-5" style="display:none;">
+                    <div class="mb-3">
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                             style="width: 80px; height: 80px; background: #f8d7da;">
+                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Failed to Load Document</h5>
+                    <p class="text-muted">The file may have been moved or deleted.</p>
+                    <a id="docRetryLink" href="" target="_blank" class="btn btn-outline-primary" style="border-radius: 20px;">
+                        <i class="fas fa-external-link-alt me-1"></i>Try Opening in New Tab
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer d-flex justify-content-between" style="background: #f8f9fa;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-file me-2 text-muted"></i>
+                    <small class="text-muted" id="docFileName">document.pdf</small>
+                    <span class="mx-2 text-muted">|</span>
+                    <small class="text-muted" id="docFileType">PDF</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a id="docOpenNewTab" href="" target="_blank"
+                       class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">
+                        <i class="fas fa-external-link-alt me-1"></i>New Tab
+                    </a>
+                    <a id="docDownloadBtn" href="" download
+                       class="btn btn-success btn-sm" style="border-radius: 20px;">
+                        <i class="fas fa-download me-1"></i>Download
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
+                            style="border-radius: 20px;">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ================================================================ -->
+<!-- ✅ BULK ACTION MODAL -->
+<!-- ================================================================ -->
+@if (pendingRequests.Count > 1)
+{
+    <div class="fixed-bottom p-3" style="pointer-events: none;">
+        <div class="container">
+            <div class="card border-0 shadow-lg" style="border-radius: 16px; pointer-events: auto; max-width: 400px; margin-left: auto;">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <small class="text-muted">
+                        <strong>@pendingRequests.Count</strong> pending requests
+                    </small>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-success" style="border-radius: 20px;"
+                                onclick="confirmBulkAction('approve')"
+                                title="Approve all visible requests">
+                            <i class="fas fa-check-double me-1"></i>Approve All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // =============================================
+        // ✅ TOGGLE CARD/TABLE VIEW
+        // =============================================
+        function toggleView(view) {
+            if (view === 'card') {
+                document.getElementById('cardView').style.display = 'block';
+                document.getElementById('tableView').style.display = 'none';
+                document.getElementById('btnCardView').classList.add('active');
+                document.getElementById('btnTableView').classList.remove('active');
+            } else {
+                document.getElementById('cardView').style.display = 'none';
+                document.getElementById('tableView').style.display = 'block';
+                document.getElementById('btnCardView').classList.remove('active');
+                document.getElementById('btnTableView').classList.add('active');
+            }
+        }
+
+        // =============================================
+        // ✅ SHOW ACTION MODAL (Approve/Reject)
+        // =============================================
+        function showActionModal(id, action, employeeName, leaveType, fromDate, toDate, days) {
+
+            // Set hidden values
+            document.getElementById('actionLeaveId').value = id;
+            document.getElementById('actionRemarks').value = '';
+            document.getElementById('remarkCharCount').textContent = '0';
+
+            // Set leave summary
+            document.getElementById('modalEmployeeName').textContent = employeeName;
+            document.getElementById('modalLeaveType').textContent = leaveType;
+            document.getElementById('modalFromDate').textContent = fromDate;
+            document.getElementById('modalToDate').textContent = toDate;
+            document.getElementById('modalDays').textContent = days;
+
+            var form = document.getElementById('actionForm');
+            var header = document.getElementById('actionModalHeader');
+            var titleText = document.getElementById('actionModalTitleText');
+            var icon = document.getElementById('actionModalIcon');
+            var confirmText = document.getElementById('actionConfirmText');
+            var submitBtn = document.getElementById('actionSubmitBtn');
+            var submitBtnIcon = document.getElementById('submitBtnIcon');
+            var submitBtnText = document.getElementById('submitBtnText');
+            var approveMsg = document.getElementById('approveMessage');
+
+            if (action === 'approve') {
+                // ✅ Approve styling
+                form.action = '@Url.Action("Approve", "Leave")';
+                header.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                header.style.color = 'white';
+                titleText.textContent = 'Approve Leave';
+                icon.className = 'fas fa-check-circle me-2';
+
+                approveMsg.innerHTML = `
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width: 60px; height: 60px;">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <p class="text-muted">
+                        Are you sure you want to <strong class="text-success">APPROVE</strong> leave for
+                        <strong>${employeeName}</strong>?
+                    </p>`;
+
+                submitBtn.className = 'btn btn-success px-4';
+                submitBtn.style.borderRadius = '10px';
+                submitBtnIcon.className = 'fas fa-check-circle me-1';
+                submitBtnText.textContent = 'Approve Leave';
+
+            } else {
+                // ❌ Reject styling
+                form.action = '@Url.Action("Reject", "Leave")';
+                header.style.background = 'linear-gradient(135deg, #dc3545, #c0392b)';
+                header.style.color = 'white';
+                titleText.textContent = 'Reject Leave';
+                icon.className = 'fas fa-times-circle me-2';
+
+                approveMsg.innerHTML = `
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
+                         style="width: 60px; height: 60px;">
+                        <i class="fas fa-times-circle fa-2x text-danger"></i>
+                    </div>
+                    <p class="text-muted">
+                        Are you sure you want to <strong class="text-danger">REJECT</strong> leave for
+                        <strong>${employeeName}</strong>?
+                        <br><small>Please provide a reason in the remarks below.</small>
+                    </p>`;
+
+                submitBtn.className = 'btn btn-danger px-4';
+                submitBtn.style.borderRadius = '10px';
+                submitBtnIcon.className = 'fas fa-times-circle me-1';
+                submitBtnText.textContent = 'Reject Leave';
+            }
+
+            // Show modal
+            new bootstrap.Modal(document.getElementById('actionModal')).show();
+        }
+
+        // =============================================
+        // ✅ REMARKS CHARACTER COUNT
+        // =============================================
+        document.getElementById('actionRemarks').addEventListener('input', function () {
+            document.getElementById('remarkCharCount').textContent = this.value.length;
+        });
+
+        // =============================================
+        // ✅ FORM SUBMIT - Disable button to prevent double click
+        // =============================================
+        document.getElementById('actionForm').addEventListener('submit', function () {
+            var btn = document.getElementById('actionSubmitBtn');
+            btn.disabled = true;
+            document.getElementById('submitBtnText').textContent = 'Processing...';
+            document.getElementById('submitBtnIcon').className = 'fas fa-spinner fa-spin me-1';
+        });
+
+        // =============================================
+        // ✅ BULK APPROVE (Optional)
+        // =============================================
+        function confirmBulkAction(action) {
+            Swal.fire({
+                title: 'Approve All Pending Requests?',
+                text: 'This will approve all currently visible pending leave requests.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Approve All!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // You can implement bulk approve API call here
+                    Swal.fire(
+                        'Info',
+                        'Bulk approve feature coming soon! Please approve individually for now.',
+                        'info'
+                    );
+                }
+            });
+        }
+
+        // =============================================
+        // ✅ AUTO-REFRESH every 60 seconds
+        // =============================================
+        setTimeout(function () {
+            // Uncomment to enable auto-refresh
+            // location.reload();
+        }, 60000);
+
+        // =============================================
+        // ✅ KEYBOARD SHORTCUTS
+        // =============================================
+        document.addEventListener('keydown', function (e) {
+            // Press 'T' to toggle view
+            if (e.key === 't' || e.key === 'T') {
+                var cardView = document.getElementById('cardView');
+                if (cardView && cardView.style.display !== 'none') {
+                    toggleView('table');
+                } else {
+                    toggleView('card');
+                }
+            }
+        });
+         function toggleView(view) {
+            if (view === 'card') {
+                document.getElementById('cardView').style.display = 'block';
+                document.getElementById('tableView').style.display = 'none';
+                document.getElementById('btnCardView').classList.add('active');
+                document.getElementById('btnTableView').classList.remove('active');
+            } else {
+                document.getElementById('cardView').style.display = 'none';
+                document.getElementById('tableView').style.display = 'block';
+                document.getElementById('btnCardView').classList.remove('active');
+                document.getElementById('btnTableView').classList.add('active');
+            }
+        }
+
+        // =============================================
+        // ✅ SHOW ACTION MODAL (Approve/Reject)
+        // =============================================
+        function showActionModal(id, action, employeeName, leaveType, fromDate, toDate, days) {
+            document.getElementById('actionLeaveId').value = id;
+            document.getElementById('actionRemarks').value = '';
+            document.getElementById('remarkCharCount').textContent = '0';
+
+            document.getElementById('modalEmployeeName').textContent = employeeName;
+            document.getElementById('modalLeaveType').textContent = leaveType;
+            document.getElementById('modalFromDate').textContent = fromDate;
+            document.getElementById('modalToDate').textContent = toDate;
+            document.getElementById('modalDays').textContent = days;
+
+            var form = document.getElementById('actionForm');
+            var header = document.getElementById('actionModalHeader');
+            var titleText = document.getElementById('actionModalTitleText');
+            var icon = document.getElementById('actionModalIcon');
+            var submitBtn = document.getElementById('actionSubmitBtn');
+            var submitBtnIcon = document.getElementById('submitBtnIcon');
+            var submitBtnText = document.getElementById('submitBtnText');
+            var approveMsg = document.getElementById('approveMessage');
+
+            if (action === 'approve') {
+                form.action = '@Url.Action("Approve", "Leave")';
+                header.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                header.style.color = 'white';
+                titleText.textContent = 'Approve Leave';
+                icon.className = 'fas fa-check-circle me-2';
+                approveMsg.innerHTML = `
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:60px;height:60px;">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <p class="text-muted">Are you sure you want to <strong class="text-success">APPROVE</strong> leave for <strong>${employeeName}</strong>?</p>`;
+                submitBtn.className = 'btn btn-success px-4';
+                submitBtn.style.borderRadius = '10px';
+                submitBtnIcon.className = 'fas fa-check-circle me-1';
+                submitBtnText.textContent = 'Approve Leave';
+            } else {
+                form.action = '@Url.Action("Reject", "Leave")';
+                header.style.background = 'linear-gradient(135deg, #dc3545, #c0392b)';
+                header.style.color = 'white';
+                titleText.textContent = 'Reject Leave';
+                icon.className = 'fas fa-times-circle me-2';
+                approveMsg.innerHTML = `
+                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:60px;height:60px;">
+                        <i class="fas fa-times-circle fa-2x text-danger"></i>
+                    </div>
+                    <p class="text-muted">Are you sure you want to <strong class="text-danger">REJECT</strong> leave for <strong>${employeeName}</strong>?<br><small>Please provide a reason in the remarks below.</small></p>`;
+                submitBtn.className = 'btn btn-danger px-4';
+                submitBtn.style.borderRadius = '10px';
+                submitBtnIcon.className = 'fas fa-times-circle me-1';
+                submitBtnText.textContent = 'Reject Leave';
+            }
+
+            new bootstrap.Modal(document.getElementById('actionModal')).show();
+        }
+
+        // =============================================
+        // ✅ REMARKS CHARACTER COUNT
+        // =============================================
+        document.getElementById('actionRemarks').addEventListener('input', function () {
+            document.getElementById('remarkCharCount').textContent = this.value.length;
+        });
+
+        // =============================================
+        // ✅ FORM SUBMIT - Prevent double click
+        // =============================================
+        document.getElementById('actionForm').addEventListener('submit', function () {
+            var btn = document.getElementById('actionSubmitBtn');
+            btn.disabled = true;
+            document.getElementById('submitBtnText').textContent = 'Processing...';
+            document.getElementById('submitBtnIcon').className = 'fas fa-spinner fa-spin me-1';
+        });
+
+        // =============================================
+        // ✅ BULK APPROVE
+        // =============================================
+        function confirmBulkAction(action) {
+            Swal.fire({
+                title: 'Approve All Pending Requests?',
+                text: 'This will approve all currently visible pending leave requests.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, Approve All!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire('Info', 'Bulk approve feature coming soon!', 'info');
+                }
+            });
+        }
+
+        // =============================================
+        // ✅ DOCUMENT VIEWER
+        // =============================================
+        function showDocument(previewUrl, downloadUrl, title) {
+            console.log('Opening document:', previewUrl);
+
+            document.getElementById('docLoading').style.display = 'block';
+            document.getElementById('docImageContainer').style.display = 'none';
+            document.getElementById('docPdfContainer').style.display = 'none';
+            document.getElementById('docUnsupported').style.display = 'none';
+            document.getElementById('docError').style.display = 'none';
+
+            document.getElementById('docModalTitle').textContent = title || 'Document Preview';
+            document.getElementById('docOpenNewTab').href = previewUrl;
+            document.getElementById('docDownloadBtn').href = downloadUrl;
+            document.getElementById('docRetryLink').href = previewUrl;
+            document.getElementById('docDownloadLinkAlt').href = downloadUrl;
+
+            var urlParts = previewUrl.split('filePath=');
+            var filePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : previewUrl;
+            var fileName = filePath.split('/').pop();
+            var fileExt = fileName.split('.').pop().toLowerCase();
+
+            document.getElementById('docFileName').textContent = fileName;
+            document.getElementById('docFileType').textContent = fileExt.toUpperCase();
+
+            var modal = new bootstrap.Modal(document.getElementById('documentModal'));
+            modal.show();
+
+            setTimeout(function () {
+                document.getElementById('docLoading').style.display = 'none';
+
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExt)) {
+                    loadImagePreview(previewUrl);
+                } else if (fileExt === 'pdf') {
+                    loadPdfPreview(previewUrl);
+                } else {
+                    showUnsupportedFile(downloadUrl);
+                }
+            }, 500);
+        }
+
+        function loadImagePreview(url) {
+            var container = document.getElementById('docImageContainer');
+            var img = document.getElementById('docImage');
+            img.onload = function () { container.style.display = 'block'; };
+            img.onerror = function () { container.style.display = 'none'; showDocError(); };
+            img.src = url;
+            img.style.transform = 'scale(1)';
+            img.style.cursor = 'zoom-in';
+        }
+
+        function loadPdfPreview(url) {
+            document.getElementById('docPdf').src = url;
+            document.getElementById('docPdfContainer').style.display = 'block';
+        }
+
+        function showUnsupportedFile(downloadUrl) {
+            document.getElementById('docUnsupported').style.display = 'block';
+            document.getElementById('docDownloadLinkAlt').href = downloadUrl;
+        }
+
+        function showDocError() {
+            document.getElementById('docError').style.display = 'block';
+        }
+
+        function toggleImageZoom(img) {
+            if (img.style.transform === 'scale(1.5)') {
+                img.style.transform = 'scale(1)';
+                img.style.cursor = 'zoom-in';
+            } else {
+                img.style.transform = 'scale(1.5)';
+                img.style.cursor = 'zoom-out';
+            }
+        }
+
+        // Cleanup on modal close
+        document.getElementById('documentModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('docPdf').src = '';
+            var img = document.getElementById('docImage');
+            img.src = '';
+            img.style.transform = 'scale(1)';
+        });
+
+        // Keyboard: + zoom in, - zoom out
+        document.addEventListener('keydown', function (e) {
+            var modal = document.getElementById('documentModal');
+            if (!modal.classList.contains('show')) return;
+            var img = document.getElementById('docImage');
+            if (!img.src || img.src === window.location.href) return;
+
+            if (e.key === '+' || e.key === '=') {
+                img.style.transform = 'scale(1.5)';
+                img.style.cursor = 'zoom-out';
+            }
+            if (e.key === '-') {
+                img.style.transform = 'scale(1)';
+                img.style.cursor = 'zoom-in';
+            }
+        });
+
+        // =============================================
+        // ✅ KEYBOARD: T to toggle view
+        // =============================================
+        document.addEventListener('keydown', function (e) {
+            if (e.target.closest('input, textarea, select')) return;
+            if (e.key === 't' || e.key === 'T') {
+                var cardView = document.getElementById('cardView');
+                toggleView(cardView.style.display !== 'none' ? 'table' : 'card');
+            }
+        });
+    </script>
+}

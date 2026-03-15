@@ -31,7 +31,7 @@ namespace EmployeeManagement.API.Repositories
                 list.Add(new Department
                 {
                     Id = (int)reader["Id"],
-                    Name = reader["Name"].ToString()!
+                    Name = reader["DepartmentName"].ToString()!
                 });
             }
 

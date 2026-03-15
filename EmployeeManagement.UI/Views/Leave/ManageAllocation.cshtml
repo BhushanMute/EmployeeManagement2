@@ -1,0 +1,439 @@
+﻿@model List<EmployeeManagement.UI.ViewModels.EmployeeLeaveAllocationViewModel>
+@{
+    ViewData["Title"] = "Manage Leave Allocation";
+    var selectedYear = (int)(ViewBag.SelectedYear ?? DateTime.Now.Year);
+    var leaveTypes = ViewBag.LeaveTypes as List<EmployeeManagement.UI.ViewModels.LeaveTypeViewModel>
+                     ?? new List<EmployeeManagement.UI.ViewModels.LeaveTypeViewModel>();
+}
+
+@section Styles {
+    <style>
+        .alloc-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .alloc-hero::before {
+                content: '';
+                position: absolute;
+                top: -40%;
+                right: -15%;
+                width: 250px;
+                height: 250px;
+                background: rgba(255,255,255,0.08);
+                border-radius: 50%;
+            }
+
+        .alloc-card {
+            border: none;
+            border-radius: 14px;
+            transition: all 0.3s;
+        }
+
+            .alloc-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+            }
+
+        .stat-pill {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 12px 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+            .stat-pill .pill-value {
+                font-size: 1.8rem;
+                font-weight: 800;
+            }
+
+            .stat-pill .pill-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                opacity: 0.85;
+                letter-spacing: 1px;
+            }
+
+        .balance-cell {
+            transition: background 0.2s;
+            cursor: default;
+        }
+
+            .balance-cell:hover {
+                background: #f0f4ff !important;
+            }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ================================================================ -->
+    <!-- ✅ HERO SECTION -->
+    <!-- ================================================================ -->
+    <div class="alloc-hero shadow-lg mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h2 class="fw-bold mb-1">
+                    <i class="fas fa-tasks me-2"></i>Manage Leave Allocation
+                </h2>
+                <p class="opacity-75 mb-3">Allocate and manage leave balance for all employees</p>
+
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="pill-value">@Model.Count</div>
+                            <div class="pill-label"><i class="fas fa-users me-1"></i>Employees</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="pill-value">@leaveTypes.Count</div>
+                            <div class="pill-label"><i class="fas fa-layer-group me-1"></i>Leave Types</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="pill-value">@selectedYear</div>
+                            <div class="pill-label"><i class="fas fa-calendar me-1"></i>Year</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <!-- Year Selector -->
+                <div class="d-inline-flex gap-2">
+                    @for (int y = DateTime.Now.Year - 1; y <= DateTime.Now.Year + 1; y++)
+                    {
+                        var btnClass = y == selectedYear ? "btn-light text-primary fw-bold" : "btn-outline-light";
+                        <a asp-action="ManageAllocation" asp-route-year="@y"
+                           class="btn @btnClass" style="border-radius: 20px;">
+                            @y
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ BULK ALLOCATION CARD -->
+    <!-- ================================================================ -->
+    <div class="card alloc-card shadow-sm mb-4 border-start border-4 border-primary">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3"
+                     style="width: 45px; height: 45px;">
+                    <i class="fas fa-users text-primary fa-lg"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Bulk Allocation</h5>
+                    <small class="text-muted">Allocate leave balance to ALL active employees at once</small>
+                </div>
+            </div>
+
+            <form asp-action="AllocateToAll" method="post" class="row g-3 align-items-end">
+                @Html.AntiForgeryToken()
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar me-1"></i>Year
+                    </label>
+                    <input type="number" name="year" value="@selectedYear"
+                           class="form-control" min="2024" max="2030"
+                           style="border-radius: 10px;">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-sort-numeric-up me-1"></i>Leaves Per Type
+                    </label>
+                    <input type="number" name="leavesPerType" value="20" id="bulkDaysInput"
+                           class="form-control" min="1" max="365" step="0.5"
+                           style="border-radius: 10px;" oninput="updateBulkSummary()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-info-circle me-1"></i>Summary
+                    </label>
+                    <div class="form-control bg-light" style="border-radius: 10px;" id="bulkSummary">
+                        @leaveTypes.Count types × <strong>20</strong> days each
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100 py-2"
+                            style="border-radius: 10px;"
+                            onclick="return confirm('⚠️ This will allocate leaves to ALL active employees.\n\nExisting allocations will NOT be overwritten.\n\nContinue?')">
+                        <i class="fas fa-check-double me-1"></i>Allocate to All
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ SINGLE EMPLOYEE ALLOCATION CARD -->
+    <!-- ================================================================ -->
+    <div class="card alloc-card shadow-sm mb-4 border-start border-4 border-success">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center me-3"
+                     style="width: 45px; height: 45px;">
+                    <i class="fas fa-user-plus text-success fa-lg"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0">Single Employee Allocation</h5>
+                    <small class="text-muted">Allocate leave balance to a specific employee</small>
+                </div>
+            </div>
+
+            <form asp-action="AllocateToEmployee" method="post" class="row g-3 align-items-end">
+                @Html.AntiForgeryToken()
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-id-badge me-1"></i>Employee ID
+                    </label>
+                    <input type="number" name="employeeId" class="form-control"
+                           placeholder="Enter Employee ID" required min="1"
+                           style="border-radius: 10px;">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar me-1"></i>Year
+                    </label>
+                    <input type="number" name="year" value="@selectedYear"
+                           class="form-control" min="2024" max="2030"
+                           style="border-radius: 10px;">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-sort-numeric-up me-1"></i>Leaves Per Type
+                    </label>
+                    <input type="number" name="leavesPerType" value="20"
+                           class="form-control" min="1" max="365" step="0.5"
+                           style="border-radius: 10px;">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100 py-2"
+                            style="border-radius: 10px;">
+                        <i class="fas fa-user-check me-1"></i>Allocate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ CURRENT ALLOCATION TABLE -->
+    <!-- ================================================================ -->
+    <div class="card alloc-card shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-table me-2 text-primary"></i>
+                    Employee Leave Balances - @selectedYear
+                </h5>
+                <div class="d-flex gap-2 align-items-center">
+                    @if (Model.Any())
+                    {
+                        <span class="badge bg-primary fs-6">@Model.Count Employees</span>
+                    }
+                    <!-- Search -->
+                    <input type="text" class="form-control form-control-sm" id="searchInput"
+                           placeholder="🔍 Search employee..." style="width: 200px; border-radius: 20px;"
+                           oninput="filterTable()">
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle mb-0" id="allocationTable">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                                <th class="border-0 ps-4 py-3" style="position: sticky; left: 0; z-index: 2; background: #667eea;">
+                                    Employee
+                                </th>
+                                @foreach (var lt in leaveTypes)
+                                {
+                                    <th class="border-0 text-center py-3" title="@lt.Name" style="min-width: 100px;">
+                                        <strong>@lt.Code</strong>
+                                        <br>
+                                        <small style="font-weight: normal; opacity: 0.8;">@lt.Name</small>
+                                    </th>
+                                }
+                                <th class="border-0 text-center py-3 bg-dark">Total<br><small>Allocated</small></th>
+                                <th class="border-0 text-center py-3 bg-danger">Total<br><small>Used</small></th>
+                                <th class="border-0 text-center py-3 bg-success">Total<br><small>Available</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var emp in Model)
+                            {
+                                <tr class="employee-row">
+                                    <td class="ps-4" style="position: sticky; left: 0; background: white; z-index: 1;">
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                 style="width: 35px; height: 35px; font-size: 0.8rem;">
+                                                @emp.EmployeeName.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <div>
+                                                <strong class="emp-name">@emp.EmployeeName</strong>
+                                                <br>
+                                                <small class="text-muted">ID: @emp.EmployeeId</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    @foreach (var lt in leaveTypes)
+                                    {
+                                        var balance = emp.Balances.FirstOrDefault(b => b.LeaveTypeCode == lt.Code);
+
+                                        <td class="text-center balance-cell">
+                                            @if (balance != null)
+                                            {
+                                                var available = balance.TotalAvailable;
+                                                var allocated = balance.TotalAllocated;
+                                                var used = balance.TotalUsed;
+                                                var cellColor = available <= 0 ? "text-danger" :
+                                                available <= 3 ? "text-warning" : "text-success";
+
+                                                <div class="fw-bold @cellColor" style="font-size: 1.1rem;">
+                                                    @available
+                                                </div>
+                                                <small class="text-muted" style="font-size: 0.65rem;">
+                                                    @allocated alloc
+                                                    @if (used > 0)
+                                                    {
+                                                        <span class="text-danger">/ @used used</span>
+                                                    }
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                                <br>
+                                                <small class="text-muted" style="font-size: 0.6rem;">Not allocated</small>
+                                            }
+                                        </td>
+                                    }
+                                    <td class="text-center fw-bold" style="background: #f8f9fa;">
+                                        @emp.TotalAllocated
+                                    </td>
+                                    <td class="text-center fw-bold text-danger" style="background: #fff5f5;">
+                                        @emp.TotalUsed
+                                    </td>
+                                    <td class="text-center fw-bold text-success fs-5" style="background: #f0fff4;">
+                                        @emp.TotalAvailable
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot style="background: #f0f2f8;">
+                            <tr class="fw-bold">
+                                <td class="ps-4">
+                                    <i class="fas fa-calculator me-1 text-primary"></i>
+                                    TOTAL (@Model.Count employees)
+                                </td>
+                                @foreach (var lt in leaveTypes)
+                                {
+                                    var totalAvailable = Model.Sum(e => e.Balances
+                                    .Where(b => b.LeaveTypeCode == lt.Code)
+                                    .Sum(b => b.TotalAvailable));
+                                    <td class="text-center">@totalAvailable</td>
+                                }
+                                <td class="text-center" style="background: #f8f9fa;">
+                                    @Model.Sum(e => e.TotalAllocated)
+                                </td>
+                                <td class="text-center text-danger" style="background: #fff5f5;">
+                                    @Model.Sum(e => e.TotalUsed)
+                                </td>
+                                <td class="text-center text-success fs-5" style="background: #f0fff4;">
+                                    @Model.Sum(e => e.TotalAvailable)
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <!-- Empty State -->
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center"
+                             style="width: 80px; height: 80px;">
+                            <i class="fas fa-inbox fa-2x text-muted"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold text-dark">No Leave Balance Allocated for @selectedYear</h5>
+                    <p class="text-muted mb-4">
+                        Use the <strong>"Allocate to All"</strong> button above to allocate
+                        leave balance to all active employees.
+                    </p>
+                    <form asp-action="AllocateToAll" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="year" value="@selectedYear" />
+                        <input type="hidden" name="leavesPerType" value="20" />
+                        <button type="submit" class="btn btn-primary btn-lg" style="border-radius: 20px;"
+                                onclick="return confirm('Allocate 20 leaves per type to all employees?')">
+                            <i class="fas fa-magic me-2"></i>Allocate 20 Leaves to All Employees
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ LEGEND -->
+    <!-- ================================================================ -->
+    @if (Model.Any())
+    {
+        <div class="mt-3 mb-3">
+            <div class="d-flex flex-wrap gap-3 justify-content-center">
+                <div class="d-flex align-items-center">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #28a745;" class="me-2"></div>
+                    <small class="text-muted">Balance Available</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffc107;" class="me-2"></div>
+                    <small class="text-muted">Low Balance (≤3 days)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #dc3545;" class="me-2"></div>
+                    <small class="text-muted">No Balance (0 days)</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="text-muted me-2">—</span>
+                    <small class="text-muted">Not Allocated</small>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // ✅ Update bulk allocation summary
+        function updateBulkSummary() {
+            var days = document.getElementById('bulkDaysInput').value || 20;
+            var typeCount = @leaveTypes.Count;
+            document.getElementById('bulkSummary').innerHTML =
+                typeCount + ' types × <strong>' + days + '</strong> days each';
+        }
+
+        // ✅ Filter table by employee name
+        function filterTable() {
+            var searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            var rows = document.querySelectorAll('.employee-row');
+
+            rows.forEach(function (row) {
+                var name = row.querySelector('.emp-name').textContent.toLowerCase();
+                row.style.display = name.includes(searchTerm) ? '' : 'none';
+            });
+        }
+    </script>
+}

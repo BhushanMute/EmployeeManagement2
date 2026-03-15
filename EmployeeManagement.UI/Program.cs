@@ -1,13 +1,10 @@
-﻿
-using EmployeeManagement.UI.Services;
+﻿using EmployeeManagement.UI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.Google;
 using Polly;
 using Polly.Extensions.Http;
-
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,25 +19,33 @@ builder.Services.AddControllersWithViews()
     });
 
 // =============================================
+// RESPONSE COMPRESSION
+// =============================================
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+});
+
+// =============================================
 // SESSION CONFIGURATION
 // =============================================
-//builder.Configuration.AddJsonFile("appsettings.json",
-//    optional: false,
-//    reloadOnChange: true);
-//builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json",
-//    optional: true,
-//    reloadOnChange: true);
-builder.Services.AddDistributedMemoryCache(); // Required for session
+builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromSeconds(144);
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // ✅ FIXED: Was 144 seconds
     options.Cookie.Name = ".EmployeeManagement.Session";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use Always in production with HTTPS
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
+
+// =============================================
+// MEMORY CACHE
+// =============================================
+builder.Services.AddMemoryCache();
 
 // =============================================
 // HTTP CONTEXT ACCESSOR
@@ -61,68 +66,80 @@ builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.Timeout = TimeSpan.FromSeconds(144);
+    client.Timeout = TimeSpan.FromSeconds(30); // ✅ FIXED: Was 144
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback =
         builder.Environment.IsDevelopment()
             ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            : null // In production, validate certificates properly
+            : null,
+    MaxConnectionsPerServer = 20,
+    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 })
-.AddPolicyHandler(GetRetryPolicy())
-.AddPolicyHandler(GetCircuitBreakerPolicy());
+.AddPolicyHandler(GetRetryPolicy());
+// ✅ FIXED: NO circuit breaker
 
 // 2️⃣ Typed HttpClient for PaymentService
 builder.Services.AddHttpClient<IPaymentService, PaymentService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.Timeout = TimeSpan.FromSeconds(144);
+    client.Timeout = TimeSpan.FromSeconds(30); // ✅ FIXED: Was 144
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback =
         builder.Environment.IsDevelopment()
             ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            : null
+            : null,
+    MaxConnectionsPerServer = 20
 })
-.AddPolicyHandler(GetRetryPolicy())
-.AddPolicyHandler(GetCircuitBreakerPolicy());
+.AddPolicyHandler(GetRetryPolicy());
+// ✅ FIXED: NO circuit breaker
 
-// 3️⃣ Named client for API (if needed elsewhere)
+// 3️⃣ Named client for API — THIS IS USED BY LeaveController, EmployeeController etc.
 builder.Services.AddHttpClient("API", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.Timeout = TimeSpan.FromSeconds(144);
+    client.Timeout = TimeSpan.FromSeconds(30); // ✅ FIXED: Was 144
 })
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback =
         builder.Environment.IsDevelopment()
             ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            : null
+            : null,
+    MaxConnectionsPerServer = 20,
+    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 })
-.AddPolicyHandler(GetRetryPolicy())
-.AddPolicyHandler(GetCircuitBreakerPolicy());
+.AddPolicyHandler(GetRetryPolicy());
+// ✅ FIXED: Circuit breaker REMOVED — this was causing "circuit is now open" error!
+
+// 4️⃣ EmployeeAPI Client
 builder.Services.AddHttpClient("EmployeeAPI", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:26024/");  // ✅ Your API URL
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback =
+        builder.Environment.IsDevelopment()
+            ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            : null,
+    MaxConnectionsPerServer = 20
+})
+.AddPolicyHandler(GetRetryPolicy());
+// ✅ FIXED: NO circuit breaker
 
 // =============================================
 // REGISTER SERVICES
 // =============================================
 builder.Services.AddScoped<EmployeeManagement.UI.Services.ITokenService, EmployeeManagement.UI.Services.TokenService>();
 builder.Services.AddScoped<IApiService, ApiService>();
-//builder.Services.AddScoped<IStudentService, StudentService>();
-//builder.Services.AddScoped<IAuthService, AuthService>();
-
-//builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-//builder.Services.AddScoped<IDepartmentService, DepartmentService>();
-// Add other services as needed
 
 // =============================================
 // AUTHENTICATION CONFIGURATION
@@ -145,14 +162,12 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // Use Always in production
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 
-    // Handle authentication events
     options.Events = new CookieAuthenticationEvents
     {
         OnValidatePrincipal = async context =>
         {
-            // Check if token is still valid from session
             var accessToken = context.HttpContext.Session.GetString("AccessToken");
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -170,8 +185,6 @@ builder.Services.AddAuthentication(options =>
         ?? throw new InvalidOperationException("Google ClientSecret not configured");
     options.SaveTokens = true;
     options.CallbackPath = "/signin-google";
-
-    // Add required scopes
     options.Scope.Add("profile");
     options.Scope.Add("email");
 })
@@ -183,16 +196,12 @@ builder.Services.AddAuthentication(options =>
         ?? throw new InvalidOperationException("Facebook AppSecret not configured");
     options.SaveTokens = true;
     options.CallbackPath = "/signin-facebook";
-
-    // Add required fields
     options.Fields.Add("name");
     options.Fields.Add("email");
     options.Fields.Add("picture");
 });
 
-// =============================================
-// AUTHORIZATION
-// =============================================
+ 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
@@ -200,9 +209,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Admin", "HR", "Manager"));
 });
 
-// =============================================
-// ANTI-FORGERY
-// =============================================
+ 
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
@@ -211,9 +218,7 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
-// =============================================
-// LOGGING
-// =============================================
+ 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -221,26 +226,20 @@ builder.Logging.AddDebug();
 if (!builder.Environment.IsDevelopment())
 {
     builder.Logging.AddEventLog();
-    // Add file logging or Serilog here if needed
 }
 
-// =============================================
-// BUILD APP
-// =============================================
+ 
 var app = builder.Build();
 
-// =============================================
-// CONFIGURE MIDDLEWARE PIPELINE
-// =============================================
+ 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 
-    // Add strict transport security header
     app.Use(async (context, next) =>
     {
-        context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+        context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
         await next();
     });
 }
@@ -249,19 +248,25 @@ else
     app.UseDeveloperExceptionPage();
 }
 
+ app.UseResponseCompression();
+
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=604800");
+    }
+});
 
 app.UseRouting();
 
-// ⚠️ CORRECT ORDER: Session BEFORE Authentication
-app.UseSession();
+ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// =============================================
-// CONFIGURE ROUTES
-// =============================================
+ 
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -272,57 +277,25 @@ app.MapControllerRoute(
 
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+ 
+Console.WriteLine($"🚀 MVC Application starting...");
+Console.WriteLine($"🔗 API Base URL: {apiBaseUrl}");
 
-// =============================================
-// RUN APPLICATION
-// =============================================
 app.Run();
-
-// =============================================
-// POLLY POLICIES
-// =============================================
-
-/// <summary>
-/// Retry policy for transient HTTP errors (408, 5xx, network failures)
-/// Retries up to 3 times with exponential backoff
-/// </summary>
+ 
 static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
 {
     return HttpPolicyExtensions
         .HandleTransientHttpError()
         .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
         .WaitAndRetryAsync(
-            retryCount: 3,
-            sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            retryCount: 2,
+            sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(retryAttempt),
             onRetry: (outcome, timespan, retryAttempt, context) =>
             {
-                // Log retry attempts
-                Console.WriteLine($"Retry {retryAttempt} after {timespan.TotalSeconds}s delay due to: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
+                Console.WriteLine($"⚠️ Retry {retryAttempt} after {timespan.TotalSeconds}s — " +
+                    $"{outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
             });
 }
 
-/// <summary>
-/// Circuit breaker policy to prevent cascading failures
-/// Opens circuit after 5 consecutive failures
-/// Stays open for 144 seconds before attempting recovery
-/// </summary>
-static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-{
-    return HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .CircuitBreakerAsync(
-            handledEventsAllowedBeforeBreaking: 5,
-            durationOfBreak: TimeSpan.FromSeconds(144),
-            onBreak: (outcome, duration) =>
-            {
-                Console.WriteLine($"Circuit breaker opened for {duration.TotalSeconds}s due to: {outcome.Exception?.Message ?? outcome.Result.StatusCode.ToString()}");
-            },
-            onReset: () =>
-            {
-                Console.WriteLine("Circuit breaker reset");
-            },
-            onHalfOpen: () =>
-            {
-                Console.WriteLine("Circuit breaker half-open, testing...");
-            });
-}
+ 

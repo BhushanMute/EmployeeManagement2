@@ -1,0 +1,418 @@
+﻿@model List<EmployeeManagement.UI.ViewModels.LeaveRequestViewModel>
+@{
+    ViewData["Title"] = "Leave History";
+    var selectedYear = ViewBag.SelectedYear ?? DateTime.Now.Year;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history me-2 text-primary"></i>Leave History</h2>
+        <div class="d-flex gap-2">
+            <select class="form-select" style="width: auto;" onchange="window.location.href='/Leave/History?year=' + this.value">
+                @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 3; y--)
+                {
+                    <option value="@y" selected="@(y == (int)selectedYear)">@y</option>
+                }
+            </select>
+            <a asp-action="Apply" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Apply Leave
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Leave Type</th>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Applied On</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                var statusClass = item.Status switch
+                                {
+                                    "Approved" => "bg-success",
+                                    "Rejected" => "bg-danger",
+                                    "Cancelled" => "bg-secondary",
+                                    _ => "bg-warning text-dark"
+                                };
+                                var statusIcon = item.Status switch
+                                {
+                                    "Approved" => "fa-check-circle",
+                                    "Rejected" => "fa-times-circle",
+                                    "Cancelled" => "fa-ban",
+                                    _ => "fa-clock"
+                                };
+                                <tr>
+                                    <td>@item.Id</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @item.LeaveTypeName
+                                        </span>
+                                        @if (item.IsHalfDay)
+                                        {
+                                            <br>
+                                            <small class="text-info">Half Day (@item.HalfDayType)</small>
+                                        }
+                                    </td>
+                                    <td>@item.StartDate.ToString("dd MMM yyyy")</td>
+                                    <td>@item.EndDate.ToString("dd MMM yyyy")</td>
+                                    <td><strong>@item.TotalDays</strong></td>
+                                    <td style="max-width: 200px;">
+                                        <span title="@item.Reason">
+                                            @(item.Reason.Length > 50 ? item.Reason.Substring(0, 50) + "..." : item.Reason)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @statusClass">
+                                            <i class="fas @statusIcon me-1"></i>@item.Status
+                                        </span>
+                                    </td>
+                                    <td>@item.AppliedDate.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Remarks))
+                                        {
+                                            <small class="text-muted" title="@item.Remarks">
+                                                @(item.Remarks.Length > 30 ? item.Remarks.Substring(0, 30) + "..." : item.Remarks)
+                                            </small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.Status == "Pending")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    onclick="cancelLeave(@item.Id)">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        }
+
+                                        @* ✅ FIXED: Use proxy URL instead of direct API path *@
+                                        @if (!string.IsNullOrEmpty(item.AttachmentPath))
+                                        {
+                                            @* Preview URL (inline display) *@
+                                            var previewUrl = Url.Action("PreviewAttachment", "Leave",
+                                            new { filePath = item.AttachmentPath });
+                                            @* Download URL *@
+                                            var downloadUrl = Url.Action("ViewAttachment", "Leave",
+                                            new { filePath = item.AttachmentPath });
+
+                                            <button class="btn btn-sm btn-outline-info ms-1"
+                                                    onclick="showDocument('@previewUrl', '@downloadUrl', '@item.LeaveTypeName - Leave Document')"
+                                                    title="View Attachment">
+                                                <i class="fas fa-paperclip"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <h5>No leave requests found</h5>
+                    <p>You haven't applied for any leaves in @selectedYear.</p>
+                    <a asp-action="Apply" class="btn btn-primary">Apply Leave</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ CANCEL LEAVE MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="Cancel" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="leaveRequestId" id="cancelLeaveId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i>Cancel Leave</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Reason for Cancellation</label>
+                        <textarea name="cancelReason" class="form-control" rows="3"
+                                  placeholder="Please provide reason for cancellation..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ DOCUMENT VIEWER MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <!-- Header -->
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="documentModalLabel">
+                    <i class="fas fa-file me-2"></i>
+                    <span id="docModalTitle">Document Preview</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body p-0" id="documentModalBody">
+
+                <!-- Loading Spinner -->
+                <div id="docLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading document...</p>
+                </div>
+
+                <!-- Image Viewer -->
+                <div id="docImageContainer" class="text-center p-3" style="display:none;">
+                    <img id="docImage" src="" alt="Document"
+                         class="img-fluid rounded shadow-sm"
+                         style="max-height: 70vh; object-fit: contain; cursor: zoom-in;"
+                         onclick="toggleZoom(this)">
+                </div>
+
+                <!-- PDF Viewer -->
+                <div id="docPdfContainer" style="display:none;">
+                    <iframe id="docPdf" src=""
+                            style="width: 100%; height: 70vh; border: none;">
+                    </iframe>
+                </div>
+
+                <!-- Unsupported File -->
+                <div id="docUnsupported" class="text-center py-5" style="display:none;">
+                    <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                    <h5>Preview not available for this file type</h5>
+                    <p class="text-muted">Click download to save the file.</p>
+                    <a id="docDownloadLink" href="" class="btn btn-primary">
+                        <i class="fas fa-download me-1"></i>Download File
+                    </a>
+                </div>
+
+                <!-- Error -->
+                <div id="docError" class="text-center py-5" style="display:none;">
+                    <i class="fas fa-exclamation-triangle fa-4x text-danger mb-3"></i>
+                    <h5>Failed to load document</h5>
+                    <p class="text-muted">The file may have been moved or deleted.</p>
+                    <a id="docRetryLink" href="" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i>Try Opening in New Tab
+                    </a>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer d-flex justify-content-between">
+                <div>
+                    <small class="text-muted" id="docFileName"></small>
+                </div>
+                <div class="d-flex gap-2">
+                    <a id="docOpenNewTab" href="" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-external-link-alt me-1"></i>Open in New Tab
+                    </a>
+                    <a id="docDownloadBtn" href="" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-download me-1"></i>Download
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .zoomed-image {
+            transform: scale(1.5);
+            cursor: zoom-out !important;
+            transition: transform 0.3s ease;
+        }
+
+        .normal-image {
+            transform: scale(1);
+            cursor: zoom-in !important;
+            transition: transform 0.3s ease;
+        }
+
+        #documentModal .modal-body {
+            min-height: 300px;
+            background-color: #f8f9fa;
+        }
+
+        #documentModal .modal-content {
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #docPdf {
+            background-color: #525659;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // =============================================
+        // CANCEL LEAVE
+        // =============================================
+        function cancelLeave(id) {
+            document.getElementById('cancelLeaveId').value = id;
+            new bootstrap.Modal(document.getElementById('cancelModal')).show();
+        }
+
+        // =============================================
+        // ✅ DOCUMENT VIEWER - FIXED VERSION
+        // Now uses proxy URLs that go through MVC controller
+        // =============================================
+        function showDocument(previewUrl, downloadUrl, title) {
+
+            console.log('Preview URL:', previewUrl);
+            console.log('Download URL:', downloadUrl);
+
+            // Reset all containers
+            document.getElementById('docLoading').style.display = 'block';
+            document.getElementById('docImageContainer').style.display = 'none';
+            document.getElementById('docPdfContainer').style.display = 'none';
+            document.getElementById('docUnsupported').style.display = 'none';
+            document.getElementById('docError').style.display = 'none';
+
+            // Set title
+            document.getElementById('docModalTitle').textContent = title || 'Document Preview';
+
+            // ✅ Set footer links to use DOWNLOAD proxy URL
+            document.getElementById('docOpenNewTab').href = previewUrl;
+            document.getElementById('docDownloadBtn').href = downloadUrl;
+            document.getElementById('docRetryLink').href = previewUrl;
+            document.getElementById('docDownloadLink').href = downloadUrl;
+
+            // Get file extension from URL
+            var urlParts = previewUrl.split('filePath=');
+            var filePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : previewUrl;
+            var fileName = filePath.split('/').pop();
+            var fileExt = fileName.split('.').pop().toLowerCase();
+
+            document.getElementById('docFileName').textContent = fileName;
+
+            // Show modal
+            var modal = new bootstrap.Modal(document.getElementById('documentModal'));
+            modal.show();
+
+            // Determine file type and show viewer
+            setTimeout(function () {
+                document.getElementById('docLoading').style.display = 'none';
+
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExt)) {
+                    showImagePreview(previewUrl);
+                }
+                else if (fileExt === 'pdf') {
+                    showPdfPreview(previewUrl);
+                }
+                else {
+                    showUnsupportedFile(downloadUrl);
+                }
+            }, 500);
+        }
+
+        // =============================================
+        // ✅ IMAGE PREVIEW
+        // =============================================
+        function showImagePreview(previewUrl) {
+            var imgContainer = document.getElementById('docImageContainer');
+            var img = document.getElementById('docImage');
+
+            img.onload = function () {
+                console.log('Image loaded successfully');
+                imgContainer.style.display = 'block';
+            };
+
+            img.onerror = function () {
+                console.error('Image failed to load:', previewUrl);
+                imgContainer.style.display = 'none';
+                showErrorPreview();
+            };
+
+            // ✅ Use the proxy URL
+            img.src = previewUrl;
+            img.classList.remove('zoomed-image');
+            img.classList.add('normal-image');
+        }
+
+        // =============================================
+        // ✅ PDF PREVIEW
+        // =============================================
+        function showPdfPreview(previewUrl) {
+            var pdfContainer = document.getElementById('docPdfContainer');
+            var pdfFrame = document.getElementById('docPdf');
+
+            // ✅ Use the proxy URL
+            pdfFrame.src = previewUrl;
+            pdfContainer.style.display = 'block';
+        }
+
+        // =============================================
+        // UNSUPPORTED FILE
+        // =============================================
+        function showUnsupportedFile(downloadUrl) {
+            document.getElementById('docUnsupported').style.display = 'block';
+            document.getElementById('docDownloadLink').href = downloadUrl;
+        }
+
+        // =============================================
+        // ERROR
+        // =============================================
+        function showErrorPreview() {
+            document.getElementById('docError').style.display = 'block';
+        }
+
+        // =============================================
+        // ZOOM TOGGLE
+        // =============================================
+        function toggleZoom(img) {
+            if (img.classList.contains('zoomed-image')) {
+                img.classList.remove('zoomed-image');
+                img.classList.add('normal-image');
+            } else {
+                img.classList.remove('normal-image');
+                img.classList.add('zoomed-image');
+            }
+        }
+
+        // =============================================
+        // CLEANUP ON MODAL CLOSE
+        // =============================================
+        document.getElementById('documentModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('docPdf').src = '';
+            document.getElementById('docImage').src = '';
+            document.getElementById('docImage').classList.remove('zoomed-image');
+        });
+    </script>
+}

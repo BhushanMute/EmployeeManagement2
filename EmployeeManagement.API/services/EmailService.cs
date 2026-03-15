@@ -236,5 +236,168 @@ namespace EmployeeManagement.API.services
                             </body>
                             </html>";
              }
+
+        public async Task SendLeaveAppliedNotification(string managerEmail, string employeeName,
+    string leaveType, DateTime startDate, DateTime endDate, decimal totalDays, string reason)
+        {
+            var subject = $"🔔 New Leave Request - {employeeName}";
+            var body = $@"
+    <html>
+    <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+        <div style='background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;'>
+            <h2 style='color: white; margin: 0;'>📋 New Leave Request</h2>
+        </div>
+        <div style='padding: 25px; background: #f8f9fa; border: 1px solid #e9ecef;'>
+            <p>Hello,</p>
+            <p><strong>{employeeName}</strong> has applied for leave:</p>
+            <table style='width: 100%; border-collapse: collapse; margin: 15px 0;'>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold; width: 40%;'>Leave Type:</td>
+                    <td style='padding: 10px;'>{leaveType}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>From:</td>
+                    <td style='padding: 10px;'>{startDate:dd MMM yyyy}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>To:</td>
+                    <td style='padding: 10px;'>{endDate:dd MMM yyyy}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Total Days:</td>
+                    <td style='padding: 10px;'><strong>{totalDays}</strong></td>
+                </tr>
+                <tr>
+                    <td style='padding: 10px; font-weight: bold;'>Reason:</td>
+                    <td style='padding: 10px;'>{reason}</td>
+                </tr>
+            </table>
+            <p>Please review and take action on this request.</p>
+            <div style='text-align: center; margin-top: 20px;'>
+                <a href='#' style='background: #28a745; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px; margin-right: 10px;'>✅ Approve</a>
+                <a href='#' style='background: #dc3545; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px;'>❌ Reject</a>
+            </div>
+        </div>
+        <div style='padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 10px 10px; background: #e9ecef;'>
+            Employee Management System &copy; {DateTime.Now.Year}
+        </div>
+    </body>
+    </html>";
+
+            await SendEmailAsync(managerEmail, subject, body);
+        }
+
+        public async Task SendLeaveApprovedNotification(string employeeEmail, string employeeName,
+            string leaveType, DateTime startDate, DateTime endDate, decimal totalDays, string? remarks)
+        {
+            var subject = $"✅ Leave Approved - {leaveType}";
+            var body = $@"
+    <html>
+    <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+        <div style='background: linear-gradient(135deg, #28a745, #20c997); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;'>
+            <h2 style='color: white; margin: 0;'>✅ Leave Approved!</h2>
+        </div>
+        <div style='padding: 25px; background: #f8f9fa; border: 1px solid #e9ecef;'>
+            <p>Hello <strong>{employeeName}</strong>,</p>
+            <p>Great news! Your leave request has been <strong style='color: #28a745;'>APPROVED</strong>.</p>
+            <table style='width: 100%; border-collapse: collapse; margin: 15px 0;'>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Leave Type:</td>
+                    <td style='padding: 10px;'>{leaveType}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Duration:</td>
+                    <td style='padding: 10px;'>{startDate:dd MMM yyyy} - {endDate:dd MMM yyyy} ({totalDays} days)</td>
+                </tr>
+                {(string.IsNullOrEmpty(remarks) ? "" : $@"
+                <tr>
+                    <td style='padding: 10px; font-weight: bold;'>Remarks:</td>
+                    <td style='padding: 10px;'>{remarks}</td>
+                </tr>")}
+            </table>
+            <p>Enjoy your time off! 🎉</p>
+        </div>
+        <div style='padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 10px 10px; background: #e9ecef;'>
+            Employee Management System &copy; {DateTime.Now.Year}
+        </div>
+    </body>
+    </html>";
+
+            await SendEmailAsync(employeeEmail, subject, body);
+        }
+
+        public async Task SendLeaveRejectedNotification(string employeeEmail, string employeeName,
+            string leaveType, DateTime startDate, DateTime endDate, string? remarks)
+        {
+            var subject = $"❌ Leave Rejected - {leaveType}";
+            var body = $@"
+    <html>
+    <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+        <div style='background: linear-gradient(135deg, #dc3545, #c0392b); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;'>
+            <h2 style='color: white; margin: 0;'>❌ Leave Rejected</h2>
+        </div>
+        <div style='padding: 25px; background: #f8f9fa; border: 1px solid #e9ecef;'>
+            <p>Hello <strong>{employeeName}</strong>,</p>
+            <p>Unfortunately, your leave request has been <strong style='color: #dc3545;'>REJECTED</strong>.</p>
+            <table style='width: 100%; border-collapse: collapse; margin: 15px 0;'>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Leave Type:</td>
+                    <td style='padding: 10px;'>{leaveType}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Duration:</td>
+                    <td style='padding: 10px;'>{startDate:dd MMM yyyy} - {endDate:dd MMM yyyy}</td>
+                </tr>
+                {(string.IsNullOrEmpty(remarks) ? "" : $@"
+                <tr>
+                    <td style='padding: 10px; font-weight: bold;'>Reason:</td>
+                    <td style='padding: 10px;'>{remarks}</td>
+                </tr>")}
+            </table>
+            <p>Please contact your manager for more details.</p>
+        </div>
+        <div style='padding: 15px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 10px 10px; background: #e9ecef;'>
+            Employee Management System &copy; {DateTime.Now.Year}
+        </div>
+    </body>
+    </html>";
+
+            await SendEmailAsync(employeeEmail, subject, body);
+        }
+
+        public async Task SendLeaveCancelledNotification(string managerEmail, string employeeName,
+            string leaveType, DateTime startDate, DateTime endDate, string? cancelReason)
+        {
+            var subject = $"⚠️ Leave Cancelled - {employeeName}";
+            var body = $@"
+    <html>
+    <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+        <div style='background: linear-gradient(135deg, #6c757d, #495057); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;'>
+            <h2 style='color: white; margin: 0;'>⚠️ Leave Cancelled</h2>
+        </div>
+        <div style='padding: 25px; background: #f8f9fa; border: 1px solid #e9ecef;'>
+            <p>Hello,</p>
+            <p><strong>{employeeName}</strong> has cancelled their leave request:</p>
+            <table style='width: 100%; border-collapse: collapse; margin: 15px 0;'>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Leave Type:</td>
+                    <td style='padding: 10px;'>{leaveType}</td>
+                </tr>
+                <tr style='border-bottom: 1px solid #dee2e6;'>
+                    <td style='padding: 10px; font-weight: bold;'>Duration:</td>
+                    <td style='padding: 10px;'>{startDate:dd MMM yyyy} - {endDate:dd MMM yyyy}</td>
+                </tr>
+                {(string.IsNullOrEmpty(cancelReason) ? "" : $@"
+                <tr>
+                    <td style='padding: 10px; font-weight: bold;'>Cancel Reason:</td>
+                    <td style='padding: 10px;'>{cancelReason}</td>
+                </tr>")}
+            </table>
+        </div>
+    </body>
+    </html>";
+
+            await SendEmailAsync(managerEmail, subject, body);
+        }
     }
 }

@@ -789,6 +789,145 @@
                 </div>
             </div>
         </div>
+        <!-- ================================================================ -->
+        <!-- ✅ NEW: API STATUS MONITOR TAB -->
+        <!-- ================================================================ -->
+        <div class="card diagnostics-card mt-4" id="apiMonitorSection">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-activity header-icon"></i>
+                        <strong>API Endpoint Monitor & Performance</strong>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-light" onclick="loadApiStatus()" id="btnApiRefresh">
+                            <i class="bi bi-arrow-clockwise" id="apiRefreshIcon"></i> Check All APIs
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="runBenchmark()" id="btnBenchmark">
+                            <i class="bi bi-speedometer2"></i> Run Benchmark
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <!-- Nav Tabs -->
+                <ul class="nav nav-pills mb-3" id="apiTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="pill" href="#apiStatusTab">
+                            <i class="bi bi-check2-all me-1"></i>API Status
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="pill" href="#benchmarkTab">
+                            <i class="bi bi-speedometer2 me-1"></i>Performance Benchmark
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="pill" href="#customTestTab">
+                            <i class="bi bi-terminal me-1"></i>Custom API Test
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- ===== TAB 1: API STATUS ===== -->
+                    <div class="tab-pane fade show active" id="apiStatusTab">
+                        <!-- Summary Cards -->
+                        <div class="row g-3 mb-4" id="apiSummaryCards">
+                            <div class="col-12 text-center text-muted py-4">
+                                <i class="bi bi-arrow-up-circle fa-2x"></i>
+                                <p class="mt-2">Click <strong>"Check All APIs"</strong> to test all endpoints</p>
+                            </div>
+                        </div>
+
+                        <!-- Category Filter -->
+                        <div class="mb-3" id="categoryFilter" style="display:none;">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-sm btn-primary active" onclick="filterByCategory('all', this)">All</button>
+                            </div>
+                        </div>
+
+                        <!-- Results Table -->
+                        <div id="apiResultsTable"></div>
+                    </div>
+
+                    <!-- ===== TAB 2: BENCHMARK ===== -->
+                    <div class="tab-pane fade" id="benchmarkTab">
+                        <div id="benchmarkResults">
+                            <div class="text-center text-muted py-4">
+                                <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
+                                <p class="mt-2">Click <strong>"Run Benchmark"</strong> to measure API performance</p>
+                                <small class="text-muted">This will run each API endpoint 3 times and calculate average response time</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== TAB 3: CUSTOM TEST ===== -->
+                    <div class="tab-pane fade" id="customTestTab">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-3">
+                                    <i class="bi bi-terminal me-2"></i>Test Any API Endpoint
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Method</label>
+                                        <select class="form-select" id="customMethod">
+                                            <option value="GET" selected>GET</option>
+                                            <option value="POST">POST</option>
+                                            <option value="PUT">PUT</option>
+                                            <option value="DELETE">DELETE</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">URL Path</label>
+                                        <input type="text" class="form-control" id="customUrl"
+                                               placeholder="/api/Leave/types" value="/api/Leave/types">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label fw-bold">Repeat</label>
+                                        <input type="number" class="form-control" id="customRepeat" value="1" min="1" max="10">
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <button class="btn btn-primary w-100" onclick="testCustomEndpoint()">
+                                            <i class="bi bi-play-fill me-1"></i>Test
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- POST Body (hidden by default) -->
+                                <div class="mt-3" id="postBodySection" style="display:none;">
+                                    <label class="form-label fw-bold">Request Body (JSON)</label>
+                                    <textarea class="form-control" id="customBody" rows="4"
+                                              placeholder='{"key": "value"}'></textarea>
+                                </div>
+
+                                <!-- Results -->
+                                <div class="mt-4" id="customTestResults"></div>
+
+                                <!-- Quick Test Buttons -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <small class="text-muted d-block mb-2">Quick Tests:</small>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Leave/types')">Leave Types</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Employee')">Employees</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Department')">Departments</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Leave/holidays?year=2025')">Holidays</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Leave/balance/1')">Balance</button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="quickTest('/api/Leave/pending')">Pending</button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="quickTest('/api/Report/employee')">Emp Report</button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="quickTest('/api/Report/attendance?month=' + new Date().getMonth() + '&year=' + new Date().getFullYear())">Attendance</button>
+                                        <button class="btn btn-sm btn-outline-info" onclick="quickTest('/api/Report/salary?month=' + new Date().getMonth() + '&year=' + new Date().getFullYear())">Salary</button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="quickTest('/health')">Health</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 </div>
@@ -1091,6 +1230,402 @@
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
+        }
+             function loadApiStatus() {
+            $('#apiRefreshIcon').addClass('refresh-spin');
+            $('#apiSummaryCards').html('<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2">Testing all API endpoints...</p></div>');
+            $('#apiResultsTable').html('');
+
+            $.ajax({
+                url: '@Url.Action("GetAllApiStatus", "Diagnostics")',
+                type: 'GET',
+                success: function (data) {
+                    displayApiStatus(data);
+                    $('#apiRefreshIcon').removeClass('refresh-spin');
+                },
+                error: function (xhr, status, error) {
+                    $('#apiSummaryCards').html('<div class="alert alert-danger">Failed to load API status: ' + error + '</div>');
+                    $('#apiRefreshIcon').removeClass('refresh-spin');
+                }
+            });
+        }
+
+        function displayApiStatus(data) {
+            var summary = data.summary;
+            var results = data.results;
+
+            // Summary Cards
+            var successRate = summary.totalEndpoints > 0
+                ? Math.round((summary.successCount / summary.totalEndpoints) * 100) : 0;
+            var successColor = successRate >= 90 ? 'success' : successRate >= 70 ? 'warning' : 'danger';
+
+            var summaryHtml = `
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+                        <div class="fw-bold fs-3 text-primary">${summary.totalEndpoints}</div>
+                        <small class="text-muted">Total APIs</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+                        <div class="fw-bold fs-3 text-success">${summary.successCount}</div>
+                        <small class="text-muted">✅ Success</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+                        <div class="fw-bold fs-3 text-danger">${summary.failedCount}</div>
+                        <small class="text-muted">❌ Failed</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px; border-left:4px solid ${successRate >= 90 ? '#28a745' : '#dc3545'} !important;">
+                        <div class="fw-bold fs-3 text-${successColor}">${successRate}%</div>
+                        <small class="text-muted">Success Rate</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+                        <div class="fw-bold fs-3">${summary.averageResponseTime}ms</div>
+                        <small class="text-muted">Avg Response</small>
+                    </div>
+                </div>
+                <div class="col-md-2 col-6">
+                    <div class="card border-0 shadow-sm text-center p-3" style="border-radius:12px;">
+                        <div class="fw-bold fs-3">${summary.totalResponseTime}ms</div>
+                        <small class="text-muted">Total Time</small>
+                    </div>
+                </div>`;
+            $('#apiSummaryCards').html(summaryHtml);
+
+            // Category Filter
+            var categories = [...new Set(results.map(r => r.category))];
+            var filterHtml = '<button class="btn btn-sm btn-primary active" onclick="filterByCategory(\'all\', this)">All (' + results.length + ')</button>';
+            categories.forEach(function(cat) {
+                var count = results.filter(r => r.category === cat).length;
+                filterHtml += `<button class="btn btn-sm btn-outline-primary" onclick="filterByCategory('${cat}', this)">${cat} (${count})</button>`;
+            });
+            $('#categoryFilter').html('<div class="d-flex flex-wrap gap-2">' + filterHtml + '</div>').show();
+
+            // Results Table
+            var tableHtml = `
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="apiTable">
+                        <thead style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            <tr>
+                                <th class="border-0 ps-3">API Endpoint</th>
+                                <th class="border-0">Category</th>
+                                <th class="border-0 text-center">Status</th>
+                                <th class="border-0 text-center">Code</th>
+                                <th class="border-0 text-center">Response Time</th>
+                                <th class="border-0 text-center">Size</th>
+                                <th class="border-0 text-center">Records</th>
+                                <th class="border-0 text-center">Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            results.forEach(function (r) {
+                var timeColor = r.responseTimeMs < 50 ? 'success' : r.responseTimeMs < 200 ? 'warning' : 'danger';
+                var statusBadge = r.isSuccess
+                    ? `<span class="badge bg-success">✅ OK</span>`
+                    : `<span class="badge bg-danger">❌ Fail</span>`;
+                var timeBar = r.isSuccess ? Math.min(r.responseTimeMs / 5, 100) : 0;
+                var perfRating = r.responseTimeMs < 20 ? '⚡' : r.responseTimeMs < 50 ? '🟢' : r.responseTimeMs < 100 ? '✅' : r.responseTimeMs < 200 ? '🟡' : r.responseTimeMs < 500 ? '🟠' : '🔴';
+
+                tableHtml += `
+                    <tr class="api-row" data-category="${r.category}">
+                        <td class="ps-3">
+                            <strong style="font-size:0.85rem;">${r.name}</strong>
+                            <br><code style="font-size:0.7rem;" class="text-muted">${r.method} ${r.url}</code>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">${r.category}</span></td>
+                        <td class="text-center">${statusBadge}</td>
+                        <td class="text-center"><span class="badge bg-${r.isSuccess ? 'success' : 'danger'}">${r.statusCode}</span></td>
+                        <td class="text-center">
+                            <strong class="text-${timeColor}">${r.responseTimeMs}ms</strong>
+                            <div class="progress mt-1" style="height:4px;width:80px;margin:0 auto;">
+                                <div class="progress-bar bg-${timeColor}" style="width:${timeBar}%"></div>
+                            </div>
+                        </td>
+                        <td class="text-center"><small>${r.responseSize || '-'}</small></td>
+                        <td class="text-center">${r.recordCount !== null ? '<strong>' + r.recordCount + '</strong>' : '-'}</td>
+                        <td class="text-center" style="font-size:1.2rem;">${r.isSuccess ? perfRating : '❌'}</td>
+                    </tr>`;
+
+                if (r.error) {
+                    tableHtml += `<tr class="api-row" data-category="${r.category}"><td colspan="8" class="text-danger ps-5"><small>⚠️ ${r.error}</small></td></tr>`;
+                }
+            });
+
+            tableHtml += '</tbody></table></div>';
+            $('#apiResultsTable').html(tableHtml);
+        }
+
+        function filterByCategory(category, btn) {
+            $('#categoryFilter .btn').removeClass('active btn-primary').addClass('btn-outline-primary');
+            $(btn).removeClass('btn-outline-primary').addClass('active btn-primary');
+
+            if (category === 'all') {
+                $('.api-row').show();
+            } else {
+                $('.api-row').hide();
+                $(`.api-row[data-category="${category}"]`).show();
+            }
+        }
+
+        // =============================================
+        // ✅ BENCHMARK
+        // =============================================
+        function runBenchmark() {
+            $('#btnBenchmark').prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Running...');
+            $('#benchmarkResults').html('<div class="text-center py-4"><div class="spinner-border text-warning"></div><p class="mt-2">Running performance benchmark... (3 iterations per endpoint)</p></div>');
+
+            // Switch to benchmark tab
+            $('a[href="#benchmarkTab"]').tab('show');
+
+            $.ajax({
+                url: '@Url.Action("RunPerformanceBenchmark", "Diagnostics")',
+                type: 'GET',
+                success: function (data) {
+                    displayBenchmark(data);
+                    $('#btnBenchmark').prop('disabled', false).html('<i class="bi bi-speedometer2"></i> Run Benchmark');
+                },
+                error: function () {
+                    $('#benchmarkResults').html('<div class="alert alert-danger">Benchmark failed</div>');
+                    $('#btnBenchmark').prop('disabled', false).html('<i class="bi bi-speedometer2"></i> Run Benchmark');
+                }
+            });
+        }
+
+        function displayBenchmark(data) {
+            var summary = data.summary;
+            var benchmarks = data.benchmarks;
+            var cacheTests = data.cacheTests;
+
+            var html = `
+                <!-- Summary -->
+                <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #1a1a2e, #16213e); color:white; border-radius:16px;">
+                    <div class="card-body p-4">
+                        <div class="row text-center">
+                            <div class="col-md-2 col-4">
+                                <div class="fs-2 fw-bold">${summary.performanceRating}</div>
+                                <small class="opacity-75">Overall Rating</small>
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <div class="fs-3 fw-bold">${summary.averageTimeMs}ms</div>
+                                <small class="opacity-75">Average Time</small>
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <div class="fs-3 fw-bold">${summary.fastestTimeMs}ms</div>
+                                <small class="opacity-75">Fastest</small>
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <div class="fs-3 fw-bold text-warning">${summary.slowestTimeMs}ms</div>
+                                <small class="opacity-75">Slowest</small>
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <div class="fs-3 fw-bold">${summary.totalTests}</div>
+                                <small class="opacity-75">Tests Run</small>
+                            </div>
+                            <div class="col-md-2 col-4">
+                                <div class="fs-3 fw-bold">${summary.totalTimeMs}ms</div>
+                                <small class="opacity-75">Total Time</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Benchmark Table -->
+                <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart me-2"></i>GET Operations Performance (3 iterations each)</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>API Endpoint</th>
+                                <th class="text-center">Min</th>
+                                <th class="text-center">Max</th>
+                                <th class="text-center">Average</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Rating</th>
+                                <th>Performance Bar</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+
+            var maxTime = Math.max(...benchmarks.map(b => b.averageTimeMs), 1);
+
+            benchmarks.sort((a, b) => a.averageTimeMs - b.averageTimeMs);
+            benchmarks.forEach(function(b) {
+                var barPct = Math.round((b.averageTimeMs / maxTime) * 100);
+                var barColor = b.averageTimeMs < 50 ? '#28a745' : b.averageTimeMs < 200 ? '#ffc107' : '#dc3545';
+
+                html += `
+                    <tr>
+                        <td>
+                            <strong>${b.name}</strong>
+                            <br><code style="font-size:0.65rem;" class="text-muted">${b.url}</code>
+                        </td>
+                        <td class="text-center">${b.minTimeMs}ms</td>
+                        <td class="text-center">${b.maxTimeMs}ms</td>
+                        <td class="text-center fw-bold" style="color:${barColor}">${b.averageTimeMs}ms</td>
+                        <td class="text-center">${b.success ? '<span class="badge bg-success">✅</span>' : '<span class="badge bg-danger">❌</span>'}</td>
+                        <td class="text-center">${b.rating}</td>
+                        <td style="min-width:150px;">
+                            <div class="progress" style="height:8px;border-radius:10px;">
+                                <div class="progress-bar" style="width:${barPct}%;background:${barColor};border-radius:10px;"></div>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+
+            // Cache Effectiveness
+            if (cacheTests && cacheTests.length > 0) {
+                html += `<h6 class="fw-bold mb-3"><i class="bi bi-lightning me-2"></i>Cache Effectiveness (Cold vs Warm)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Endpoint</th>
+                                    <th class="text-center">Cold (1st Call)</th>
+                                    <th class="text-center">Warm (2nd Call)</th>
+                                    <th class="text-center">Improvement</th>
+                                    <th class="text-center">Cache Working?</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                cacheTests.forEach(function(c) {
+                    html += `
+                        <tr>
+                            <td><strong>${c.name}</strong></td>
+                            <td class="text-center">${c.coldTimeMs}ms</td>
+                            <td class="text-center fw-bold text-success">${c.warmTimeMs}ms</td>
+                            <td class="text-center">
+                                <span class="badge ${c.improvementPercent > 0 ? 'bg-success' : 'bg-warning'}">
+                                    ${c.improvementPercent > 0 ? '↓' : '↑'} ${Math.abs(c.improvementPercent)}%
+                                </span>
+                            </td>
+                            <td class="text-center">${c.isCacheEffective ? '✅ Yes' : '⚠️ No'}</td>
+                        </tr>`;
+                });
+
+                html += '</tbody></table></div>';
+            }
+
+            $('#benchmarkResults').html(html);
+        }
+
+        // =============================================
+        // ✅ CUSTOM API TEST
+        // =============================================
+        $('#customMethod').change(function() {
+            $('#postBodySection').toggle($(this).val() === 'POST' || $(this).val() === 'PUT');
+        });
+
+        function quickTest(url) {
+            $('#customUrl').val(url);
+            $('#customMethod').val('GET');
+            testCustomEndpoint();
+        }
+
+        function testCustomEndpoint() {
+            var url = $('#customUrl').val();
+            var method = $('#customMethod').val();
+            var repeat = parseInt($('#customRepeat').val()) || 1;
+            var body = $('#customBody').val();
+
+            if (!url) { alert('Please enter a URL'); return; }
+
+            $('#customTestResults').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Testing...</div>');
+
+            var results = [];
+            var completed = 0;
+
+            for (var i = 0; i < repeat; i++) {
+                (function(iteration) {
+                    $.ajax({
+                        url: '@Url.Action("TestSingleEndpoint", "Diagnostics")',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ url: url, method: method, body: body }),
+                        success: function(data) {
+                            data.iteration = iteration + 1;
+                            results.push(data);
+                            completed++;
+                            if (completed === repeat) displayCustomResults(results);
+                        },
+                        error: function() {
+                            results.push({ success: false, error: 'Request failed', iteration: iteration + 1 });
+                            completed++;
+                            if (completed === repeat) displayCustomResults(results);
+                        }
+                    });
+                })(i);
+            }
+        }
+
+        function displayCustomResults(results) {
+            var avgTime = results.filter(r => r.success).reduce((s, r) => s + r.responseTimeMs, 0) / Math.max(results.filter(r => r.success).length, 1);
+
+            var html = `
+                <div class="card border-0 shadow-sm" style="border-radius:12px;">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong><i class="bi bi-terminal me-2"></i>Test Results — ${results[0]?.method || 'GET'} ${results[0]?.url || ''}</strong>
+                            <span class="badge ${results.every(r => r.success) ? 'bg-success' : 'bg-danger'}">
+                                ${results.filter(r => r.success).length}/${results.length} Success
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        ${results.length > 1 ? `<div class="alert alert-info py-2 mb-3"><strong>Average Response Time:</strong> ${Math.round(avgTime)}ms</div>` : ''}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Status</th>
+                                        <th>Code</th>
+                                        <th>Time</th>
+                                        <th>Size</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+            results.forEach(function(r) {
+                html += `
+                    <tr>
+                        <td>${r.iteration || 1}</td>
+                        <td>${r.success ? '<span class="badge bg-success">✅ OK</span>' : '<span class="badge bg-danger">❌ Fail</span>'}</td>
+                        <td><span class="badge bg-${r.success ? 'success' : 'danger'}">${r.statusCode || 'Error'}</span></td>
+                        <td><strong>${r.responseTimeMs || 0}ms</strong></td>
+                        <td>${r.responseSize || '-'}</td>
+                        <td><small class="text-muted">${r.timestamp || '-'}</small></td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+
+            // Show response preview for first result
+            if (results[0]?.responsePreview) {
+                html += `
+                    <div class="mt-3">
+                        <h6>
+                            <i class="bi bi-code-slash me-1"></i>Response Preview
+                            <button class="btn btn-sm btn-outline-secondary ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#responsePreview">Show/Hide</button>
+                        </h6>
+                        <div class="collapse" id="responsePreview">
+                            <pre style="max-height:200px;overflow:auto;background:#f8f9fa;padding:10px;border-radius:8px;font-size:0.75rem;">${results[0].responsePreview}</pre>
+                        </div>
+                    </div>`;
+            }
+
+            html += '</div></div>';
+            $('#customTestResults').html(html);
         }
     </script>
 }

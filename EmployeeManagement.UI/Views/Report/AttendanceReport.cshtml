@@ -1,0 +1,156 @@
+﻿@{
+    ViewData["Title"] = "Attendance Report";
+    var reportJson = ViewBag.ReportData as string ?? "{}";
+    var selectedMonth = ViewBag.Month ?? DateTime.Now.Month;
+    var selectedYear = ViewBag.Year ?? DateTime.Now.Year;
+    var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December" };
+}
+
+@section Styles {
+    <style>
+        .att-hero {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            border-radius: 16px;
+            padding: 30px;
+            color: white;
+        }
+
+        .stat-glass {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+            .stat-glass .stat-value {
+                font-size: 1.8rem;
+                font-weight: 800;
+            }
+
+            .stat-glass .stat-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                opacity: 0.8;
+            }
+
+        .att-good {
+            color: #00b894;
+        }
+
+        .att-avg {
+            color: #fdcb6e;
+        }
+
+        .att-poor {
+            color: #d63031;
+        }
+    </style>
+}
+
+<div class="container-fluid">
+    <!-- Hero -->
+    <div class="att-hero shadow-lg mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="fw-bold mb-0"><i class="fas fa-clipboard-check me-2"></i>Attendance Report</h2>
+                <p class="opacity-75 mb-0">@monthNames[(int)selectedMonth] @selectedYear</p>
+            </div>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm" style="width:auto;border-radius:10px;"
+                        onchange="window.location.href='/Report/AttendanceReport?month='+this.value+'&year=@selectedYear'">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(m == (int)selectedMonth)">@monthNames[m]</option>
+                    }
+                </select>
+                <select class="form-select form-select-sm" style="width:auto;border-radius:10px;"
+                        onchange="window.location.href='/Report/AttendanceReport?month=@selectedMonth&year='+this.value">
+                    @for (int y = DateTime.Now.Year; y >= DateTime.Now.Year - 2; y--)
+                    {
+                        <option value="@y" selected="@(y == (int)selectedYear)">@y</option>
+                    }
+                </select>
+                <button class="btn btn-light btn-sm" style="border-radius:20px;" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>Print
+                </button>
+            </div>
+        </div>
+        <div class="row g-2" id="attSummary"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm" style="border-radius:16px;">
+        <div class="card-body p-0" id="attTable"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var reportData = @Html.Raw(reportJson);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!reportData || !reportData.data) return;
+
+            var data = reportData.data;
+            var summary = data.summary || {};
+            var employees = data.employees || [];
+
+            // Summary
+            document.getElementById('attSummary').innerHTML = `
+                <div class="col-6 col-md-3"><div class="stat-glass"><div class="stat-value">${summary.totalWorkingDays || 0}</div><div class="stat-label">Working Days</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-glass"><div class="stat-value">${summary.holidaysInMonth || 0}</div><div class="stat-label">Holidays</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-glass"><div class="stat-value">${employees.length}</div><div class="stat-label">Employees</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-glass"><div class="stat-value">${employees.length > 0 ? (employees.reduce((s,e) => s + (e.attendancePercentage||0), 0) / employees.length).toFixed(1) : 0}%</div><div class="stat-label">Avg Attendance</div></div></div>
+            `;
+
+            // Table
+            if (employees.length > 0) {
+                var html = `<div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                    <thead style="background:linear-gradient(135deg,#00b894,#00cec9);color:white">
+                        <tr>
+                            <th class="ps-4 border-0">Employee</th>
+                            <th class="border-0">Department</th>
+                            <th class="text-center border-0">Working Days</th>
+                            <th class="text-center border-0">Present</th>
+                            <th class="text-center border-0">Leave</th>
+                            <th class="text-center border-0">CL</th>
+                            <th class="text-center border-0">SL</th>
+                            <th class="text-center border-0">EL</th>
+                            <th class="text-center border-0">LWP</th>
+                            <th class="text-center border-0">Attendance %</th>
+                        </tr>
+                    </thead><tbody>`;
+
+                employees.forEach(function(emp) {
+                    var pct = emp.attendancePercentage || 0;
+                    var pctClass = pct >= 90 ? 'att-good' : pct >= 75 ? 'att-avg' : 'att-poor';
+                    var progressColor = pct >= 90 ? '#00b894' : pct >= 75 ? '#fdcb6e' : '#d63031';
+
+                    html += `<tr>
+                        <td class="ps-4"><strong>${emp.employeeName}</strong><br><small class="text-muted">${emp.email||''}</small></td>
+                        <td>${emp.departmentName||'-'}</td>
+                        <td class="text-center">${emp.totalWorkingDays}</td>
+                        <td class="text-center fw-bold text-success">${emp.presentDays}</td>
+                        <td class="text-center fw-bold text-danger">${emp.leaveDays}</td>
+                        <td class="text-center">${emp.casualLeave||0}</td>
+                        <td class="text-center">${emp.sickLeave||0}</td>
+                        <td class="text-center">${emp.earnedLeave||0}</td>
+                        <td class="text-center">${emp.lwp||0}</td>
+                        <td class="text-center">
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                <div class="progress" style="height:6px;width:60px;border-radius:10px">
+                                    <div class="progress-bar" style="width:${pct}%;background:${progressColor};border-radius:10px"></div>
+                                </div>
+                                <strong class="${pctClass}">${pct}%</strong>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                document.getElementById('attTable').innerHTML = html;
+            }
+        });
+    </script>
+}

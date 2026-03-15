@@ -1,0 +1,636 @@
+﻿@model EmployeeManagement.UI.ViewModels.HolidayPageViewModel
+@{
+    ViewData["Title"] = "Holiday Calendar";
+    var selectedYear = Model.SelectedYear;
+    var stats = Model.Stats;
+    var holidays = Model.Holidays;
+
+    var roles = Context.Session.GetString("Roles")?.Split(',') ?? Array.Empty<string>();
+    var isAdmin = roles.Contains("Admin");
+    var isHR = roles.Contains("HR") || isAdmin;
+    var canManage = isAdmin || isHR;
+
+    // Group holidays by month
+    var groupedByMonth = holidays
+        .GroupBy(h => h.Date.Month)
+        .OrderBy(g => g.Key)
+        .ToDictionary(g => g.Key, g => g.OrderBy(h => h.Date).ToList());
+
+    var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December" };
+
+    var monthIcons = new[] { "", "❄️", "💝", "🌸", "🌷", "🌻", "☀️",
+        "🌴", "🎆", "🍂", "🎃", "🍁", "🎄" };
+}
+
+@section Styles {
+    <style>
+        /* ===== Hero Section ===== */
+        .holiday-hero {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd93d 100%);
+            border-radius: 20px;
+            padding: 35px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .holiday-hero::before {
+                content: '🎉';
+                position: absolute;
+                top: 10px;
+                right: 30px;
+                font-size: 80px;
+                opacity: 0.15;
+            }
+
+            .holiday-hero::after {
+                content: '🎊';
+                position: absolute;
+                bottom: -10px;
+                left: 20px;
+                font-size: 60px;
+                opacity: 0.1;
+            }
+
+        /* ===== Stat Cards ===== */
+        .stat-pill {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 12px 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+            .stat-pill .stat-number {
+                font-size: 1.8rem;
+                font-weight: 800;
+            }
+
+            .stat-pill .stat-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                opacity: 0.9;
+            }
+
+        /* ===== Month Section ===== */
+        .month-section {
+            position: relative;
+        }
+
+        .month-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 12px;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* ===== Holiday Card ===== */
+        .holiday-card {
+            border: none;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+            .holiday-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 35px rgba(0,0,0,0.12) !important;
+            }
+
+            .holiday-card.past-holiday {
+                opacity: 0.6;
+            }
+
+            .holiday-card.today-holiday {
+                border: 3px solid #ffd93d !important;
+                box-shadow: 0 0 20px rgba(255, 217, 61, 0.3);
+            }
+
+        .date-badge {
+            width: 65px;
+            height: 65px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+        }
+
+            .date-badge .date-num {
+                font-size: 1.5rem;
+                line-height: 1;
+            }
+
+            .date-badge .date-month {
+                font-size: 0.6rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+        /* ===== Type Badges ===== */
+        .type-public {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .type-optional {
+            background: linear-gradient(135deg, #17a2b8, #6f42c1);
+        }
+
+        .type-restricted {
+            background: linear-gradient(135deg, #fd7e14, #dc3545);
+        }
+
+        /* ===== Timeline ===== */
+        .timeline-line {
+            position: absolute;
+            left: 32px;
+            top: 80px;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(to bottom, #667eea, transparent);
+            border-radius: 3px;
+        }
+
+        /* ===== Add Button Float ===== */
+        .fab-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            font-size: 1.5rem;
+            z-index: 1000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .fab-button:hover {
+                transform: scale(1.1) rotate(90deg);
+                box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+            }
+
+        /* ===== Animation ===== */
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== Countdown ===== */
+        .next-holiday-countdown {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .countdown-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+    </style>
+}
+
+<div class="container-fluid">
+
+    <!-- ================================================================ -->
+    <!-- ✅ HERO SECTION -->
+    <!-- ================================================================ -->
+    @{
+        var nextHoliday = holidays.FirstOrDefault(h => h.Date >= DateTime.Today);
+        var daysUntilNext = nextHoliday != null ? (nextHoliday.Date - DateTime.Today).Days : 0;
+    }
+
+    <div class="holiday-hero shadow-lg mb-4 fade-in-up">
+        <div class="row align-items-center">
+            <div class="col-md-5">
+                <h2 class="fw-bold mb-1">
+                    <i class="fas fa-calendar-alt me-2"></i>Holiday Calendar
+                </h2>
+                <p class="opacity-75 mb-3">Company holidays for @selectedYear</p>
+
+                <!-- Year Selector -->
+                <div class="d-flex gap-2 mb-3">
+                    @for (int y = DateTime.Now.Year - 1; y <= DateTime.Now.Year + 1; y++)
+                    {
+                        var btnClass = y == selectedYear ? "btn-light text-primary fw-bold" : "btn-outline-light";
+                        <a asp-action="Holidays" asp-route-year="@y"
+                           class="btn @btnClass btn-sm" style="border-radius: 20px;">
+                            @y
+                        </a>
+                    }
+                </div>
+
+                <!-- Stats Pills -->
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="stat-number">@stats.TotalHolidays</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="stat-number">@stats.UpcomingHolidays</div>
+                            <div class="stat-label">Upcoming</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-pill">
+                            <div class="stat-number">@stats.PublicHolidays</div>
+                            <div class="stat-label">Public</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Holiday Countdown -->
+            <div class="col-md-4 offset-md-3 text-center mt-3 mt-md-0">
+                @if (nextHoliday != null)
+                {
+                    <div class="next-holiday-countdown">
+                        <small class="text-uppercase opacity-75" style="letter-spacing: 2px;">Next Holiday</small>
+                        <div class="countdown-number">@daysUntilNext</div>
+                        <small class="opacity-75">days away</small>
+                        <hr style="border-color: rgba(255,255,255,0.3); margin: 8px 0;">
+                        <div class="fw-bold">@nextHoliday.Name</div>
+                        <small class="opacity-75">@nextHoliday.Date.ToString("dd MMM yyyy") • @nextHoliday.Day</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="next-holiday-countdown">
+                        <i class="fas fa-check-circle fa-2x mb-2 opacity-50"></i>
+                        <div class="fw-bold">No Upcoming Holidays</div>
+                        <small class="opacity-75">All holidays for @selectedYear have passed</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================ -->
+    <!-- ✅ HOLIDAY LIST BY MONTH -->
+    <!-- ================================================================ -->
+    @if (holidays.Any())
+    {
+        @foreach (var monthGroup in groupedByMonth)
+        {
+            var monthNum = monthGroup.Key;
+            var monthHolidays = monthGroup.Value;
+            var isCurrentMonth = monthNum == DateTime.Now.Month && selectedYear == DateTime.Now.Year;
+
+            <div class="month-section mb-4 fade-in-up" style="animation-delay: @(monthNum * 0.05)s;">
+                <!-- Month Header -->
+                <div class="month-header @(isCurrentMonth ? "border border-2 border-warning" : "")">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2" style="font-size: 1.3rem;">@monthIcons[monthNum]</span>
+                        <h5 class="mb-0 fw-bold">@monthNames[monthNum] @selectedYear</h5>
+                    </div>
+                    <span class="badge bg-light text-dark">
+                        @monthHolidays.Count holiday@(monthHolidays.Count > 1 ? "s" : "")
+                    </span>
+                </div>
+
+                <!-- Holiday Cards -->
+                <div class="row g-3">
+                    @foreach (var holiday in Model.Holidays)
+                    {
+                        var isPast = holiday.Date < DateTime.Today;
+                        var isToday = holiday.Date.Date == DateTime.Today;
+                        var typeClass = holiday.Type switch
+                        {
+                            "Public" => "type-public",
+                            "Optional" => "type-optional",
+                            "Restricted" => "type-restricted",
+                            _ => "type-public"
+                        };
+                        var typeIcon = holiday.Type switch
+                        {
+                            "Public" => "fas fa-flag",
+                            "Optional" => "fas fa-star",
+                            "Restricted" => "fas fa-lock",
+                            _ => "fas fa-calendar-day"
+                        };
+
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card holiday-card shadow-sm @(isPast ? "past-holiday" : "") @(isToday ? "today-holiday" : "")">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-start">
+                                        <!-- Date Badge -->
+                                        <div class="date-badge @typeClass text-white me-3 flex-shrink-0">
+                                            <span class="date-num">@holiday.Date.Day</span>
+                                            <span class="date-month">@holiday.Date.ToString("MMM")</span>
+                                        </div>
+
+                                        <!-- Holiday Info -->
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="fw-bold mb-1">
+                                                        @holiday.Name
+                                                        @if (isToday)
+                                                        {
+                                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">TODAY</span>
+                                                        }
+                                                    </h6>
+                                                    <div class="text-muted small">
+                                                        <i class="fas fa-calendar-day me-1"></i>@holiday.Day
+                                                        <span class="mx-1">•</span>
+                                                        <span class="badge @typeClass text-white" style="font-size: 0.6rem;">
+                                                            <i class="@typeIcon me-1"></i>@holiday.Type
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Admin Actions -->
+                                                @if (canManage)
+                                                {
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-light border-0" data-bs-toggle="dropdown">
+                                                            <i class="fas fa-ellipsis-v text-muted"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                            <li>
+                                                                <button class="dropdown-item" onclick="editHoliday(@holiday.Id, '@holiday.Name.Replace("'", "\\'")','@holiday.Date.ToString("yyyy-MM-dd")','@holiday.Type','@(holiday.Description?.Replace("'", "\\'") ?? "")')">
+                                                                    <i class="fas fa-edit me-2 text-primary"></i>Edit
+                                                                </button>
+                                                            </li>
+                                                            <li>
+                                                                <button class="dropdown-item text-danger" onclick="deleteHoliday(@holiday.Id, '@holiday.Name.Replace("'", "\\'") ', @selectedYear)">
+                                                                    <i class="fas fa-trash me-2"></i>Delete
+                                                                </button>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            @if (!string.IsNullOrEmpty(holiday.Description))
+                                            {
+                                                <p class="text-muted small mt-1 mb-0">
+                                                    <i class="fas fa-info-circle me-1"></i>@holiday.Description
+                                                </p>
+                                            }
+
+                                            @if (isPast)
+                                            {
+                                                <small class="text-muted">
+                                                    <i class="fas fa-check-circle text-success me-1"></i>Completed
+                                                </small>
+                                            }
+                                            else if (!isToday)
+                                            {
+                                                var daysLeft = (holiday.Date - DateTime.Today).Days;
+                                                <small class="text-primary">
+                                                    <i class="fas fa-clock me-1"></i>@daysLeft day@(daysLeft > 1 ? "s" : "") away
+                                                </small>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- Empty State -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <div class="mb-3" style="font-size: 4rem;">🏖️</div>
+                <h4 class="fw-bold">No Holidays Found</h4>
+                <p class="text-muted">No holidays have been added for @selectedYear yet.</p>
+                @if (canManage)
+                {
+                    <button class="btn btn-primary" style="border-radius: 20px;"
+                            data-bs-toggle="modal" data-bs-target="#addHolidayModal">
+                        <i class="fas fa-plus me-1"></i>Add Holiday
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ FLOATING ADD BUTTON (Admin/HR only) -->
+<!-- ================================================================ -->
+@if (canManage)
+{
+    <button class="fab-button" data-bs-toggle="modal" data-bs-target="#addHolidayModal"
+            title="Add Holiday">
+        <i class="fas fa-plus"></i>
+    </button>
+}
+
+<!-- ================================================================ -->
+<!-- ✅ ADD HOLIDAY MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="addHolidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+            <form asp-action="AddHoliday" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                    <h5 class="modal-title">
+                        <i class="fas fa-calendar-plus me-2"></i>Add New Holiday
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Holiday Name <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" class="form-control" required
+                               placeholder="e.g., Republic Day, Diwali" maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="Date" class="form-control" required
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Type <span class="text-danger">*</span></label>
+                        <select name="Type" class="form-select" required>
+                            <option value="Public" selected>🟢 Public Holiday</option>
+                            <option value="Optional">🔵 Optional Holiday</option>
+                            <option value="Restricted">🔴 Restricted Holiday</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea name="Description" class="form-control" rows="2"
+                                  placeholder="Brief description (optional)" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn text-white" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <i class="fas fa-plus me-1"></i>Add Holiday
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ EDIT HOLIDAY MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="editHolidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+            <form asp-action="EditHoliday" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" id="editHolidayId" />
+                <input type="hidden" name="IsActive" value="true" />
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Edit Holiday
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Holiday Name <span class="text-danger">*</span></label>
+                        <input type="text" name="Name" id="editHolidayName" class="form-control" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="Date" id="editHolidayDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Type <span class="text-danger">*</span></label>
+                        <select name="Type" id="editHolidayType" class="form-select" required>
+                            <option value="Public">🟢 Public Holiday</option>
+                            <option value="Optional">🔵 Optional Holiday</option>
+                            <option value="Restricted">🔴 Restricted Holiday</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <textarea name="Description" id="editHolidayDesc" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ DELETE CONFIRMATION MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade" id="deleteHolidayModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+            <form asp-action="DeleteHoliday" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="deleteHolidayId" />
+                <input type="hidden" name="year" id="deleteHolidayYear" />
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                             style="width: 70px; height: 70px;">
+                            <i class="fas fa-trash fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold">Delete Holiday?</h5>
+                    <p class="text-muted" id="deleteHolidayMessage">
+                        Are you sure you want to delete this holiday?
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center mt-3">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 20px;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-danger px-4" style="border-radius: 20px;">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // =============================================
+        // ✅ EDIT HOLIDAY - Populate Modal
+        // =============================================
+        function editHoliday(id, name, date, type, description) {
+            document.getElementById('editHolidayId').value = id;
+            document.getElementById('editHolidayName').value = name;
+            document.getElementById('editHolidayDate').value = date;
+            document.getElementById('editHolidayType').value = type;
+            document.getElementById('editHolidayDesc').value = description;
+
+            new bootstrap.Modal(document.getElementById('editHolidayModal')).show();
+        }
+
+        // =============================================
+        // ✅ DELETE HOLIDAY - Confirm
+        // =============================================
+        function deleteHoliday(id, name, year) {
+            document.getElementById('deleteHolidayId').value = id;
+            document.getElementById('deleteHolidayYear').value = year;
+            document.getElementById('deleteHolidayMessage').textContent =
+                'Are you sure you want to delete "' + name + '"?';
+
+            new bootstrap.Modal(document.getElementById('deleteHolidayModal')).show();
+        }
+
+        // =============================================
+        // ✅ SCROLL ANIMATION
+        // =============================================
+        document.addEventListener('DOMContentLoaded', function () {
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.month-section').forEach(function (el) {
+                observer.observe(el);
+            });
+        });
+    </script>
+}
