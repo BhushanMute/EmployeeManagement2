@@ -1,0 +1,492 @@
+﻿@model EmployeeManagement.UI.ViewModels.AuditLogResponseViewModel
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-history text-primary me-2"></i>Audit Logs</h2>
+            <p class="text-muted mb-0">System activity and user actions history</p>
+        </div>
+        <div class="btn-group">
+            <a asp-action="Index" class="btn btn-outline-primary active">
+                <i class="fas fa-table me-1"></i>Table
+            </a>
+            <a asp-action="Timeline" class="btn btn-outline-primary">
+                <i class="fas fa-stream me-1"></i>Timeline
+            </a>
+            <a asp-action="Statistics" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar me-1"></i>Statistics
+            </a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#filterModal">
+                <i class="fas fa-filter me-1"></i>Filter
+            </button>
+            <button class="btn btn-info" onclick="exportLogs()">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Total Records</p>
+                            <h4 class="mb-0">@Model.TotalRecords</h4>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-database text-primary fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Date Range</p>
+                            <h6 class="mb-0">@(Model.Filter.StartDate?.ToString("MMM dd") ?? "All") - @(Model.Filter.EndDate?.ToString("MMM dd") ?? "All")</h6>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-calendar text-info fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Current Page</p>
+                            <h4 class="mb-0">@Model.PageNumber / @(Model.TotalPages > 0 ? Model.TotalPages : 1)</h4>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-file-alt text-success fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-1">Page Size</p>
+                            <h4 class="mb-0">@Model.PageSize</h4>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-list text-warning fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Filters -->
+    @if (!string.IsNullOrEmpty(Model.Filter.Action) || !string.IsNullOrEmpty(Model.Filter.EntityName) || Model.Filter.UserId.HasValue)
+    {
+        <div class="alert alert-info alert-dismissible fade show">
+            <strong><i class="fas fa-filter me-2"></i>Active Filters:</strong>
+            @if (!string.IsNullOrEmpty(Model.Filter.Action))
+            {
+                <span class="badge bg-primary ms-2">Action: @Model.Filter.Action</span>
+            }
+            @if (!string.IsNullOrEmpty(Model.Filter.EntityName))
+            {
+                <span class="badge bg-primary ms-2">Entity: @Model.Filter.EntityName</span>
+            }
+            @if (Model.Filter.UserId.HasValue)
+            {
+                <span class="badge bg-primary ms-2">User ID: @Model.Filter.UserId</span>
+            }
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary ms-3">
+                <i class="fas fa-times me-1"></i>Clear Filters
+            </a>
+        </div>
+    }
+
+    <!-- Audit Logs Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Entity</th>
+                            <th>IP Address</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Logs != null && Model.Logs.Any())
+                        {
+                            @foreach (var log in Model.Logs)
+                            {
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            <i class="far fa-clock me-1"></i>
+                                            @log.Timestamp.ToLocalTime().ToString("MMM dd, yyyy HH:mm:ss")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px;">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                            <div>
+                                                @if (log.UserId.HasValue)
+                                                {
+                                                    <!-- ✅ Clickable username to show modal -->
+                                                    <a href="javascript:void(0)"
+                                                       onclick="showUserDetails(@log.UserId, '@(log.Username?.Replace("'", "\\'") ?? "")')"
+                                                       class="text-decoration-none">
+                                                        <strong>@(log.Username ?? "Unknown")</strong>
+                                                    </a>
+                                                    <br />
+                                                    <small class="text-muted">ID: @log.UserId</small>
+                                                }
+                                                else
+                                                {
+                                                    <strong>System</strong>
+                                                    <br />
+                                                    <small class="text-muted">Automated</small>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="@log.ActionBadgeClass">
+                                            <i class="@log.ActionIcon me-1"></i>@log.Action
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(log.EntityName))
+                                        {
+                                            <strong>@log.EntityName</strong>
+                                            @if (log.EntityId.HasValue)
+                                            {
+                                                <br />
+                                                <small class="text-muted">ID: @log.EntityId</small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>
+                                            <i class="fas fa-globe me-1"></i>
+                                            @(log.IpAddress ?? "N/A")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@log.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
+                                    <p class="text-muted">No audit logs found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-all-route-data="@GetRouteData(Model.Filter, 1)">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-all-route-data="@GetRouteData(Model.Filter, Model.PageNumber - 1)">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+
+                @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.TotalPages, Model.PageNumber + 2); i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-all-route-data="@GetRouteData(Model.Filter, i)">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-all-route-data="@GetRouteData(Model.Filter, Model.PageNumber + 1)">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-all-route-data="@GetRouteData(Model.Filter, Model.TotalPages)">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Filter Audit Logs</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Index" method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">User ID</label>
+                        <input type="number" name="UserId" class="form-control" value="@Model.Filter.UserId" placeholder="Enter User ID" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Action</label>
+                        <select name="Action" class="form-select" id="actionFilter">
+                            <option value="">All Actions</option>
+                            <option value="Login">Login</option>
+                            <option value="Logout">Logout</option>
+                            <option value="Create">Create</option>
+                            <option value="Update">Update</option>
+                            <option value="Delete">Delete</option>
+                            <option value="PasswordChanged">Password Changed</option>
+                            <option value="LeaveApplied">Leave Applied</option>
+                            <option value="LeaveApproved">Leave Approved</option>
+                            <option value="LeaveRejected">Leave Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Entity Name</label>
+                        <input type="text" name="EntityName" class="form-control" value="@Model.Filter.EntityName" placeholder="e.g., User, Employee, LeaveRequest" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="StartDate" class="form-control" value="@Model.Filter.StartDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="EndDate" class="form-control" value="@Model.Filter.EndDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Records per page</label>
+                        <select name="PageSize" class="form-select" id="pageSizeFilter">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <a asp-action="Index" class="btn btn-warning">
+                        <i class="fas fa-undo me-1"></i>Reset
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Apply Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-user me-2"></i>User Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="viewUserProfileBtn" href="#" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-1"></i>View Full Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        // Set selected values in dropdowns
+        document.getElementById('actionFilter').value = '@Model.Filter.Action';
+        document.getElementById('pageSizeFilter').value = '@Model.PageSize';
+
+        function exportLogs() {
+            document.getElementById('exportForm')?.submit();
+        }
+
+        function showUserDetails(userId, username) {
+            const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+            const content = document.getElementById('userDetailsContent');
+            const viewBtn = document.getElementById('viewUserProfileBtn');
+
+            // Show loading
+            content.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading user details...</p>
+                </div>
+            `;
+
+            // Set view profile link
+            viewBtn.href = '@Url.Action("Details", "User")/' + userId;
+
+            // Show modal
+            modal.show();
+
+            // ✅ Call AuditLog controller's GetUserDetails
+            fetch('@Url.Action("GetUserDetails", "AuditLog")?id=' + userId)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('User details response:', data);
+
+                    if (data.success) {
+                        content.innerHTML = `
+                            <div class="text-center mb-3">
+                                <img src="${data.profilePicture || '/images/default-avatar.png'}"
+                                     class="rounded-circle border"
+                                     width="80" height="80"
+                                     alt="Profile"
+                                     onerror="this.src='/images/default-avatar.png'">
+                            </div>
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <td class="text-muted" width="40%">User ID</td>
+                                    <td><strong>${data.userId}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Username</td>
+                                    <td><strong>${data.username}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Full Name</td>
+                                    <td>${data.fullName || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Email</td>
+                                    <td>${data.email || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Phone</td>
+                                    <td>${data.phoneNumber || 'N/A'}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Role</td>
+                                    <td><span class="badge bg-primary">${data.role || 'N/A'}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Status</td>
+                                    <td>
+                                        <span class="badge ${data.isActive ? 'bg-success' : 'bg-danger'}">
+                                            ${data.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Joined</td>
+                                    <td>${data.createdAt || 'N/A'}</td>
+                                </tr>
+                            </table>
+                            <hr>
+                            <div class="text-center">
+                                <a href="@Url.Action("Index", "AuditLog")?UserId=${data.userId}"
+                                   class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-history me-1"></i>View All Logs
+                                </a>
+                            </div>
+                        `;
+                    } else {
+                        showFallbackUserInfo(userId, username);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user details:', error);
+                    showFallbackUserInfo(userId, username);
+                });
+        }
+
+        function showFallbackUserInfo(userId, username) {
+            const content = document.getElementById('userDetailsContent');
+            content.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="avatar-lg bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="fas fa-user fa-2x text-primary"></i>
+                    </div>
+                    <h5>${username || 'Unknown User'}</h5>
+                    <p class="text-muted mb-3">User ID: ${userId}</p>
+                    <hr>
+                    <a href="@Url.Action("Index", "AuditLog")?UserId=${userId}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-history me-1"></i>View All Logs for this User
+                    </a>
+                </div>
+            `;
+        }
+    </script>
+}
+
+@functions {
+    Dictionary<string, string> GetRouteData(AuditLogFilterViewModel filter, int pageNumber)
+    {
+        var routeData = new Dictionary<string, string>
+        {
+            { "PageNumber", pageNumber.ToString() },
+            { "PageSize", filter.PageSize.ToString() }
+        };
+
+        if (filter.UserId.HasValue)
+            routeData["UserId"] = filter.UserId.Value.ToString()!;
+        if (!string.IsNullOrEmpty(filter.Action))
+            routeData["Action"] = filter.Action;
+        if (!string.IsNullOrEmpty(filter.EntityName))
+            routeData["EntityName"] = filter.EntityName;
+        if (filter.StartDate.HasValue)
+            routeData["StartDate"] = filter.StartDate.Value.ToString("yyyy-MM-dd");
+        if (filter.EndDate.HasValue)
+            routeData["EndDate"] = filter.EndDate.Value.ToString("yyyy-MM-dd");
+
+        return routeData;
+    }
+}

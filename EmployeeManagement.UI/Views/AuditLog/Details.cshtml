@@ -1,0 +1,194 @@
+﻿@model EmployeeManagement.UI.ViewModels.AuditLogViewModel
+@{
+    ViewData["Title"] = "Audit Log Details";
+}
+
+<div class="container py-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Audit Logs
+        </a>
+    </div>
+
+    <!-- Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1">
+                        <span class="@Model.ActionBadgeClass me-2">
+                            <i class="@Model.ActionIcon me-1"></i>@Model.Action
+                        </span>
+                        Audit Log #@Model.Id
+                    </h4>
+                    <p class="text-muted mb-0">
+                        <i class="far fa-clock me-1"></i>
+                        @Model.Timestamp.ToLocalTime().ToString("MMMM dd, yyyy HH:mm:ss")
+                    </p>
+                </div>
+                <div class="text-end">
+                    @if (!string.IsNullOrEmpty(Model.EntityName))
+                    {
+                        <span class="badge bg-secondary fs-6">@Model.EntityName</span>
+                        @if (Model.EntityId.HasValue)
+                        {
+                            <br />
+                    
+                            <small class="text-muted">Entity ID: @Model.EntityId</small>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- User & Request Info -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">Username</td>
+                            <td><strong>@(Model.Username ?? "System")</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">User ID</td>
+                            <td>@(Model.UserId?.ToString() ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">IP Address</td>
+                            <td>
+                                <i class="fas fa-globe me-1"></i>
+                                @(Model.IpAddress ?? "N/A")
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">User Agent</td>
+                            <td>
+                                <small class="text-break">@(Model.UserAgent ?? "N/A")</small>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Info -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Action Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted" style="width: 40%;">Action</td>
+                            <td>
+                                <span class="@Model.ActionBadgeClass">
+                                    <i class="@Model.ActionIcon me-1"></i>@Model.Action
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Entity</td>
+                            <td>@(Model.EntityName ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Entity ID</td>
+                            <td>@(Model.EntityId?.ToString() ?? "N/A")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Timestamp</td>
+                            <td>@Model.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Old Values -->
+    @if (!string.IsNullOrEmpty(Model.OldValues))
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Previous Values (Before Change)</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded mb-0" style="max-height: 300px; overflow-y: auto;"><code id="oldValues">@FormatJson(Model.OldValues)</code></pre>
+            </div>
+        </div>
+    }
+
+    <!-- New Values -->
+    @if (!string.IsNullOrEmpty(Model.NewValues))
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>New Values (After Change)</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded mb-0" style="max-height: 300px; overflow-y: auto;"><code id="newValues">@FormatJson(Model.NewValues)</code></pre>
+            </div>
+        </div>
+    }
+
+    <!-- Comparison View (if both old and new values exist) -->
+    @if (!string.IsNullOrEmpty(Model.OldValues) && !string.IsNullOrEmpty(Model.NewValues))
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="fas fa-columns me-2"></i>Side-by-Side Comparison</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-danger"><i class="fas fa-minus-circle me-1"></i>Before</h6>
+                        <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>@FormatJson(Model.OldValues)</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success"><i class="fas fa-plus-circle me-1"></i>After</h6>
+                        <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>@FormatJson(Model.NewValues)</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- No Data Message -->
+    @if (string.IsNullOrEmpty(Model.OldValues) && string.IsNullOrEmpty(Model.NewValues))
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No additional data recorded for this action</p>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    string FormatJson(string? json)
+    {
+        if (string.IsNullOrEmpty(json))
+            return "N/A";
+
+        try
+        {
+            var obj = System.Text.Json.JsonSerializer.Deserialize<object>(json);
+            return System.Text.Json.JsonSerializer.Serialize(obj, new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        }
+        catch
+        {
+            return json;
+        }
+    }
+}

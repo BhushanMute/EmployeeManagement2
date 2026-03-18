@@ -372,25 +372,74 @@ namespace EmployeeManagement.UI.Controllers
             return View();
         }
 
+        //[HttpGet]
+        //[AllowAnonymous]
+        //public async Task<IActionResult> ResetPassword(string? token, string? email)
+        //{
+        //    // Validate parameters
+        //    if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
+        //    {
+        //        TempData["ErrorMessage"] = "Invalid password reset link.";
+        //        return RedirectToAction("Login");
+        //    }
+
+        //    try
+        //    {
+        //        // Validate token with API
+        //        var result = await _apiService.GetAsync<bool>($"api/auth/validate-reset-token?token={Uri.EscapeDataString(token)}");
+
+        //        if (result == null || !result.Status)
+        //        {
+        //            TempData["ErrorMessage"] = result?.Message ?? "Invalid or expired password reset link. Please request a new one.";
+        //            return RedirectToAction("ForgotPassword");
+        //        }
+
+        //        var model = new ResetPasswordViewModel
+        //        {
+        //            Token = token,
+        //            Email = email
+        //        };
+
+        //        return View(model);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error validating reset token");
+        //        TempData["ErrorMessage"] = "An error occurred. Please try again or request a new reset link.";
+        //        return RedirectToAction("ForgotPassword");
+        //    }
+        //}
+
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword(string? token, string? email)
         {
-            // Validate parameters
+            _logger.LogInformation("=== ResetPassword GET ===");
+            _logger.LogInformation("Token: {Token}", token);
+            _logger.LogInformation("Email: {Email}", email);
+
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(email))
             {
+                _logger.LogWarning("Token or email is empty");
                 TempData["ErrorMessage"] = "Invalid password reset link.";
                 return RedirectToAction("Login");
             }
 
             try
             {
-                // Validate token with API
-                var result = await _apiService.GetAsync<bool>($"api/auth/validate-reset-token?token={Uri.EscapeDataString(token)}");
+                var apiUrl = $"api/auth/validate-reset-token?token={Uri.EscapeDataString(token)}";
+                _logger.LogInformation("Calling API: {Url}", apiUrl);
+
+                var result = await _apiService.GetAsync<bool>(apiUrl);
+
+                _logger.LogInformation("API Result - IsNull: {IsNull}", result == null);
+                _logger.LogInformation("API Result - Status: {Status}", result?.Status);
+                _logger.LogInformation("API Result - Message: {Message}", result?.Message);
 
                 if (result == null || !result.Status)
                 {
-                    TempData["ErrorMessage"] = result?.Message ?? "Invalid or expired password reset link. Please request a new one.";
+                    _logger.LogWarning("Token validation failed: {Message}", result?.Message);
+                    TempData["ErrorMessage"] = result?.Message ?? "Invalid or expired password reset link.";
                     return RedirectToAction("ForgotPassword");
                 }
 
@@ -400,12 +449,13 @@ namespace EmployeeManagement.UI.Controllers
                     Email = email
                 };
 
+                _logger.LogInformation("Token valid, showing ResetPassword view");
                 return View(model);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error validating reset token");
-                TempData["ErrorMessage"] = "An error occurred. Please try again or request a new reset link.";
+                _logger.LogError(ex, "Exception in ResetPassword GET: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "An error occurred.";
                 return RedirectToAction("ForgotPassword");
             }
         }

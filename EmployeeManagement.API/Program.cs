@@ -78,7 +78,8 @@ builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IStudentIdGenerator, StudentIdGenerator>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddScoped<IUserManagementRepository, UserManagementRepository>();
-
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 // =============================================
 // HTTP CLIENT
 // =============================================

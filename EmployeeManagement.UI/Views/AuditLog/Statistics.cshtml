@@ -1,0 +1,223 @@
+﻿@model EmployeeManagement.UI.ViewModels.AuditLogStatisticsViewModel
+@{
+    ViewData["Title"] = "Audit Statistics";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line text-primary me-2"></i>Audit Statistics</h2>
+        <div>
+            <select class="form-select" id="daysFilter" onchange="window.location.href='?days=' + this.value">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last Year</option>
+            </select>
+        </div>
+    </div>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Activities</h6>
+                    <h2 class="mb-0">@Model.TotalLogs</h2>
+                    <small class="text-muted">Last @Model.SelectedDays days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Unique Users</h6>
+                    <h2 class="mb-0">@Model.UserCounts.Count</h2>
+                    <small class="text-muted">Active users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Most Active Action</h6>
+                    <h2 class="mb-0">@(Model.ActionCounts.FirstOrDefault()?.Action ?? "N/A")</h2>
+                    <small class="text-muted">@(Model.ActionCounts.FirstOrDefault()?.Count ?? 0) times</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Most Active Entity</h6>
+                    <h2 class="mb-0">@(Model.EntityCounts.FirstOrDefault()?.EntityName ?? "N/A")</h2>
+                    <small class="text-muted">@(Model.EntityCounts.FirstOrDefault()?.Count ?? 0) changes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Actions Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt text-warning me-2"></i>Actions Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="actionsChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entity Changes -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-database text-primary me-2"></i>Entity Changes</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="entityChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Activity -->
+        <div class="col-md-12 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt text-success me-2"></i>Daily Activity</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Users -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-users text-info me-2"></i>Most Active Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        @foreach (var user in Model.UserCounts.Take(10))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-user text-primary me-2"></i>
+                                    <strong>@user.Username</strong>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">@user.Count</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-history text-danger me-2"></i>Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        @foreach (var log in Model.RecentLogs)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <span class="@log.ActionBadgeClass me-2">@log.Action</span>
+                                        <strong>@log.Username</strong>
+                                    </div>
+                                    <small class="text-muted">@log.Timestamp.ToLocalTime().ToString("MMM dd HH:mm")</small>
+                                </div>
+                                @if (!string.IsNullOrEmpty(log.EntityName))
+                                {
+                                    <small class="text-muted">@log.EntityName #@log.EntityId</small>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Set selected option
+        document.getElementById('daysFilter').value = '@Model.SelectedDays';
+
+        // Actions Chart (Pie)
+        const actionsCtx = document.getElementById('actionsChart').getContext('2d');
+        new Chart(actionsCtx, {
+            type: 'pie',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.ActionCounts.Select(a => a.Action))),
+                datasets: [{
+                    data: @Html.Raw(Json.Serialize(Model.ActionCounts.Select(a => a.Count))),
+                    backgroundColor: [
+                        '#28a745', '#6c757d', '#007bff', '#ffc107', '#dc3545',
+                        '#17a2b8', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+
+        // Entity Chart (Bar)
+        const entityCtx = document.getElementById('entityChart').getContext('2d');
+        new Chart(entityCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.EntityCounts.Select(e => e.EntityName))),
+                datasets: [{
+                    label: 'Changes',
+                    data: @Html.Raw(Json.Serialize(Model.EntityCounts.Select(e => e.Count))),
+                    backgroundColor: '#007bff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Daily Activity (Line)
+        const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+        new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(Json.Serialize(Model.DailyCounts.Select(d => d.Date.ToString("MMM dd")))),
+                datasets: [{
+                    label: 'Activities',
+                    data: @Html.Raw(Json.Serialize(Model.DailyCounts.Select(d => d.Count))),
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    </script>
+}

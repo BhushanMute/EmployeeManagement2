@@ -1,0 +1,132 @@
+﻿@model List<EmployeeManagement.UI.ViewModels.AuditLogViewModel>
+@{
+    ViewData["Title"] = "Audit Timeline";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-stream text-primary me-2"></i>Activity Timeline</h2>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-table me-1"></i>Table View
+            </a>
+            <a asp-action="Statistics" class="btn btn-outline-info">
+                <i class="fas fa-chart-bar me-1"></i>Statistics
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="timeline">
+                @foreach (var log in Model.OrderByDescending(l => l.Timestamp))
+                {
+                    var timelineColor = log.Action switch
+                    {
+                        "Login" => "success",
+                        "Logout" => "secondary",
+                        "Create" => "primary",
+                        "Update" => "warning",
+                        "Delete" => "danger",
+                        _ => "info"
+                    };
+
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-@timelineColor"></div>
+                        <div class="timeline-content">
+                            <div class="card border-0 shadow-sm mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                <span class="badge bg-@timelineColor">
+                                                    <i class="@log.ActionIcon me-1"></i>@log.Action
+                                                </span>
+                                                @if (!string.IsNullOrEmpty(log.EntityName))
+                                                {
+                                                    <span class="text-muted">on @log.EntityName</span>
+                                                    if (log.EntityId.HasValue)
+                                                    {
+                                                        <span class="text-muted">#@log.EntityId</span>
+                                                    }
+                                                }
+                                            </h6>
+                                            <p class="mb-2">
+                                                <i class="fas fa-user text-primary me-1"></i>
+                                                <strong>@(log.Username ?? "System")</strong>
+                                                @if (log.UserId.HasValue)
+                                                {
+                                                    <span class="text-muted">(ID: @log.UserId)</span>
+                                                }
+                                            </p>
+                                            @if (!string.IsNullOrEmpty(log.IpAddress))
+                                            {
+                                                <small class="text-muted">
+                                                    <i class="fas fa-globe me-1"></i>@log.IpAddress
+                                                </small>
+                                            }
+                                        </div>
+                                        <div class="text-end">
+                                            <small class="text-muted d-block">
+                                                <i class="far fa-clock me-1"></i>
+                                                @log.Timestamp.ToLocalTime().ToString("MMM dd, yyyy")
+                                            </small>
+                                            <small class="text-muted">
+                                                @log.Timestamp.ToLocalTime().ToString("HH:mm:ss")
+                                            </small>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(log.NewValues) || !string.IsNullOrEmpty(log.OldValues))
+                                    {
+                                        <div class="mt-2">
+                                            <a asp-action="Details" asp-route-id="@log.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>View Changes
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e9ecef;
+        }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 60px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: 20px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 0 2px currentColor;
+    }
+
+    .timeline-content {
+        position: relative;
+    }
+</style>
