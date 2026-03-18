@@ -62,7 +62,8 @@
 }
 
 <div class="container-fluid">
-    <!-- ✅ HERO -->
+
+    <!-- HERO -->
     <div class="mgmt-hero shadow-lg mb-4">
         <div class="row align-items-center">
             <div class="col-md-6">
@@ -96,7 +97,7 @@
         </div>
     </div>
 
-    <!-- ✅ PENDING USERS -->
+    <!-- PENDING USERS -->
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
         <div class="card-header bg-warning text-dark border-0 py-3" style="border-radius: 16px 16px 0 0;">
             <h5 class="mb-0 fw-bold">
@@ -109,6 +110,9 @@
             {
                 @foreach (var user in Model.PendingUsers)
                 {
+                    var displayName = user.FullName ?? user.Username;
+                    var safeName = displayName.Replace("'", "\\'");
+
                     <div class="card user-card shadow-sm mb-3">
                         <div class="card-body p-4">
                             <div class="row align-items-center">
@@ -119,7 +123,7 @@
                                             @(user.FullName?.Substring(0, 1).ToUpper() ?? "?")
                                         </div>
                                         <div>
-                                            <h5 class="fw-bold mb-0">@(user.FullName ?? user.Username)</h5>
+                                            <h5 class="fw-bold mb-0">@displayName</h5>
                                             <small class="text-muted">
                                                 <i class="fas fa-envelope me-1"></i>@user.Email
                                             </small>
@@ -138,37 +142,48 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 mt-3 mt-md-0">
-                                    <form asp-action="ApproveUser" method="post" class="row g-2 align-items-end">
+                                    <form method="post"
+                                          action="@Url.Action("ApproveUser", "UserManagement")"
+                                          class="row g-2 align-items-end"
+                                          id="approveForm-@user.Id">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="userId" value="@user.Id" />
 
                                         <div class="col-md-4">
                                             <label class="form-label fw-bold small">Role *</label>
-                                            <select name="roleId"
-                                                    class="form-select form-select-sm"
-                                                    asp-items="@(new SelectList(Model.Roles, "Id", "Name"))"
-                                                    required>
+                                            <select name="roleId" id="roleSelect-@user.Id"
+                                                    class="form-select form-select-sm">
                                                 <option value="">Select Role</option>
+                                                @foreach (var role in Model.Roles)
+                                                {
+                                                    <option value="@role.Id">@role.Name</option>
+                                                }
                                             </select>
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label fw-bold small">Department</label>
                                             <select name="departmentId"
-                                                    class="form-select form-select-sm"
-                                                    asp-items="@(new SelectList(Model.Departments, "Id", "Name"))">
+                                                    class="form-select form-select-sm">
                                                 <option value="">Select Department</option>
+                                                @foreach (var dept in Model.Departments)
+                                                {
+                                                    <option value="@dept.Id">@dept.Name</option>
+                                                }
                                             </select>
                                         </div>
                                         <div class="col-md-4">
                                             <div class="d-flex gap-1">
-                                                <button type="submit" class="btn btn-success btn-sm flex-grow-1"
+                                                <button type="button"
+                                                        class="btn btn-success btn-sm flex-grow-1 btn-approve"
                                                         style="border-radius: 8px;"
-                                                        onclick="return confirm('Approve this user?')">
+                                                        data-userid="@user.Id">
                                                     <i class="fas fa-check me-1"></i>Approve
                                                 </button>
-                                                <button type="button" class="btn btn-danger btn-sm"
+                                                <button type="button"
+                                                        class="btn btn-danger btn-sm btn-reject"
                                                         style="border-radius: 8px;"
-                                                        onclick="rejectUser(@user.Id, '@(user.FullName ?? user.Username)')">
+                                                        data-userid="@user.Id"
+                                                        data-username="@safeName">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
@@ -191,7 +206,7 @@
         </div>
     </div>
 
-    <!-- ✅ ALL USERS TABLE -->
+    <!-- ALL USERS TABLE -->
     <div class="card border-0 shadow-sm" style="border-radius: 16px;">
         <div class="card-header bg-white border-0 py-3">
             <h5 class="mb-0 fw-bold">
@@ -226,7 +241,7 @@
                                 <td class="ps-4">
                                     <strong>@(user.FullName ?? user.Username)</strong>
                                     <br>
-                                    <small class="text-muted">@@user.Username</small>
+                                    <small class="text-muted">@@@user.Username</small>
                                 </td>
                                 <td>@user.Email</td>
                                 <td>@(user.DepartmentName ?? "—")</td>
@@ -263,44 +278,162 @@
             </div>
         </div>
     </div>
-</div>
 
-<!-- ✅ REJECT MODAL -->
-<div class="modal fade" id="rejectModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 16px;">
-            <form asp-action="RejectUser" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="userId" id="rejectUserId" />
-                <div class="modal-header bg-danger text-white" style="border-radius: 16px 16px 0 0;">
-                    <h5 class="modal-title"><i class="fas fa-user-times me-2"></i>Reject User</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Reject registration for <strong id="rejectUserName"></strong>?</p>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Reason (Optional)</label>
-                        <textarea name="rejectionReason" class="form-control" rows="3"
-                                  placeholder="Reason for rejection..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-user-times me-1"></i>Reject
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
     <script>
-        function rejectUser(userId, userName) {
-            document.getElementById('rejectUserId').value = userId;
-            document.getElementById('rejectUserName').textContent = userName;
-            new bootstrap.Modal(document.getElementById('rejectModal')).show();
+        // APPROVE - Using event delegation
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.btn-approve');
+            if (!btn) return;
+
+            var userId = btn.getAttribute('data-userid');
+            var roleSelect = document.getElementById('roleSelect-' + userId);
+
+            if (!roleSelect.value || roleSelect.value === '') {
+                roleSelect.classList.add('is-invalid');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Role Required!',
+                    text: 'Please select a Role before approving.',
+                    confirmButtonColor: '#f39c12',
+                    customClass: { popup: 'rounded-4' }
+                });
+                roleSelect.focus();
+                return;
+            }
+
+            roleSelect.classList.remove('is-invalid');
+            var roleName = roleSelect.options[roleSelect.selectedIndex].text;
+
+            Swal.fire({
+                title: 'Approve User?',
+                html: '<p>Assign role <strong>' + roleName + '</strong> to this user?</p>',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-check me-1"></i> Yes, Approve!',
+                cancelButtonText: '<i class="fas fa-times me-1"></i> Cancel',
+                reverseButtons: true,
+                customClass: { popup: 'rounded-4' }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Approving...',
+                        html: '<p class="text-muted">Please wait...</p>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: function () { Swal.showLoading(); }
+                    });
+                    document.getElementById('approveForm-' + userId).submit();
+                }
+            });
+        });
+
+        // REJECT - Using event delegation
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.btn-reject');
+            if (!btn) return;
+
+            var userId = btn.getAttribute('data-userid');
+            var userName = btn.getAttribute('data-username');
+
+            Swal.fire({
+                title: 'Reject User?',
+                html:
+                    '<div style="text-align:left; padding:10px;">' +
+                        '<p>Reject registration for <strong>' + userName + '</strong>?</p>' +
+                        '<div class="alert alert-danger py-2 mb-3">' +
+                            '<i class="fas fa-exclamation-triangle me-1"></i>' +
+                              
+                        '</div>' +
+                        '<label class="form-label fw-bold small">' +
+                            '<i class="fas fa-comment me-1"></i>Reason (Optional)' +
+                        '</label>' +
+                        '<textarea id="swalRejectReason" class="form-control" rows="3" ' +
+                            'placeholder="Enter reason for rejection..." style="border-radius:8px;"></textarea>' +
+                    '</div>',
+                icon: 'warning',
+                iconColor: '#dc3545',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-user-times me-1"></i> Yes, Reject!',
+                cancelButtonText: '<i class="fas fa-arrow-left me-1"></i> Cancel',
+                reverseButtons: true,
+                customClass: { popup: 'rounded-4' },
+                preConfirm: function () {
+                    return document.getElementById('swalRejectReason').value;
+                }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Rejecting...',
+                        html: '<p class="text-muted">Please wait...</p>',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: function () { Swal.showLoading(); }
+                    });
+                    submitRejectForm(userId, result.value || '');
+                }
+            });
+        });
+
+        // DYNAMIC REJECT FORM
+        function submitRejectForm(userId, reason) {
+            var form = document.createElement('form');
+            form.method = 'POST';
+        form.action = '/UserManagement/RejectUser';
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            addHidden(form, '__RequestVerificationToken', token);
+            addHidden(form, 'userId', userId);
+            addHidden(form, 'rejectionReason', reason);
+
+            document.body.appendChild(form);
+            form.submit();
         }
+
+        function addHidden(form, name, value) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        }
+
+        // SUCCESS/ERROR FROM TEMPDATA
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (TempData["SuccessMessage"] != null)
+            {
+                    <text>
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: '@TempData["SuccessMessage"]',
+                        confirmButtonColor: '#28a745',
+                        timer: 3000,
+                        timerProgressBar: true,
+                        customClass: { popup: 'rounded-4' }
+                    });
+                    </text>
+            }
+
+            @if (TempData["Error"] != null)
+            {
+                    <text>
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Something Went Wrong!',
+                        text: '@TempData["Error"]',
+                        confirmButtonColor: '#dc3545',
+                        customClass: { popup: 'rounded-4' }
+                    });
+                    </text>
+            }
+        });
     </script>
 }
