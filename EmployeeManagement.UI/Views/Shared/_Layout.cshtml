@@ -7,7 +7,6 @@
     var rolesString = Context.Session.GetString("Roles") ?? "";
     var permissionsString = Context.Session.GetString("Permissions") ?? "";
 
-    // ✅ FIX: Case-insensitive role checking
     var roles = rolesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(r => r.Trim())
         .ToArray();
@@ -16,13 +15,13 @@
         .Select(p => p.Trim())
         .ToArray();
 
-    // ✅ FIX: Case-insensitive comparison
     var isAdmin = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
     var isHR = roles.Any(r => r.Equals("HR", StringComparison.OrdinalIgnoreCase)) || isAdmin;
     var isManager = roles.Any(r => r.Equals("Manager", StringComparison.OrdinalIgnoreCase)) || isHR;
     var isEmployee = roles.Any(r => r.Equals("Employee", StringComparison.OrdinalIgnoreCase));
+    var isQA = roles.Any(r => r.Equals("QA", StringComparison.OrdinalIgnoreCase));
+    var isDeveloper = roles.Any(r => r.Equals("Developer", StringComparison.OrdinalIgnoreCase));
 
-    // Get initials for fallback
     var initials = "";
     if (!string.IsNullOrEmpty(fullName))
     {
@@ -37,36 +36,303 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Employee Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <title>@ViewData["Title"] - Employee Management System</title>
 
-    <!-- ✅ Load CSS with media print trick (non-blocking) for non-critical CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-          rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        :root {
+            --bs-font-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); /* Modern Indigo to Purple */
+            --surface-color: #f3f4f6; /* Soft gray for modern dashboards */
+            --navbar-height: 70px;
+        }
+
+        body {
+            font-family: var(--bs-font-sans-serif);
+            background-color: var(--surface-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #374151;
+        }
+
+        /* ===== NAVBAR STYLING ===== */
+        .navbar {
+            background: var(--primary-gradient) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 0;
+            min-height: var(--navbar-height);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+            padding: 1rem 0;
+        }
+
+            .navbar-brand i {
+                color: #a78bfa;
+            }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 1.25rem 1rem !important;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+            .nav-link:hover, .nav-link:focus, .nav-link.active {
+                color: #ffffff !important;
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+        }
+
+            .navbar-toggler:focus {
+                box-shadow: 0 0 0 3px rgba(255,255,255,0.25);
+            }
+
+        /* ===== DROPDOWNS ===== */
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            animation: dropdownFade 0.2s ease-out;
+        }
+
+        @@keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-item {
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #4b5563;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+            .dropdown-item:hover {
+                background-color: #f3f4f6;
+                color: #111827 !important;
+                transform: translateX(3px);
+            }
+
+            .dropdown-item i {
+                width: 24px;
+                font-size: 1.1rem;
+            }
+
+        .dropdown-divider {
+            margin: 0.5rem 0;
+            border-top-color: #e5e7eb;
+        }
+
+        .dropdown-header {
+            font-weight: 700;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 1rem;
+        }
+
+        /* ===== PROFILE DROPDOWN ===== */
+        .profile-dropdown-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px 8px 0 0;
+            margin: -0.5rem -0.5rem 0.5rem -0.5rem;
+        }
+
+        /* Active Indicator dot */
+        .profile-img-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+            .profile-img-wrapper::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                width: 10px;
+                height: 10px;
+                background: #10b981;
+                border: 2px solid var(--primary-gradient);
+                border-radius: 50%;
+            }
+
+        /* ===== MAIN CONTAINER ===== */
+        main {
+            flex: 1;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* ===== FLOATING ALERTS (TOAST STYLE) ===== */
+        .toast-container {
+            z-index: 1060;
+            pointer-events: none; /* Let clicks pass through empty space */
+        }
+
+            .toast-container .alert {
+                pointer-events: auto; /* Re-enable clicks on the alert itself */
+                border: none;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                color: white;
+                padding: 1rem 1.25rem;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+            }
+
+        .alert-success {
+            background: linear-gradient(to right, #10b981, #059669);
+        }
+
+        .alert-danger {
+            background: linear-gradient(to right, #ef4444, #dc2626);
+        }
+
+        .alert .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+            margin-left: auto;
+            opacity: 0.8;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 4px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: #818cf8;
+            }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            padding: 1.5rem 0;
+            margin-top: auto;
+        }
+
+        /* Mobile specific fixes */
+        @@media (max-width: 991.98px) {
+            .navbar-collapse {
+                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+                padding: 1rem;
+                border-radius: 0 0 12px 12px;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                z-index: 1000;
+            }
+
+            .nav-link {
+                padding: 0.75rem 1rem !important;
+                border-radius: 8px;
+            }
+
+            .dropdown-menu {
+                background: rgba(255,255,255,0.1);
+                box-shadow: none;
+            }
+
+            .dropdown-item {
+                color: white !important;
+            }
+
+                .dropdown-item:hover {
+                    background: rgba(255,255,255,0.2);
+                    transform: none;
+                }
+
+            .dropdown-header {
+                color: rgba(255,255,255,0.6);
+            }
+
+            .dropdown-divider {
+                border-top-color: rgba(255,255,255,0.1);
+            }
+        }
+    </style>
+
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" asp-controller="Home" asp-action="Index">
-                <i class="fas fa-users-cog me-2"></i>Employee Management
+    <nav class="navbar navbar-expand-lg navbar-dark position-sticky top-0 z-3">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand d-flex align-items-center" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-layer-group me-2 fs-4"></i> EMS
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 @if (!string.IsNullOrEmpty(username))
                 {
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="fas fa-home me-1"></i>Dashboard
+                                <i class="bi bi-grid me-2"></i>Dashboard
                             </a>
                         </li>
 
@@ -74,49 +340,123 @@
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Employee" asp-action="Index">
-                                    <i class="fas fa-users me-1"></i>Employees
+                                    <i class="bi bi-people me-2"></i>Employees
                                 </a>
                             </li>
-
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Student" asp-action="Index">
-                                    <i class="fas fa-user-graduate me-1"></i>Students
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Student/UploadExcel">
-                                    <i class="fas fa-file-excel me-1"></i>Upload Excel
+                                    <i class="bi bi-mortarboard me-2"></i>Students
                                 </a>
                             </li>
                         }
+
+                        @if (isQA || isDeveloper || isAdmin || isManager)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-ticket-detailed me-2"></i>Tickets
+                                    <span class="badge bg-danger rounded-pill ms-2" style="font-size: 0.65rem;">New</span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Ticket" asp-action="Index">
+                                            <i class="bi bi-pie-chart text-primary"></i>Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Ticket" asp-action="MyTickets">
+                                            <i class="bi bi-list-check text-success"></i>My Tickets
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Ticket" asp-action="List">
+                                            <i class="bi bi-table text-info"></i>All Tickets
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Ticket" asp-action="Create">
+                                            <i class="bi bi-plus-circle text-warning"></i>Create Ticket
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-calendar2-check me-2"></i>Leave
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Leave" asp-action="Index">
+                                        <i class="bi bi-grid"></i>Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Leave" asp-action="Apply">
+                                        <i class="bi bi-calendar-plus text-success"></i>Apply Leave
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Leave" asp-action="History">
+                                        <i class="bi bi-clock-history text-secondary"></i>History
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Leave" asp-action="Balance">
+                                        <i class="bi bi-pie-chart text-info"></i>Balance
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" asp-controller="Leave" asp-action="Holidays">
+                                        <i class="bi bi-brightness-high text-warning"></i>Holidays
+                                    </a>
+                                </li>
+
+                                @if (isManager)
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-header">Management</li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Leave" asp-action="PendingApprovals">
+                                            <i class="bi bi-clipboard-check text-primary"></i>Approvals
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Leave" asp-action="Calendar">
+                                            <i class="bi bi-calendar3 text-primary"></i>Team Calendar
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </li>
 
                         @if (isHR)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-file-alt me-1"></i>Reports
+                                    <i class="bi bi-file-earmark-bar-graph me-2"></i>Reports
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item" asp-controller="Report" asp-action="EmployeeReport">
-                                            <i class="fas fa-users me-2 text-primary"></i>Employee Report
+                                            <i class="bi bi-file-person text-primary"></i>Employees
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item" asp-controller="Report" asp-action="AttendanceReport">
-                                            <i class="fas fa-clipboard-check me-2 text-success"></i>Attendance Report
+                                            <i class="bi bi-calendar-check text-success"></i>Attendance
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item" asp-controller="Report" asp-action="SalaryReport">
-                                            <i class="fas fa-money-bill-wave me-2 text-warning"></i>Salary Report
+                                            <i class="bi bi-cash-stack text-warning"></i>Salary
                                         </a>
                                     </li>
-                                    <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <a class="dropdown-item" asp-controller="Leave" asp-action="Reports">
-                                            <i class="fas fa-calendar-check me-2 text-info"></i>Leave Report
+                                            <i class="bi bi-graph-up text-info"></i>Leave Report
                                         </a>
                                     </li>
                                 </ul>
@@ -127,184 +467,105 @@
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-cog me-1"></i>Administration
+                                    <i class="bi bi-gear-fill me-2"></i>Admin
                                 </a>
                                 <ul class="dropdown-menu">
                                     <li>
                                         <a class="dropdown-item" asp-controller="UserManagement" asp-action="Index">
-                                            <i class="fas fa-user-check me-2 text-warning"></i>User Approvals & Roles
+                                            <i class="bi bi-person-check text-warning"></i>User Approvals
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item" asp-controller="User" asp-action="Index">
-                                            <i class="fas fa-users-cog me-2"></i>User Management
+                                            <i class="bi bi-people-fill text-primary"></i>Users
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item" asp-controller="Role" asp-action="Index">
-                                            <i class="fas fa-user-tag me-2"></i>Role Management
+                                            <i class="bi bi-shield-lock text-success"></i>Roles
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <!-- ✅ Updated Audit Logs link -->
                                         <a class="dropdown-item" asp-controller="AuditLog" asp-action="Index">
-                                            <i class="fas fa-history me-2 text-info"></i>Audit Logs
+                                            <i class="bi bi-journal-text text-secondary"></i>Audit Logs
                                         </a>
                                     </li>
-                                </ul>
-                            </li>
-                        }
-                        @if (!string.IsNullOrEmpty(username))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-calendar-alt me-1"></i>Leave
-                                </a>
-                                <ul class="dropdown-menu">
-                                    @* ===== ALL USERS ===== *@
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Leave" asp-action="Index">
-                                            <i class="fas fa-tachometer-alt me-2"></i>Leave Dashboard
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Leave" asp-action="Apply">
-                                            <i class="fas fa-calendar-plus me-2"></i>Apply Leave
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Leave" asp-action="History">
-                                            <i class="fas fa-history me-2"></i>Leave History
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Leave" asp-action="Balance">
-                                            <i class="fas fa-chart-pie me-2"></i>Leave Balance
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Leave" asp-action="Holidays">
-                                            <i class="fas fa-calendar me-2"></i>Holiday Calendar
-                                        </a>
-                                    </li>
-
-                                    @* ===== MANAGER / HR / ADMIN ONLY ===== *@
-                                    @if (isManager)
-                                    {
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header">
-                                            <small class="text-muted text-uppercase">Management</small>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Leave" asp-action="AdminDashboard">
-                                                <i class="fas fa-chart-line me-2 text-primary"></i>Leave Analytics
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Leave" asp-action="PendingApprovals">
-                                                <i class="fas fa-clipboard-check me-2 text-warning"></i>Pending Approvals
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Leave" asp-action="Calendar">
-                                                <i class="fas fa-calendar-alt me-2 text-info"></i>Team Calendar
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Leave" asp-action="Reports">
-                                                <i class="fas fa-chart-bar me-2 text-success"></i>Leave Reports
-                                            </a>
-                                        </li>
-                                    }
-                                    @if (isAdmin || isHR)
-                                    {
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li class="dropdown-header">
-                                            <small class="text-muted text-uppercase">Administration</small>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" asp-controller="Leave" asp-action="ManageAllocation">
-                                                <i class="fas fa-tasks me-2 text-success"></i>Manage Allocation
-                                            </a>
-                                        </li>
-                                    }
                                 </ul>
                             </li>
                         }
                     </ul>
 
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav ms-auto border-start border-light border-opacity-25 ps-lg-3 mt-2 mt-lg-0">
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                                <img src="@(string.IsNullOrEmpty(profilePic) ? "" : profilePic)"
-                                     class="rounded-circle me-2 border border-2 border-white @(string.IsNullOrEmpty(profilePic) ? "d-none" : "")"
-                                     style="width: 32px; height: 32px; object-fit: cover;"
-                                     alt="Profile"
-                                     id="navbarProfileImg"
-                                     onerror="this.classList.add('d-none'); document.getElementById('navbarProfileInitials').classList.remove('d-none'); document.getElementById('navbarProfileInitials').classList.add('d-flex');">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center py-1" href="#" role="button" data-bs-toggle="dropdown">
+                                <div class="profile-img-wrapper me-2">
+                                    <img src="@(string.IsNullOrEmpty(profilePic) ? "" : profilePic)"
+                                         class="rounded-circle border border-2 border-white shadow-sm @(string.IsNullOrEmpty(profilePic) ? "d-none" : "")"
+                                         style="width: 38px; height: 38px; object-fit: cover;"
+                                         alt="Profile"
+                                         id="navbarProfileImg"
+                                         onerror="this.classList.add('d-none'); document.getElementById('navbarProfileInitials').classList.remove('d-none'); document.getElementById('navbarProfileInitials').classList.add('d-flex');">
 
-                                <span class="rounded-circle bg-light text-primary align-items-center justify-content-center me-2 @(string.IsNullOrEmpty(profilePic) ? "d-flex" : "d-none")"
-                                      id="navbarProfileInitials"
-                                      style="width: 32px; height: 32px; font-size: 12px; font-weight: bold;">
-                                    @initials
+                                    <div class="rounded-circle bg-white text-primary fw-bold shadow-sm align-items-center justify-content-center @(string.IsNullOrEmpty(profilePic) ? "d-flex" : "d-none")"
+                                         id="navbarProfileInitials"
+                                         style="width: 38px; height: 38px; font-size: 14px; line-height: 1;">
+                                        @initials
+                                    </div>
+                                </div>
+                                <span class="d-none d-lg-inline fw-semibold" style="font-size: 0.95rem;">
+                                    @(!string.IsNullOrEmpty(fullName) ? fullName.Split(' ')[0] : email.Split('@')[0])
                                 </span>
-
-                                <span class="d-none d-md-inline">@(!string.IsNullOrEmpty(fullName) ? fullName : email)</span>
                             </a>
 
-                            <ul class="dropdown-menu dropdown-menu-end shadow">
-                                <li class="dropdown-header">
-                                    <div class="d-flex align-items-center py-2">
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg mt-2">
+                                <li class="profile-dropdown-header shadow-sm">
+                                    <div class="d-flex align-items-center">
                                         <img src="@(string.IsNullOrEmpty(profilePic) ? "" : profilePic)"
-                                             class="rounded-circle me-3 @(string.IsNullOrEmpty(profilePic) ? "d-none" : "")"
+                                             class="rounded-circle me-3 border border-2 border-light @(string.IsNullOrEmpty(profilePic) ? "d-none" : "")"
                                              style="width: 50px; height: 50px; object-fit: cover;"
                                              alt="Profile"
                                              id="dropdownProfileImg"
                                              onerror="this.classList.add('d-none'); document.getElementById('dropdownProfileInitials').classList.remove('d-none'); document.getElementById('dropdownProfileInitials').classList.add('d-flex');">
 
-                                        <div class="rounded-circle bg-primary text-white align-items-center justify-content-center me-3 @(string.IsNullOrEmpty(profilePic) ? "d-flex" : "d-none")"
+                                        <div class="rounded-circle bg-white text-primary align-items-center justify-content-center me-3 shadow-sm @(string.IsNullOrEmpty(profilePic) ? "d-flex" : "d-none")"
                                              id="dropdownProfileInitials"
                                              style="width: 50px; height: 50px; font-size: 18px; font-weight: bold;">
                                             @initials
                                         </div>
 
                                         <div>
-                                            <strong class="d-block">@fullName</strong>
-                                            <small class="text-muted">
-                                                <i class="fas fa-envelope me-1"></i>@email
+                                            <strong class="d-block text-white mb-1" style="line-height: 1.2;">@fullName</strong>
+                                            <small class="text-white-50 d-block mb-2" style="font-size: 0.75rem;">
+                                                @email
                                             </small>
                                             @if (roles.Any())
                                             {
-                                                <div class="mt-1">
-                                                    <span class="badge bg-primary">@roles.FirstOrDefault()</span>
-                                                </div>
+                                                <span class="badge bg-white text-primary px-2 py-1 rounded-pill">@roles.FirstOrDefault()</span>
                                             }
                                         </div>
                                     </div>
                                 </li>
-                                <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
-                                        <i class="fas fa-user me-2 text-primary"></i>My Profile
+                                    <a class="dropdown-item mt-2" asp-controller="Account" asp-action="Profile">
+                                        <i class="bi bi-person text-secondary"></i>My Profile
                                     </a>
                                 </li>
                                 <li>
                                     <a class="dropdown-item" asp-controller="Account" asp-action="EditProfile" asp-route-id="@UserId">
-                                        <i class="fas fa-user-edit me-2 text-info"></i>Edit Profile
+                                        <i class="bi bi-pencil-square text-secondary"></i>Edit Profile
                                     </a>
-
                                 </li>
                                 <li>
                                     <a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
-                                        <i class="fas fa-key me-2 text-warning"></i>Change Password
+                                        <i class="bi bi-shield-lock text-secondary"></i>Security
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form asp-controller="Account" asp-action="Logout" method="post">
-                                        <button type="submit" class="dropdown-item text-danger">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                        <button type="submit" class="dropdown-item text-danger fw-semibold">
+                                            <i class="bi bi-box-arrow-right text-danger"></i>Logout
                                         </button>
                                     </form>
                                 </li>
@@ -316,13 +577,13 @@
                 {
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Account" asp-action="Login">
-                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            <a class="nav-link btn btn-outline-light text-white px-3 py-2 me-2 rounded-pill border-opacity-25" asp-controller="Account" asp-action="Login">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Account" asp-action="Register">
-                                <i class="fas fa-user-plus me-1"></i>Register
+                        <li class="nav-item mt-2 mt-lg-0">
+                            <a class="nav-link btn btn-light text-primary px-4 py-2 rounded-pill shadow-sm" style="font-weight: 600;" asp-controller="Account" asp-action="Register">
+                                <i class="bi bi-person-plus me-1"></i>Register
                             </a>
                         </li>
                     </ul>
@@ -331,92 +592,102 @@
         </div>
     </nav>
 
-    <main class="container mt-4">
+    <div class="toast-container position-fixed top-0 end-0 p-4 mt-5">
         @if (TempData["SuccessMessage"] != null)
         {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <div class="alert alert-success alert-dismissible fade show shadow-lg" role="alert">
+                <i class="bi bi-check-circle-fill fs-5 me-3"></i>
+                <div>
+                    <strong class="d-block">Success!</strong>
+                    <span>@TempData["SuccessMessage"]</span>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
         @if (TempData["Error"] != null)
         {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+                <div>
+                    <strong class="d-block">Error!</strong>
+                    <span>@TempData["Error"]</span>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
 
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert">
+                <i class="bi bi-x-octagon-fill fs-5 me-3"></i>
+                <div>
+                    <strong class="d-block">Failed!</strong>
+                    <span>@TempData["ErrorMessage"]</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+    </div>
+
+    <main class="container-fluid py-4 px-md-4">
         @RenderBody()
     </main>
 
-    <footer class="footer mt-5 py-3 bg-light">
-        <div class="container text-center">
-            <span class="text-muted">&copy; @DateTime.Now.Year Employee Management System</span>
+    <footer class="footer mt-auto py-3">
+        <div class="container-fluid px-4 d-flex flex-column flex-md-row justify-content-between align-items-center">
+            <p class="mb-2 mb-md-0 fw-medium">&copy; @DateTime.Now.Year <span class="text-primary">Employee Management System</span></p>
+            <p class="mb-0 small text-muted">
+                Built with <i class="bi bi-heart-fill text-danger mx-1"></i> using ASP.NET Core
+            </p>
         </div>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // ✅ Global function to update navbar profile picture (can be called from any page)
+        // Update navbar profile picture dynamically
         function updateNavbarProfilePicture(imageUrl) {
             if (!imageUrl) return;
-
             var timestamp = new Date().getTime();
             var newUrl = imageUrl.includes('?') ? imageUrl + '&t=' + timestamp : imageUrl + '?t=' + timestamp;
 
-            // ✅ Update navbar small image
             var navbarImg = document.getElementById('navbarProfileImg');
             if (navbarImg) {
                 navbarImg.src = newUrl;
                 navbarImg.classList.remove('d-none');
-                navbarImg.style.display = 'block';
             }
 
-            // ✅ Hide navbar initials
             var navbarInitials = document.getElementById('navbarProfileInitials');
             if (navbarInitials) {
                 navbarInitials.classList.add('d-none');
                 navbarInitials.classList.remove('d-flex');
             }
 
-            // ✅ Update dropdown header image
             var dropdownImg = document.getElementById('dropdownProfileImg');
             if (dropdownImg) {
                 dropdownImg.src = newUrl;
                 dropdownImg.classList.remove('d-none');
-                dropdownImg.style.display = 'block';
             }
 
-            // ✅ Hide dropdown initials
             var dropdownInitials = document.getElementById('dropdownProfileInitials');
             if (dropdownInitials) {
                 dropdownInitials.classList.add('d-none');
                 dropdownInitials.classList.remove('d-flex');
             }
-
-            console.log('Navbar profile picture updated:', newUrl);
         }
 
-        // ✅ Auto-dismiss alerts after 5 seconds
-        setTimeout(function() {
-            var alerts = document.querySelectorAll('.alert');
-            alerts.forEach(function(alert) {
-                var bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
+        // Auto-dismiss floating alerts
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                var alerts = document.querySelectorAll('.toast-container .alert');
+                alerts.forEach(function(alertNode) {
+                    var bsAlert = new bootstrap.Alert(alertNode);
+                    bsAlert.close();
+                });
+            }, 6000); // Increased slightly for readability
+        });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

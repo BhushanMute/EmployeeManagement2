@@ -26,7 +26,6 @@
     var totalEmployees = employeeLeaves.Count();
     var totalHolidays = Model.Holidays.Count;
 
-    // Determine if today is in current view
     var isCurrentMonthView = Model.SelectedMonth == DateTime.Now.Month && Model.SelectedYear == DateTime.Now.Year;
 }
 
@@ -34,36 +33,43 @@
     <style>
         /* ===== Hero Section ===== */
         .calendar-hero {
-            background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+            background: linear-gradient(135deg, #2b4162 0%, #fa9c7a 100%);
             border-radius: 20px;
-            padding: 30px;
+            padding: 35px 30px;
             color: white;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(43, 65, 98, 0.2);
         }
 
             .calendar-hero::before {
                 content: '📅';
                 position: absolute;
-                top: 10px;
-                right: 30px;
-                font-size: 80px;
-                opacity: 0.08;
+                top: -20px;
+                right: 10px;
+                font-size: 140px;
+                opacity: 0.15;
+                transform: rotate(15deg);
             }
 
         /* ===== Month Navigator ===== */
         .month-navigator {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: fit-content;
         }
 
             .month-navigator .btn-nav {
-                width: 40px;
-                height: 40px;
-                border-radius: 12px;
-                border: 2px solid rgba(255,255,255,0.3);
-                background: rgba(255,255,255,0.1);
+                width: 35px;
+                height: 35px;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.2);
                 color: white;
                 display: flex;
                 align-items: center;
@@ -73,469 +79,316 @@
             }
 
                 .month-navigator .btn-nav:hover {
-                    background: rgba(255,255,255,0.25);
-                    color: white;
-                    transform: scale(1.05);
+                    background: white;
+                    color: #2b4162;
+                    transform: scale(1.1);
                 }
 
             .month-navigator .month-title {
-                font-size: 1.5rem;
-                font-weight: 800;
-                min-width: 220px;
+                font-size: 1.3rem;
+                font-weight: 700;
+                min-width: 180px;
                 text-align: center;
+                letter-spacing: 0.5px;
             }
 
         /* ===== Stats Pills ===== */
         .hero-stat {
-            background: rgba(255,255,255,0.12);
-            border-radius: 14px;
-            padding: 14px 16px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 16px;
+            padding: 15px;
             text-align: center;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.08);
-            transition: all 0.3s;
+            color: #2b4162;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
         }
 
             .hero-stat:hover {
-                background: rgba(255,255,255,0.18);
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
             }
 
             .hero-stat .stat-value {
-                font-size: 1.6rem;
+                font-size: 1.8rem;
                 font-weight: 800;
+                line-height: 1;
+                margin-bottom: 5px;
             }
 
             .hero-stat .stat-label {
-                font-size: 0.65rem;
+                font-size: 0.7rem;
                 text-transform: uppercase;
-                letter-spacing: 1px;
-                opacity: 0.75;
-                margin-top: 2px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                color: #6c757d;
             }
 
         /* ===== Calendar Table ===== */
-        .calendar-wrapper {
+        .table-responsive {
             border-radius: 16px;
-            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.03);
+            background: white;
+            overflow-x: auto;
+        }
+
+            /* Modern Scrollbar */
+            .table-responsive::-webkit-scrollbar {
+                height: 8px;
+            }
+
+            .table-responsive::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+
+            .table-responsive::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+
+                .table-responsive::-webkit-scrollbar-thumb:hover {
+                    background: #94a3b8;
+                }
+
+        .calendar-table thead th {
+            padding: 12px 2px;
+            font-size: 0.75rem;
             border: none;
+            background: #f8f9fc;
+            color: #495057;
         }
-
-        .calendar-table {
-            margin-bottom: 0;
-        }
-
-            .calendar-table thead th {
-                padding: 8px 2px;
-                font-size: 0.7rem;
-                border: none;
-                vertical-align: middle;
-            }
-
-            .calendar-table tbody td {
-                padding: 4px 2px;
-                vertical-align: middle;
-                border-color: #f5f5f5;
-            }
 
         /* ===== Day Header ===== */
         .day-header {
             text-align: center;
-            min-width: 40px;
+            min-width: 45px;
         }
 
             .day-header .day-letter {
-                font-size: 0.6rem;
+                font-size: 0.65rem;
                 text-transform: uppercase;
-                letter-spacing: 1px;
-                opacity: 0.8;
+                font-weight: 600;
+                color: #adb5bd;
             }
 
             .day-header .day-number {
-                font-size: 0.85rem;
+                font-size: 1rem;
                 font-weight: 700;
+                color: #495057;
             }
 
             .day-header.is-weekend {
-                opacity: 0.5;
+                opacity: 0.6;
+                background: #fdfdfe;
             }
 
             .day-header.is-today {
-                background: rgba(255, 193, 7, 0.3) !important;
-                border-radius: 8px;
+                background: #fff3cd !important;
+                border-radius: 8px 8px 0 0;
             }
 
         /* ===== Calendar Cells ===== */
         .cal-cell {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             font-weight: 700;
-            margin: 0 auto;
-            transition: all 0.2s;
-            cursor: default;
-            position: relative;
+            margin: 2px auto;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
         }
 
             .cal-cell:hover {
-                transform: scale(1.15);
+                transform: scale(1.15) translateY(-2px);
                 z-index: 5;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             }
 
-            /* Cell Types */
             .cal-cell.type-approved {
-                background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                color: #155724;
-                box-shadow: 0 2px 6px rgba(40, 167, 69, 0.2);
+                background: #d1e7dd;
+                color: #0f5132;
             }
 
             .cal-cell.type-pending {
-                background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-                color: #856404;
-                box-shadow: 0 2px 6px rgba(255, 193, 7, 0.2);
-                animation: pendingPulse 2s infinite;
+                background: #fff3cd;
+                color: #664d03;
+                animation: pulse 2s infinite;
             }
 
             .cal-cell.type-holiday {
-                background: linear-gradient(135deg, #cce5ff, #b8daff);
-                color: #004085;
-                box-shadow: 0 2px 6px rgba(0, 123, 255, 0.15);
+                background: #cfe2ff;
+                color: #084298;
             }
 
             .cal-cell.type-weekend {
-                background: #f1f3f5;
-                color: #adb5bd;
+                background: #f8f9fa;
+                color: #ced4da;
             }
 
             .cal-cell.type-today {
-                border: 2.5px solid #0d6efd;
-                box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+                border: 2px solid #0d6efd;
+                font-weight: 800;
             }
 
-        @@keyframes pendingPulse {
-            0%, 100% {
-                opacity: 1;
+        @@keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
             }
 
-            50% {
-                opacity: 0.7;
+            70% {
+                box-shadow: 0 0 0 6px rgba(255, 193, 7, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
             }
         }
 
-        /* ===== Employee Name Column ===== */
+        /* ===== Sticky Employee Column ===== */
         .emp-name-cell {
             position: sticky;
             left: 0;
             background: white;
             z-index: 2;
-            min-width: 200px;
-            padding: 10px 15px !important;
-            border-right: 2px solid #e9ecef;
+            min-width: 240px;
+            padding: 12px 20px !important;
+            border-right: 1px solid #e9ecef;
+            box-shadow: 4px 0 15px -5px rgba(0,0,0,0.05); /* Float effect */
+        }
+
+        .calendar-table thead th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 3;
+            background: #f8f9fc;
+            border-right: 1px solid #e9ecef;
+            box-shadow: 4px 0 15px -5px rgba(0,0,0,0.05);
         }
 
         .emp-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: 1rem;
             font-weight: 700;
             color: white;
-            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
-        .emp-info .emp-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #2d3436;
-            line-height: 1.2;
+        .employee-row:hover {
+            background: #f8f9fa !important;
         }
 
-        .emp-info .emp-dept {
-            font-size: 0.7rem;
-            color: #636e72;
-        }
-
-        .emp-info .emp-leave-count {
-            font-size: 0.6rem;
-            color: #0984e3;
-            font-weight: 600;
-        }
-
-        /* ===== Row Hover ===== */
-        .employee-row {
-            transition: background 0.2s;
-        }
-
-            .employee-row:hover {
-                background: #f8f9ff !important;
+            .employee-row:hover .emp-name-cell {
+                background: #f8f9fa !important;
             }
 
-                .employee-row:hover .emp-name-cell {
-                    background: #f8f9ff !important;
-                }
-
-        /* ===== Legend Section ===== */
-        .legend-section {
-            background: #f8f9fc;
-            border-radius: 0 0 16px 16px;
-            padding: 15px 20px;
+        /* ===== AJAX Loader Overlay ===== */
+        #ajax-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border-radius: 20px;
         }
 
-        .legend-item {
+        .is-loading #ajax-loader {
             display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .legend-dot {
-            width: 16px;
-            height: 16px;
-            border-radius: 5px;
-            flex-shrink: 0;
-        }
-
-        .legend-label {
-            font-size: 0.75rem;
-            color: #636e72;
-        }
-
-        /* ===== Holiday Strip ===== */
-        .holiday-strip {
-            background: linear-gradient(90deg, #e3f2fd, #bbdefb);
-            border-radius: 12px;
-            padding: 12px 20px;
-        }
-
-        .holiday-chip {
-            background: white;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 0.75rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s;
-        }
-
-            .holiday-chip:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-            }
-
-            .holiday-chip .chip-date {
-                background: #0d6efd;
-                color: white;
-                border-radius: 12px;
-                padding: 2px 8px;
-                font-size: 0.65rem;
-                font-weight: 700;
-            }
-
-        /* ===== Today Indicator ===== */
-        .today-indicator {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            color: white;
-            border-radius: 20px;
-            padding: 4px 14px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            animation: todayBlink 2s infinite;
-        }
-
-        @@keyframes todayBlink {
-            0%, 100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.8;
-            }
-        }
-
-        /* ===== Empty State ===== */
-        .empty-calendar {
-            padding: 60px 20px;
-        }
-
-            .empty-calendar .empty-icon {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #d4edda, #c3e6cb);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 20px;
-            }
-
-        /* ===== Tooltip Custom ===== */
-        .cal-cell[title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 110%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2d3436;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.65rem;
-            white-space: nowrap;
-            z-index: 10;
-            pointer-events: none;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        }
-
-        .cal-cell[title]:hover::before {
-            content: '';
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 5px solid transparent;
-            border-top-color: #2d3436;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        /* ===== Print Styles ===== */
-        @@media print {
-            .calendar-hero, .no-print {
-                display: none !important;
-            }
-
-            .emp-name-cell {
-                position: static !important;
-            }
-
-            .cal-cell {
-                width: 25px;
-                height: 25px;
-                font-size: 0.5rem;
-            }
-        }
-
-        /* ===== Responsive ===== */
-        @@media (max-width: 768px) {
-            .calendar-hero {
-                padding: 20px;
-            }
-
-            .hero-stat .stat-value {
-                font-size: 1.2rem;
-            }
-
-            .month-navigator .month-title {
-                font-size: 1.1rem;
-                min-width: 160px;
-            }
-
-            .emp-name-cell {
-                min-width: 150px !important;
-            }
         }
     </style>
 }
 
-<div class="container-fluid">
+<div class="container-fluid" id="fluent-calendar-container">
 
-    <!-- ================================================================ -->
-    <!-- ✅ HERO SECTION -->
-    <!-- ================================================================ -->
-    <div class="calendar-hero shadow-lg mb-4">
+    <div id="ajax-loader">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h5 class="mt-3 text-primary fw-bold">Updating Calendar...</h5>
+    </div>
+
+    <div class="calendar-hero mb-4">
         <div class="row align-items-center">
-            <div class="col-md-6">
-                <!-- Month Navigator -->
-                <div class="month-navigator mb-3">
-                    <a asp-action="Calendar" asp-route-month="@prevMonth.Month" asp-route-year="@prevMonth.Year"
-                       asp-route-departmentId="@Model.SelectedDepartmentId"
-                       class="btn-nav" title="Previous Month">
+            <div class="col-md-5">
+                <div class="month-navigator mb-3 mb-md-0">
+                    <a href="@Url.Action("Calendar", new { month = prevMonth.Month, year = prevMonth.Year, departmentId = Model.SelectedDepartmentId })"
+                       class="btn-nav ajax-link" data-url="@Url.Action("Calendar", new { month = prevMonth.Month, year = prevMonth.Year, departmentId = Model.SelectedDepartmentId })">
                         <i class="fas fa-chevron-left"></i>
                     </a>
                     <div class="month-title">
                         @monthNames[Model.SelectedMonth] @Model.SelectedYear
                     </div>
-                    <a asp-action="Calendar" asp-route-month="@nextMonth.Month" asp-route-year="@nextMonth.Year"
-                       asp-route-departmentId="@Model.SelectedDepartmentId"
-                       class="btn-nav" title="Next Month">
+                    <a href="@Url.Action("Calendar", new { month = nextMonth.Month, year = nextMonth.Year, departmentId = Model.SelectedDepartmentId })"
+                       class="btn-nav ajax-link" data-url="@Url.Action("Calendar", new { month = nextMonth.Month, year = nextMonth.Year, departmentId = Model.SelectedDepartmentId })">
                         <i class="fas fa-chevron-right"></i>
                     </a>
 
-                    <!-- Today Button -->
                     @if (!isCurrentMonthView)
                     {
-                        <a asp-action="Calendar" asp-route-month="@DateTime.Now.Month" asp-route-year="@DateTime.Now.Year"
-                           class="btn btn-sm btn-warning ms-2" style="border-radius: 20px; font-size: 0.75rem;">
-                            <i class="fas fa-crosshairs me-1"></i>Today
+                        <a href="@Url.Action("Calendar", new { month = DateTime.Now.Month, year = DateTime.Now.Year })"
+                           class="btn btn-sm btn-light text-primary fw-bold ms-2 rounded-pill ajax-link">
+                            Today
                         </a>
                     }
-                    else
-                    {
-                        <span class="today-indicator ms-2">
-                            <i class="fas fa-circle" style="font-size: 6px;"></i> TODAY
-                        </span>
-                    }
                 </div>
+            </div>
 
-                <!-- Filters -->
-                <div class="d-flex gap-2 align-items-center no-print">
-                    <select class="form-select form-select-sm" style="width: auto; border-radius: 10px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);"
-                            onchange="window.location.href='/Leave/Calendar?month=@Model.SelectedMonth&year=@Model.SelectedYear&departmentId=' + this.value">
-                        <option value="" style="color: black;">🏢 All Departments</option>
+            <div class="col-md-7">
+                <div class="d-flex justify-content-md-end justify-content-start align-items-center gap-2 mb-3 no-print">
+                    <select class="form-select border-0 shadow-sm rounded-pill px-3" style="width: auto; font-weight: 500;" id="departmentFilter">
+                        <option value="">🏢 All Departments</option>
                         @if (Model.Departments != null)
                         {
                             foreach (var dept in Model.Departments)
                             {
-                                <option value="@dept.Id" style="color: black;"
-                                        selected="@(dept.Id == Model.SelectedDepartmentId)">
+                                <option value="@dept.Id" selected="@(dept.Id == Model.SelectedDepartmentId)">
                                     @dept.Name
                                 </option>
                             }
                         }
                     </select>
-
-                    <!-- Print Button -->
-                    <button class="btn btn-sm btn-outline-light" style="border-radius: 10px;" onclick="window.print()">
-                        <i class="fas fa-print me-1"></i>Print
+                    <button class="btn btn-light rounded-pill shadow-sm text-primary fw-bold" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Print
                     </button>
                 </div>
-            </div>
 
-            <!-- Stats -->
-            <div class="col-md-6">
-                <div class="row g-2 mt-3 mt-md-0">
-                    <div class="col-4 col-md-3">
+                <div class="row g-2">
+                    <div class="col-3">
                         <div class="hero-stat">
-                            <div class="stat-value">@totalEmployees</div>
-                            <div class="stat-label"><i class="fas fa-users me-1"></i>Employees</div>
+                            <div class="stat-value text-primary">@totalEmployees</div>
+                            <div class="stat-label">Staff</div>
                         </div>
                     </div>
-                    <div class="col-4 col-md-3">
-                        <div class="hero-stat" style="border-left: 3px solid #51cf66;">
-                            <div class="stat-value" style="color: #51cf66;">@totalApprovedLeaves</div>
-                            <div class="stat-label"><i class="fas fa-check me-1"></i>Approved</div>
+                    <div class="col-3">
+                        <div class="hero-stat">
+                            <div class="stat-value text-success">@totalApprovedLeaves</div>
+                            <div class="stat-label">Approved</div>
                         </div>
                     </div>
-                    <div class="col-4 col-md-3">
-                        <div class="hero-stat" style="border-left: 3px solid #ffd93d;">
-                            <div class="stat-value" style="color: #ffd93d;">@totalPendingLeaves</div>
-                            <div class="stat-label"><i class="fas fa-clock me-1"></i>Pending</div>
+                    <div class="col-3">
+                        <div class="hero-stat">
+                            <div class="stat-value text-warning">@totalPendingLeaves</div>
+                            <div class="stat-label">Pending</div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-3">
-                        <div class="hero-stat" style="border-left: 3px solid #74b9ff;">
-                            <div class="stat-value" style="color: #74b9ff;">@totalHolidays</div>
-                            <div class="stat-label"><i class="fas fa-flag me-1"></i>Holidays</div>
+                    <div class="col-3">
+                        <div class="hero-stat">
+                            <div class="stat-value text-info">@totalHolidays</div>
+                            <div class="stat-label">Holidays</div>
                         </div>
                     </div>
                 </div>
@@ -543,377 +396,204 @@
         </div>
     </div>
 
-    <!-- ================================================================ -->
-    <!-- ✅ HOLIDAYS THIS MONTH (Show only if holidays exist) -->
-    <!-- ================================================================ -->
-    @if (Model.Holidays.Any())
+    @if (employeeLeaves.Any())
     {
-        <div class="holiday-strip mb-4 no-print">
-            <div class="d-flex align-items-center flex-wrap gap-2">
-                <strong class="me-2" style="font-size: 0.8rem; color: #0d6efd;">
-                    <i class="fas fa-flag me-1"></i>Holidays this month:
-                </strong>
-                @foreach (var holiday in Model.Holidays.OrderBy(h => h.Date))
-                {
-                    <span class="holiday-chip" title="@holiday.Name - @holiday.Day">
-                        <span class="chip-date">@holiday.Date.ToString("dd")</span>
-                        @holiday.Name
-                    </span>
-                }
-            </div>
-        </div>
-    }
-
-    <!-- ================================================================ -->
-    <!-- ✅ ON LEAVE TODAY BANNER (Show only for current month) -->
-    <!-- ================================================================ -->
-    @if (isCurrentMonthView && totalOnLeave > 0)
-    {
-        var todayLeaveEmployees = Model.LeaveItems
-        .Where(l => l.Status == "Approved" && DateTime.Today >= l.StartDate && DateTime.Today <= l.EndDate)
-        .GroupBy(l => l.EmployeeName)
-        .Select(g => g.First());
-
-        <div class="alert alert-warning border-0 shadow-sm mb-4 no-print" style="border-radius: 12px;">
-            <div class="d-flex align-items-center">
-                <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-                     style="width: 45px; height: 45px;">
-                    <i class="fas fa-user-clock text-warning fa-lg"></i>
-                </div>
-                <div>
-                    <strong>@totalOnLeave employee(s) on leave today:</strong>
-                    <div class="mt-1">
-                        @foreach (var emp in todayLeaveEmployees)
+        <div class="table-responsive bg-white">
+            <table class="table table-borderless calendar-table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4 py-3 text-uppercase fw-bold">
+                            <i class="fas fa-users text-primary me-2"></i> Employee
+                        </th>
+                        @for (int day = 1; day <= daysInMonth; day++)
                         {
-                            <span class="badge bg-white text-dark border me-1 mb-1" style="font-size: 0.75rem;">
-                                <i class="fas fa-user me-1 text-warning"></i>@emp.EmployeeName
-                                <small class="text-muted">(@emp.LeaveTypeName)</small>
-                            </span>
+                            var date = new DateTime(Model.SelectedYear, Model.SelectedMonth, day);
+                            var isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+                            var isToday = date.Date == DateTime.Today;
+                            var isHoliday = Model.Holidays.Any(h => h.Date.Date == date.Date);
+
+                            var headerClass = "day-header";
+                            if (isWeekend) headerClass += " is-weekend";
+                            if (isToday) headerClass += " is-today";
+
+                            <th class="@headerClass @(isHoliday ? "bg-primary bg-opacity-10 rounded-top" : "")">
+                                <span class="day-letter">@date.ToString("ddd").Substring(0, 2)</span><br>
+                                <span class="day-number @(isToday ? "text-primary" : "")">@day</span>
+                            </th>
                         }
-                    </div>
-                </div>
-            </div>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var avatarColors = new[] { "#4facfe", "#fa709a", "#43e97b", "#a18cd1", "#fcb69f", "#667eea" };
+                        var empIndex = 0;
+                    }
+                    @foreach (var emp in employeeLeaves)
+                    {
+                        var avatarColor = avatarColors[empIndex % avatarColors.Length];
+                        empIndex++;
+
+                        <tr class="employee-row border-bottom">
+                            <td class="emp-name-cell">
+                                <div class="d-flex align-items-center">
+                                    <div class="emp-avatar me-3" style="background: @avatarColor;">
+                                        @emp.Key.EmployeeName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">@emp.Key.EmployeeName</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                            <i class="fas fa-building me-1 opacity-50"></i>@emp.Key.DepartmentName
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            @for (int day = 1; day <= daysInMonth; day++)
+                            {
+                                var date = new DateTime(Model.SelectedYear, Model.SelectedMonth, day);
+                                var isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
+                                var isToday = date.Date == DateTime.Today;
+                                var leaveOnDate = emp.FirstOrDefault(l => date >= l.StartDate && date <= l.EndDate);
+                                var holidayOnDate = Model.Holidays.FirstOrDefault(h => h.Date.Date == date.Date);
+
+                                var cellClass = "cal-cell";
+                                var cellTitle = "";
+                                var cellContent = "";
+
+                                if (holidayOnDate != null)
+                                {
+                                    cellClass += " type-holiday";
+                                    cellTitle = $"🎉 {holidayOnDate.Name}";
+                                    cellContent = "H";
+                                }
+                                else if (leaveOnDate != null)
+                                {
+                                    if (leaveOnDate.Status == "Approved") { cellClass += " type-approved"; cellTitle = $"✅ {leaveOnDate.LeaveTypeName} (Approved)"; }
+                                    else { cellClass += " type-pending"; cellTitle = $"⏳ {leaveOnDate.LeaveTypeName} (Pending)"; }
+
+                                    cellContent = leaveOnDate.LeaveTypeCode.Length >= 2 ? leaveOnDate.LeaveTypeCode.Substring(0, 2) : leaveOnDate.LeaveTypeCode;
+                                    if (leaveOnDate.IsHalfDay) { cellContent = "½"; cellTitle += " - Half Day"; }
+                                }
+                                else if (isWeekend) { cellClass += " type-weekend"; }
+                                if (isToday) { cellClass += " type-today"; }
+
+                                <td class="text-center @(holidayOnDate != null ? "bg-primary bg-opacity-10" : "")">
+                                    <div class="@cellClass" title="@cellTitle">@cellContent</div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm my-4">
+            <i class="fas fa-calendar-check fa-4x text-success mb-3 opacity-75"></i>
+            <h4 class="fw-bold text-dark">No Leaves Found</h4>
+            <p class="text-muted">All team members are available this month.</p>
         </div>
     }
 
-    <!-- ================================================================ -->
-    <!-- ✅ CALENDAR TABLE -->
-    <!-- ================================================================ -->
-    <div class="card calendar-wrapper border-0 shadow-sm">
-        <div class="card-body p-0">
-            @if (employeeLeaves.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-sm calendar-table">
-                        <!-- ===== TABLE HEADER (Day Numbers) ===== -->
-                        <thead>
-                            <tr style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
-                                <!-- Employee Column Header -->
-                                <th class="ps-3 py-3 border-0"
-                                    style="min-width: 200px; position: sticky; left: 0; z-index: 3; background: #667eea; border-right: 2px solid rgba(255,255,255,0.2);">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-users me-2"></i>
-                                        <span>Employee</span>
-                                        <span class="badge bg-light text-primary ms-2" style="font-size: 0.6rem;">
-                                            @totalEmployees
-                                        </span>
-                                    </div>
-                                </th>
-
-                                <!-- Day Number Headers -->
-                                @for (int day = 1; day <= daysInMonth; day++)
-                                {
-                                    var date = new DateTime(Model.SelectedYear, Model.SelectedMonth, day);
-                                    var isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
-                                    var isToday = date.Date == DateTime.Today;
-                                    var isHoliday = Model.Holidays.Any(h => h.Date.Date == date.Date);
-
-                                    var headerClass = "day-header";
-                                    if (isWeekend) headerClass += " is-weekend";
-                                    if (isToday) headerClass += " is-today";
-
-                                    <th class="border-0 @headerClass"
-                                        style="min-width: 42px; @(isHoliday ? "background: rgba(0,123,255,0.15) !important;" : "")">
-                                        <span class="day-letter">
-                                            @date.ToString("ddd").Substring(0, 2)
-                                        </span>
-                                        <br>
-                                        <span class="day-number @(isToday ? "text-warning" : "")">
-                                            @day
-                                        </span>
-                                        @if (isHoliday)
-                                        {
-                                            <br>
-                                            <i class="fas fa-flag" style="font-size: 0.5rem; color: #74b9ff;"
-                                               title="@Model.Holidays.First(h => h.Date.Date == date.Date).Name"></i>
-                                        }
-                                    </th>
-                                }
-                            </tr>
-                        </thead>
-
-                        <!-- ===== TABLE BODY (Employee Rows) ===== -->
-                        <tbody>
-                            @{
-                                var avatarColors = new[] { "#4facfe", "#f093fb", "#43e97b", "#fa709a", "#a18cd1", "#fcb69f", "#667eea", "#ffd93d" };
-                                var empIndex = 0;
-                            }
-
-                            @foreach (var emp in employeeLeaves)
-                            {
-                                var avatarColor = avatarColors[empIndex % avatarColors.Length];
-                                var empLeaveCount = emp.Count();
-                                var empApprovedDays = emp.Where(l => l.Status == "Approved").Sum(l => l.TotalDays);
-                                empIndex++;
-
-                                <tr class="employee-row">
-                                    <!-- Employee Name Cell -->
-                                    <td class="emp-name-cell">
-                                        <div class="d-flex align-items-center">
-                                            <div class="emp-avatar me-2" style="background: @avatarColor;">
-                                                @emp.Key.EmployeeName.Substring(0, 1).ToUpper()
-                                            </div>
-                                            <div class="emp-info">
-                                                <div class="emp-title">@emp.Key.EmployeeName</div>
-                                                <div class="emp-dept">
-                                                    <i class="fas fa-building me-1"></i>@emp.Key.DepartmentName
-                                                </div>
-                                                <div class="emp-leave-count">
-                                                    @empLeaveCount leave(s) • @empApprovedDays day(s)
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- Day Cells -->
-                                    @for (int day = 1; day <= daysInMonth; day++)
-                                    {
-                                        var date = new DateTime(Model.SelectedYear, Model.SelectedMonth, day);
-                                        var isWeekend = date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
-                                        var isToday = date.Date == DateTime.Today;
-
-                                        // Check if this date has a leave
-                                        var leaveOnDate = emp.FirstOrDefault(l => date >= l.StartDate && date <= l.EndDate);
-
-                                        // Check if this date is a holiday
-                                        var holidayOnDate = Model.Holidays.FirstOrDefault(h => h.Date.Date == date.Date);
-
-                                        var cellClass = "cal-cell";
-                                        var cellTitle = "";
-                                        var cellContent = "";
-                                        var cellIcon = "";
-
-                                        if (holidayOnDate != null)
-                                        {
-                                            cellClass += " type-holiday";
-                                            cellTitle = $"🎉 {holidayOnDate.Name}";
-                                            cellContent = "H";
-                                        }
-                                        else if (leaveOnDate != null)
-                                        {
-                                            if (leaveOnDate.Status == "Approved")
-                                            {
-                                                cellClass += " type-approved";
-                                                cellTitle = $"✅ {leaveOnDate.LeaveTypeName} (Approved)";
-                                            }
-                                            else
-                                            {
-                                                cellClass += " type-pending";
-                                                cellTitle = $"⏳ {leaveOnDate.LeaveTypeName} (Pending)";
-                                            }
-
-                                            cellContent = leaveOnDate.LeaveTypeCode.Length >= 2
-                                            ? leaveOnDate.LeaveTypeCode.Substring(0, 2)
-                                            : leaveOnDate.LeaveTypeCode;
-
-                                            if (leaveOnDate.IsHalfDay)
-                                            {
-                                                cellTitle += " - Half Day";
-                                                cellContent = "½";
-                                            }
-                                        }
-                                        else if (isWeekend)
-                                        {
-                                            cellClass += " type-weekend";
-                                        }
-
-                                        if (isToday)
-                                        {
-                                            cellClass += " type-today";
-                                        }
-
-                                        <td class="text-center" style="padding: 3px 1px;">
-                                            <div class="@cellClass" title="@cellTitle">
-                                                @cellContent
-                                            </div>
-                                        </td>
-                                    }
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <!-- ===== EMPTY STATE ===== -->
-                <div class="empty-calendar text-center">
-                    <div class="empty-icon">
-                        <i class="fas fa-calendar-check fa-3x text-success"></i>
-                    </div>
-                    <h4 class="fw-bold text-dark">All Clear! 🎉</h4>
-                    <p class="text-muted mb-1">
-                        No one has applied for leave in <strong>@monthNames[Model.SelectedMonth] @Model.SelectedYear</strong>
-                    </p>
-                    <p class="text-muted mb-4">
-                        All team members are available this month.
-                    </p>
-                    <div class="d-flex justify-content-center gap-2">
-                        <a asp-action="Calendar" asp-route-month="@prevMonth.Month" asp-route-year="@prevMonth.Year"
-                           class="btn btn-outline-primary" style="border-radius: 20px;">
-                            <i class="fas fa-chevron-left me-1"></i>Previous Month
-                        </a>
-                        <a asp-action="Calendar" asp-route-month="@nextMonth.Month" asp-route-year="@nextMonth.Year"
-                           class="btn btn-outline-primary" style="border-radius: 20px;">
-                            Next Month<i class="fas fa-chevron-right ms-1"></i>
-                        </a>
-                    </div>
-                </div>
-            }
-        </div>
-
-        <!-- ===== LEGEND ===== -->
-        <div class="legend-section">
-            <div class="d-flex flex-wrap gap-4 justify-content-center">
-                <div class="legend-item">
-                    <span class="legend-dot" style="background: linear-gradient(135deg, #d4edda, #c3e6cb);"></span>
-                    <span class="legend-label"><strong>CL, SL, EL...</strong> = Approved Leave</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background: linear-gradient(135deg, #fff3cd, #ffeaa7);"></span>
-                    <span class="legend-label">Pending Approval</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background: linear-gradient(135deg, #cce5ff, #b8daff);"></span>
-                    <span class="legend-label"><strong>H</strong> = Holiday</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="background: #f1f3f5; border: 1px solid #dee2e6;"></span>
-                    <span class="legend-label">Weekend</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot" style="border: 2.5px solid #0d6efd; background: transparent;"></span>
-                    <span class="legend-label">Today</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-dot d-flex align-items-center justify-content-center"
-                          style="background: linear-gradient(135deg, #d4edda, #c3e6cb); font-size: 0.55rem; font-weight: 700; color: #155724;">
-                        ½
-                    </span>
-                    <span class="legend-label">Half Day</span>
-                </div>
-            </div>
-
-            <!-- Leave Type Code Reference -->
-            <div class="text-center mt-3 pt-2 border-top">
-                <small class="text-muted">
-                    <strong>Leave Codes:</strong>
-                    CL = Casual Leave •
-                    SL = Sick Leave •
-                    EL = Earned Leave •
-                    ML = Maternity •
-                    PL = Paternity •
-                    CO = Compensatory Off •
-                    LWP = Leave Without Pay
-                </small>
-            </div>
-        </div>
+    <div class="bg-white rounded-pill shadow-sm px-4 py-3 mt-4 d-flex justify-content-center gap-4 flex-wrap no-print">
+        <div class="d-flex align-items-center gap-2"><span class="badge bg-success bg-opacity-25 text-success p-2">CL</span> <small class="text-muted fw-bold">Approved</small></div>
+        <div class="d-flex align-items-center gap-2"><span class="badge bg-warning bg-opacity-25 text-warning p-2">SL</span> <small class="text-muted fw-bold">Pending</small></div>
+        <div class="d-flex align-items-center gap-2"><span class="badge bg-primary bg-opacity-25 text-primary p-2">H</span> <small class="text-muted fw-bold">Holiday</small></div>
+        <div class="d-flex align-items-center gap-2"><span class="badge bg-light text-secondary border p-2">½</span> <small class="text-muted fw-bold">Half Day</small></div>
     </div>
-
-    <!-- ================================================================ -->
-    <!-- ✅ QUICK NAVIGATION -->
-    <!-- ================================================================ -->
-    <div class="d-flex justify-content-center gap-2 mt-4 mb-3 no-print">
-        <a asp-action="Index" class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">
-            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-        </a>
-        <a asp-action="PendingApprovals" class="btn btn-outline-warning btn-sm" style="border-radius: 20px;">
-            <i class="fas fa-clipboard-check me-1"></i>Pending Approvals
-        </a>
-        <a asp-action="Reports" class="btn btn-outline-success btn-sm" style="border-radius: 20px;">
-            <i class="fas fa-chart-bar me-1"></i>Reports
-        </a>
-        <a asp-action="Holidays" class="btn btn-outline-info btn-sm" style="border-radius: 20px;">
-            <i class="fas fa-calendar me-1"></i>Holidays
-        </a>
-    </div>
-
 </div>
 
 @section Scripts {
     <script>
-        // =============================================
-        // ✅ KEYBOARD NAVIGATION
-        // =============================================
-        document.addEventListener('keydown', function (e) {
-            // Left Arrow → Previous Month
-            if (e.key === 'ArrowLeft' && !e.target.closest('input, select, textarea')) {
-                window.location.href = '@Url.Action("Calendar", new { month = prevMonth.Month, year = prevMonth.Year, departmentId = Model.SelectedDepartmentId })';
-            }
-            // Right Arrow → Next Month
-            if (e.key === 'ArrowRight' && !e.target.closest('input, select, textarea')) {
-                window.location.href = '@Url.Action("Calendar", new { month = nextMonth.Month, year = nextMonth.Year, departmentId = Model.SelectedDepartmentId })';
-            }
-            // 'T' → Go to Today
-            if ((e.key === 't' || e.key === 'T') && !e.target.closest('input, select, textarea')) {
-                window.location.href = '@Url.Action("Calendar", new { month = DateTime.Now.Month, year = DateTime.Now.Year })';
-            }
-        });
+        $(document).ready(function () {
+            initCalendarFeatures();
 
-        // =============================================
-        // ✅ SCROLL TO TODAY COLUMN ON LOAD
-        // =============================================
-        document.addEventListener('DOMContentLoaded', function () {
-            var todayCell = document.querySelector('.type-today');
-            if (todayCell) {
-                todayCell.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            // 1. AJAX Function to fetch new calendar data
+            function fetchCalendarData(url) {
+                const container = $('#fluent-calendar-container');
+                container.addClass('is-loading'); // Show spinner
+
+                // Update the Browser URL so the Back button works naturally
+                window.history.pushState({path: url}, '', url);
+
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    success: function (data) {
+                        // Extract only the #fluent-calendar-container HTML from the response
+                        const newHtml = $(data).find('#fluent-calendar-container').html();
+
+                        // Replace content
+                        container.html(newHtml);
+                        container.removeClass('is-loading');
+
+                        // Rebind events since the DOM was replaced
+                        initCalendarFeatures();
+                    },
+                    error: function () {
+                        alert('Failed to update calendar. Reloading page...');
+                        window.location.href = url; // Fallback to standard navigation on error
+                    }
+                });
             }
 
-            // Animate cells
-            var cells = document.querySelectorAll('.cal-cell');
-            cells.forEach(function (cell, index) {
-                cell.style.opacity = '0';
-                cell.style.transform = 'scale(0.8)';
-                setTimeout(function () {
-                    cell.style.transition = 'all 0.3s ease';
-                    cell.style.opacity = '1';
-                    cell.style.transform = 'scale(1)';
-                }, index * 2);
+            // 2. Initialize all dynamic features
+            function initCalendarFeatures() {
+                // Handle Pagination Arrow Clicks
+                $('.ajax-link').off('click').on('click', function (e) {
+                    e.preventDefault();
+                    var url = $(this).attr('href') || $(this).data('url');
+                    if (url) fetchCalendarData(url);
+                });
+
+                // Handle Department Filter Change
+                $('#departmentFilter').off('change').on('change', function () {
+                    var deptId = $(this).val();
+                    var url = '@Url.Action("Calendar")' + '?month=@Model.SelectedMonth&year=@Model.SelectedYear&departmentId=' + deptId;
+                    fetchCalendarData(url);
+                });
+
+                // Scroll to 'Today' column for better UX
+                var todayCell = document.querySelector('.type-today');
+                if (todayCell) {
+                    todayCell.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+
+                // Custom Hover Tooltips for Mobile & Desktop
+                $('.cal-cell[title]').off('mouseenter mouseleave click').on('mouseenter click', function () {
+                    var title = $(this).attr('title');
+                    if (title && !$('.custom-tooltip').length) {
+                        var tooltip = $('<div class="custom-tooltip shadow-lg"></div>')
+                            .text(title)
+                            .css({
+                                position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                                background: '#2b4162', color: 'white', padding: '8px 16px',
+                                borderRadius: '30px', fontSize: '0.85rem', zIndex: '9999',
+                                opacity: 0, transition: 'opacity 0.2s'
+                            }).appendTo('body');
+
+                        setTimeout(() => tooltip.css('opacity', 1), 10);
+                        setTimeout(() => { tooltip.css('opacity', 0); setTimeout(() => tooltip.remove(), 200); }, 2500);
+                    }
+                });
+            }
+
+            // 3. Handle Browser Back/Forward buttons perfectly
+            window.addEventListener('popstate', function () {
+                window.location.reload(); // The easiest way to handle history navigation cleanly
             });
-        });
 
-        // =============================================
-        // ✅ TOOLTIP ON CLICK (Mobile friendly)
-        // =============================================
-        document.querySelectorAll('.cal-cell[title]').forEach(function (cell) {
-            cell.addEventListener('click', function () {
-                var title = this.getAttribute('title');
-                if (title) {
-                    // Simple mobile-friendly tooltip
-                    var existing = document.querySelector('.mobile-tooltip');
-                    if (existing) existing.remove();
-
-                    var tooltip = document.createElement('div');
-                    tooltip.className = 'mobile-tooltip';
-                    tooltip.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2d3436;color:white;padding:10px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;box-shadow:0 5px 15px rgba(0,0,0,0.3);';
-                    tooltip.textContent = title;
-                    document.body.appendChild(tooltip);
-
-                    setTimeout(function () {
-                        tooltip.style.transition = 'opacity 0.3s';
-                        tooltip.style.opacity = '0';
-                        setTimeout(function () { tooltip.remove(); }, 300);
-                    }, 2000);
+            // 4. Keyboard Navigation (Using AJAX)
+            $(document).on('keydown', function (e) {
+                if (!e.target.closest('input, select, textarea')) {
+                    if (e.key === 'ArrowLeft') {
+                        fetchCalendarData('@Url.Action("Calendar", new { month = prevMonth.Month, year = prevMonth.Year, departmentId = Model.SelectedDepartmentId })');
+                    } else if (e.key === 'ArrowRight') {
+                        fetchCalendarData('@Url.Action("Calendar", new { month = nextMonth.Month, year = nextMonth.Year, departmentId = Model.SelectedDepartmentId })');
+                    } else if (e.key.toLowerCase() === 't') {
+                        fetchCalendarData('@Url.Action("Calendar", new { month = DateTime.Now.Month, year = DateTime.Now.Year })');
+                    }
                 }
             });
         });

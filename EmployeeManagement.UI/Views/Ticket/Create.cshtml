@@ -1,0 +1,193 @@
+﻿@{
+    ViewData["Title"] = "Create Ticket";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <h2>
+                    <i class="bi bi-plus-circle text-primary"></i>
+                    Create New Ticket
+                </h2>
+                <p class="text-muted">Report a bug, request a feature, or create a task</p>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-action="Create" method="post" id="createTicketForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Basic Information -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Basic Information</h5>
+
+                            <!-- Title -->
+                            <div class="mb-3">
+                                <label for="title" class="form-label">
+                                    Title <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="title" name="title"
+                                       required maxlength="200"
+                                       placeholder="Brief description of the issue">
+                                <div class="form-text">Provide a clear, concise title (5-200 characters)</div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    Description <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="description" name="description"
+                                          rows="5" required maxlength="5000"
+                                          placeholder="Detailed description of the ticket"></textarea>
+                                <div class="form-text">Explain the issue in detail (10-5000 characters)</div>
+                            </div>
+
+                            <!-- Type & Priority Row -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="ticketType" class="form-label">
+                                        Type <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="ticketType" name="ticketType" required>
+                                        <option value="">-- Select Type --</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="priority" class="form-label">
+                                        Priority <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select" id="priority" name="priority" required>
+                                        <option value="">-- Select Priority --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Assign & Due Date Row -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="assignedTo" class="form-label">Assign To</label>
+                                    <select class="form-select" id="assignedTo" name="assignedTo">
+                                        <option value="">-- Assign Later --</option>
+                                    </select>
+                                    <div class="form-text">Optional: Assign to a developer now</div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="dueDate" class="form-label">Due Date</label>
+                                    <input type="date" class="form-control" id="dueDate" name="dueDate">
+                                    <div class="form-text">Optional: Set a deadline</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bug Details (Show only if type is Bug) -->
+                        <div id="bugDetails" style="display: none;">
+                            <div class="mb-4">
+                                <h5 class="border-bottom pb-2">Bug Details</h5>
+
+                                <!-- Steps to Reproduce -->
+                                <div class="mb-3">
+                                    <label for="stepsToReproduce" class="form-label">Steps to Reproduce</label>
+                                    <textarea class="form-control" id="stepsToReproduce" name="stepsToReproduce"
+                                              rows="4" placeholder="1. Go to...&#10;2. Click on...&#10;3. See error"></textarea>
+                                </div>
+
+                                <!-- Expected vs Actual -->
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="expectedResult" class="form-label">Expected Result</label>
+                                        <textarea class="form-control" id="expectedResult" name="expectedResult"
+                                                  rows="3" placeholder="What should happen?"></textarea>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="actualResult" class="form-label">Actual Result</label>
+                                        <textarea class="form-control" id="actualResult" name="actualResult"
+                                                  rows="3" placeholder="What actually happened?"></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Environment -->
+                                <div class="mb-3">
+                                    <label for="environment" class="form-label">Environment</label>
+                                    <select class="form-select" id="environment" name="environment">
+                                        <option value="">-- Select Environment --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="@Url.Action("MyTickets")" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Create Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let dropdownData = @Html.Raw(ViewBag.DropdownData ?? "null");
+
+        if (dropdownData && dropdownData.success) {
+            populateDropdowns(dropdownData.data);
+        }
+
+        function populateDropdowns(data) {
+            // Populate Ticket Types
+            const typeSelect = document.getElementById('ticketType');
+            data.ticketTypes.forEach(type => {
+                const option = new Option(type, type);
+                typeSelect.add(option);
+            });
+
+            // Populate Priorities
+            const prioritySelect = document.getElementById('priority');
+            data.priorities.forEach(priority => {
+                const option = new Option(priority, priority);
+                prioritySelect.add(option);
+            });
+
+            // Populate Developers
+            const assignedToSelect = document.getElementById('assignedTo');
+            data.developers.forEach(dev => {
+                const option = new Option(`${dev.fullName} (${dev.role})`, dev.userId);
+                assignedToSelect.add(option);
+            });
+
+            // Populate Environments
+            const envSelect = document.getElementById('environment');
+            data.environments.forEach(env => {
+                const option = new Option(env, env);
+                envSelect.add(option);
+            });
+        }
+
+        // Show/Hide Bug Details based on Ticket Type
+        document.getElementById('ticketType').addEventListener('change', function() {
+            const bugDetails = document.getElementById('bugDetails');
+            if (this.value === 'Bug') {
+                bugDetails.style.display = 'block';
+            } else {
+                bugDetails.style.display = 'none';
+            }
+        });
+
+        // Set minimum date to today for due date
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dueDate').setAttribute('min', today);
+    </script>
+}

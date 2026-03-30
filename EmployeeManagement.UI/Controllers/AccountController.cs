@@ -262,7 +262,7 @@ namespace EmployeeManagement.UI.Controllers
             }
 
             if (roles.Contains("Admin"))
-                return RedirectToAction("Index", "Dashboard");
+                return RedirectToAction("Index", "Employee");
             else if (roles.Contains("HR") || roles.Contains("Employee"))
                 return RedirectToAction("Index", "Employee");
             else

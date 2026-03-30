@@ -35,10 +35,7 @@ namespace EmployeeManagement.UI.Controllers
         /// Employee Report
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> EmployeeReport(
-            int? departmentId = null,
-            bool? isActive = null,
-            string? searchTerm = null)
+        public async Task<IActionResult> EmployeeReport( int? departmentId = null, bool? isActive = null, string? searchTerm = null)
         {
             try
             {

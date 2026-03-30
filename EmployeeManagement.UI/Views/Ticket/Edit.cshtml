@@ -1,0 +1,225 @@
+﻿@{
+    ViewData["Title"] = "Edit Ticket";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <h2>
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    Edit Ticket
+                </h2>
+                <p class="text-muted">Update ticket information</p>
+            </div>
+
+            <!-- Form Card -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="editFormContainer">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let ticketData = @Html.Raw(ViewBag.TicketData ?? "null");
+        let dropdownData = @Html.Raw(ViewBag.DropdownData ?? "null");
+
+        if (ticketData && ticketData.success && dropdownData && dropdownData.success) {
+            renderEditForm(ticketData.data, dropdownData.data);
+        } else {
+            showError();
+        }
+
+        function renderEditForm(ticket, dropdowns) {
+            const formHtml = `
+                <form asp-action="Edit" method="post" id="editTicketForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="ticketId" value="${ticket.ticketId}">
+
+                    <!-- Ticket Number (Read-only) -->
+                    <div class="mb-3">
+                        <label class="form-label">Ticket Number</label>
+                        <input type="text" class="form-control" value="${ticket.ticketNumber}" readonly>
+                    </div>
+
+                    <!-- Basic Information -->
+                    <div class="mb-4">
+                        <h5 class="border-bottom pb-2">Basic Information</h5>
+
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label">
+                                Title <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title"
+                                   value="${escapeHtml(ticket.title)}"
+                                   required maxlength="200"
+                                   placeholder="Brief description of the issue">
+                            <div class="form-text">Provide a clear, concise title (5-200 characters)</div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                Description <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" id="description" name="description"
+                                      rows="5" required maxlength="5000"
+                                      placeholder="Detailed description of the ticket">${escapeHtml(ticket.description)}</textarea>
+                            <div class="form-text">Explain the issue in detail (10-5000 characters)</div>
+                        </div>
+
+                        <!-- Type & Priority Row -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="ticketType" class="form-label">
+                                    Type <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="ticketType" name="ticketType" required>
+                                    <option value="">-- Select Type --</option>
+                                    ${dropdowns.ticketTypes.map(type =>
+                                        `<option value="${type}" ${ticket.ticketType === type ? 'selected' : ''}>${type}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="priority" class="form-label">
+                                    Priority <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="priority" name="priority" required>
+                                    <option value="">-- Select Priority --</option>
+                                    ${dropdowns.priorities.map(priority =>
+                                        `<option value="${priority}" ${ticket.priority === priority ? 'selected' : ''}>${priority}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Due Date -->
+                        <div class="mb-3">
+                            <label for="dueDate" class="form-label">Due Date</label>
+                            <input type="date" class="form-control" id="dueDate" name="dueDate"
+                                   value="${ticket.dueDate ? ticket.dueDate.split('T')[0] : ''}">
+                            <div class="form-text">Optional: Set a deadline</div>
+                        </div>
+                    </div>
+
+                    <!-- Bug Details (Show only if type is Bug) -->
+                    <div id="bugDetails" style="display: ${ticket.ticketType === 'Bug' ? 'block' : 'none'};">
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Bug Details</h5>
+
+                            <!-- Steps to Reproduce -->
+                            <div class="mb-3">
+                                <label for="stepsToReproduce" class="form-label">Steps to Reproduce</label>
+                                <textarea class="form-control" id="stepsToReproduce" name="stepsToReproduce"
+                                          rows="4" placeholder="1. Go to...&#10;2. Click on...&#10;3. See error">${escapeHtml(ticket.stepsToReproduce || '')}</textarea>
+                            </div>
+
+                            <!-- Expected vs Actual -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="expectedResult" class="form-label">Expected Result</label>
+                                    <textarea class="form-control" id="expectedResult" name="expectedResult"
+                                              rows="3" placeholder="What should happen?">${escapeHtml(ticket.expectedResult || '')}</textarea>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="actualResult" class="form-label">Actual Result</label>
+                                    <textarea class="form-control" id="actualResult" name="actualResult"
+                                              rows="3" placeholder="What actually happened?">${escapeHtml(ticket.actualResult || '')}</textarea>
+                                </div>
+                            </div>
+
+                            <!-- Environment -->
+                            <div class="mb-3">
+                                <label for="environment" class="form-label">Environment</label>
+                                <select class="form-select" id="environment" name="environment">
+                                    <option value="">-- Select Environment --</option>
+                                    ${dropdowns.environments.map(env =>
+                                        `<option value="${env}" ${ticket.environment === env ? 'selected' : ''}>${env}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Status Display -->
+                    <div class="alert alert-info mb-3">
+                        <strong>Current Status:</strong>
+                        <span class="badge ${getStatusBadge(ticket.status)}">${ticket.status}</span>
+                        ${ticket.assignedToName ? `
+                            <br><strong>Assigned To:</strong> ${ticket.assignedToName}
+                        ` : ''}
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="@Url.Action("Details")/${ticket.ticketId}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Update Ticket
+                        </button>
+                    </div>
+                </form>
+            `;
+
+            document.getElementById('editFormContainer').innerHTML = formHtml;
+            setupFormHandlers();
+        }
+
+        function setupFormHandlers() {
+            // Show/Hide Bug Details based on Ticket Type
+            document.getElementById('ticketType').addEventListener('change', function() {
+                const bugDetails = document.getElementById('bugDetails');
+                if (this.value === 'Bug') {
+                    bugDetails.style.display = 'block';
+                } else {
+                    bugDetails.style.display = 'none';
+                }
+            });
+
+            // Set minimum date to today for due date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dueDate').setAttribute('min', today);
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'New': 'bg-primary',
+                'Assigned': 'bg-info',
+                'In Progress': 'bg-warning text-dark',
+                'Blocked': 'bg-danger',
+                'Resolved': 'bg-success',
+                'Closed': 'bg-secondary',
+                'Reopened': 'bg-warning'
+            };
+            return badges[status] || 'bg-secondary';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError() {
+            document.getElementById('editFormContainer').innerHTML =
+                '<div class="alert alert-danger">Failed to load ticket data. Please try again.</div>';
+        }
+    </script>
+}

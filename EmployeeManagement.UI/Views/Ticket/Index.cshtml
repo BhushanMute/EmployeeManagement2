@@ -1,0 +1,388 @@
+﻿@{
+    ViewData["Title"] = "Ticket Dashboard";
+    var userRole = ViewBag.UserRole as string ?? "Employee";
+    var userName = ViewBag.UserName as string ?? "User";
+}
+
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-1">
+                <i class="bi bi-speedometer2 text-primary"></i>
+                Ticket Management Dashboard
+            </h2>
+            <p class="text-muted">Welcome back, <strong>@userName</strong> (@userRole)</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="@Url.Action("Create", "Ticket")" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create New Ticket
+            </a>
+            <a href="@Url.Action("MyTickets", "Ticket")" class="btn btn-outline-primary">
+                <i class="bi bi-list-check"></i> My Tickets
+            </a>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div id="dashboardStats" class="row mb-4">
+        <!-- Will be populated by JavaScript -->
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <!-- Priority Distribution -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Priority Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="priorityChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Type Distribution -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Type Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="typeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Recent Activities
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="recentActivities">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Parse data from ViewBag safely
+            let dashboardData = @Html.Raw(ViewBag.DashboardData ?? "null");
+
+            if (dashboardData && dashboardData.success && dashboardData.data) {
+                const data = dashboardData.data;
+
+                // Render UI Components
+                renderStatsCards(data.stats);
+                renderPriorityChart(data.priorityDistribution);
+                renderTypeChart(data.typeDistribution);
+                renderRecentActivities(data.recentActivities);
+            } else {
+                showError();
+            }
+        });
+
+        function renderStatsCards(stats) {
+            if (!stats) return;
+
+            const statsHtml = `
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Total Tickets</h6>
+                                    <h2 class="mb-0 fw-bold text-dark">${stats.totalTickets || 0}</h2>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-ticket-perforated fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-door-open me-1"></i>Open: ${(stats.totalTickets || 0) - (stats.closedTickets || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">In Progress</h6>
+                                    <h2 class="mb-0 fw-bold text-dark">${stats.inProgressTickets || 0}</h2>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-hourglass-split fs-4 text-dark"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-activity me-1"></i>Active Work</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Critical</h6>
+                                    <h2 class="mb-0 fw-bold text-danger">${stats.criticalTickets || 0}</h2>
+                                </div>
+                                <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-exclamation-triangle fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-clock-history me-1"></i>Overdue: ${stats.overdueTickets || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Resolved</h6>
+                                    <h2 class="mb-0 fw-bold text-success">${stats.resolvedTickets || 0}</h2>
+                                </div>
+                                <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-check-circle fs-4"></i>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-lock me-1"></i>Closed: ${stats.closedTickets || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const container = document.getElementById('dashboardStats');
+            if(container) container.innerHTML = statsHtml;
+        }
+
+        // Keep track of chart instances to destroy them before re-rendering
+        let priorityChartInstance = null;
+        let typeChartInstance = null;
+
+        function renderPriorityChart(priorityData) {
+            const ctx = document.getElementById('priorityChart');
+            if (!ctx) return;
+
+            const safeData = priorityData || [];
+            const labels = safeData.map(p => p.priority);
+            const data = safeData.map(p => p.count);
+            const colors = labels.map(label => {
+                switch(label) {
+                    case 'Critical': return '#ef4444'; // Red
+                    case 'High': return '#f59e0b';     // Orange/Yellow
+                    case 'Medium': return '#3b82f6';   // Blue
+                    case 'Low': return '#9ca3af';      // Gray
+                    default: return '#6c757d';
+                }
+            });
+
+            // Destroy existing chart if it exists
+            if (priorityChartInstance) {
+                priorityChartInstance.destroy();
+            }
+
+            priorityChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { padding: 10, cornerRadius: 8 }
+                    },
+                    cutout: '70%' // Makes the doughnut thinner and more modern
+                }
+            });
+        }
+
+        function renderTypeChart(typeData) {
+            const ctx = document.getElementById('typeChart');
+            if (!ctx) return;
+
+            const safeData = typeData || [];
+            const labels = safeData.map(t => t.ticketType);
+            const data = safeData.map(t => t.count);
+
+            // Destroy existing chart if it exists
+            if (typeChartInstance) {
+                typeChartInstance.destroy();
+            }
+
+            typeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tickets',
+                        data: data,
+                        backgroundColor: '#6366f1', // Indigo
+                        borderRadius: 6, // Rounded bar corners
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [4, 4], display: true },
+                            ticks: { stepSize: 1 }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRecentActivities(activities) {
+            const container = document.getElementById('recentActivities');
+            if (!container) return;
+
+            if (!activities || activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
+                        <p class="text-muted mt-2">No recent activities found</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0">';
+            html += '<thead class="table-light"><tr>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Ticket ID</th>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Title</th>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Status</th>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Priority</th>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Assigned To</th>';
+            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Last Updated</th>';
+            html += '</tr></thead><tbody class="border-top-0">';
+
+            activities.forEach(activity => {
+                html += `<tr onclick="window.location='/Ticket/Details/${activity.ticketId}'" style="cursor:pointer" class="transition-all">`;
+                html += `<td><span class="fw-semibold text-muted">#${activity.ticketNumber}</span></td>`;
+                html += `<td class="fw-bold text-dark">${activity.title}</td>`;
+                html += `<td><span class="badge rounded-pill px-3 ${getStatusBadge(activity.status)}">${activity.status}</span></td>`;
+                html += `<td><span class="badge rounded-pill px-3 ${getPriorityBadge(activity.priority)}">${activity.priority}</span></td>`;
+
+                // Add tiny avatar UI for AssignedTo
+                html += `<td>
+                            <div class="d-flex align-items-center">
+                                ${activity.assignedToName
+                                    ? `<div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">${activity.assignedToName.charAt(0)}</div> <span class="text-dark small fw-medium">${activity.assignedToName}</span>`
+                                    : '<span class="text-muted small fst-italic">Unassigned</span>'}
+                            </div>
+                        </td>`;
+                html += `<td class="text-muted small">${activity.timeAgo}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'New': 'bg-info text-dark',
+                'Assigned': 'bg-primary',
+                'In Progress': 'bg-warning text-dark',
+                'Blocked': 'bg-danger',
+                'Resolved': 'bg-success',
+                'Closed': 'bg-secondary',
+                'Reopened': 'bg-warning text-dark'
+            };
+            return badges[status] || 'bg-light text-dark border';
+        }
+
+        function getPriorityBadge(priority) {
+            const badges = {
+                'Critical': 'bg-danger',
+                'High': 'bg-orange text-white',
+                'Medium': 'bg-primary bg-opacity-75',
+                'Low': 'bg-secondary bg-opacity-75'
+            };
+
+            // Inline style fallback for custom orange if Bootstrap class isn't defined
+            if(priority === 'High') return 'bg-warning text-dark';
+
+            return badges[priority] || 'bg-secondary';
+        }
+
+        function showError() {
+            const container = document.getElementById('dashboardStats');
+            if (container) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger shadow-sm rounded-4 d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                            <div>
+                                <h6 class="alert-heading mb-1 fw-bold">Dashboard Error</h6>
+                                <p class="mb-0 small">Failed to load dashboard data. Please try refreshing the page.</p>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+    </script>
+
+    <style>
+        /* Add slight hover effect for table rows */
+        .table-hover tbody tr.transition-all {
+            transition: all 0.2s ease-in-out;
+        }
+
+            .table-hover tbody tr.transition-all:hover {
+                background-color: #f8f9fa;
+                transform: translateY(-1px);
+            }
+    </style>
+}

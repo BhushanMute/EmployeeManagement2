@@ -2,13 +2,12 @@
 using EmployeeManagement.API.Common;
 using EmployeeManagement.API.Models;
 using EmployeeManagement.API.Repositories;
-using EmployeeManagement.API.Services;
+using EmployeeManagement.API.Repositories.Ticket;
 using EmployeeManagement.API.services;
-
+using EmployeeManagement.API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -61,6 +60,7 @@ builder.Services.AddScoped<IErrorLogService, ErrorLogService>();
 builder.Services.AddScoped<ILeaveRepository, LeaveRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IUserManagementRepository, UserManagementRepository>();
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
 
 
 builder.Services.Configure<EmailSettings>(

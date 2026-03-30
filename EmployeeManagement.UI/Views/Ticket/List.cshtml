@@ -1,0 +1,388 @@
+﻿@{
+    ViewData["Title"] = "All Tickets";
+    var status = ViewBag.Status as string;
+    var priority = ViewBag.Priority as string;
+    var ticketType = ViewBag.TicketType as string;
+    var searchTerm = ViewBag.SearchTerm as string;
+    var pageNumber = ViewBag.PageNumber as int? ?? 1;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-1">
+                <i class="bi bi-table text-primary"></i>
+                All Tickets
+            </h2>
+            <p class="text-muted">Browse and filter all tickets in the system</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="@Url.Action("Create", "Ticket")" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Ticket
+            </a>
+            <a href="@Url.Action("Index", "Ticket")" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-funnel"></i> Filters
+                <button class="btn btn-sm btn-link float-end" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+            </h5>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <form method="get" asp-action="List" id="filterForm">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="searchTerm" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchTerm" name="searchTerm"
+                                   value="@searchTerm" placeholder="Ticket #, Title...">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="New" selected="@(status == "New")">New</option>
+                                <option value="Assigned" selected="@(status == "Assigned")">Assigned</option>
+                                <option value="In Progress" selected="@(status == "In Progress")">In Progress</option>
+                                <option value="Blocked" selected="@(status == "Blocked")">Blocked</option>
+                                <option value="Resolved" selected="@(status == "Resolved")">Resolved</option>
+                                <option value="Closed" selected="@(status == "Closed")">Closed</option>
+                                <option value="Reopened" selected="@(status == "Reopened")">Reopened</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="priority" class="form-label">Priority</label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="">All Priorities</option>
+                                <option value="Critical" selected="@(priority == "Critical")">Critical</option>
+                                <option value="High" selected="@(priority == "High")">High</option>
+                                <option value="Medium" selected="@(priority == "Medium")">Medium</option>
+                                <option value="Low" selected="@(priority == "Low")">Low</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="ticketType" class="form-label">Type</label>
+                            <select class="form-select" id="ticketType" name="ticketType">
+                                <option value="">All Types</option>
+                                <option value="Bug" selected="@(ticketType == "Bug")">Bug</option>
+                                <option value="Feature Request" selected="@(ticketType == "Feature Request")">Feature Request</option>
+                                <option value="Improvement" selected="@(ticketType == "Improvement")">Improvement</option>
+                                <option value="Task" selected="@(ticketType == "Task")">Task</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Apply Filters
+                            </button>
+                            <a href="@Url.Action("List")" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Clear Filters
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(status) || !string.IsNullOrEmpty(priority) ||
+        !string.IsNullOrEmpty(ticketType) || !string.IsNullOrEmpty(searchTerm))
+    {
+        <div class="mb-3">
+            <strong>Active Filters:</strong>
+            @if (!string.IsNullOrEmpty(searchTerm))
+            {
+                <span class="badge bg-secondary">
+                    Search: @searchTerm
+                    <a href="@Url.Action("List", new { status, priority, ticketType })"
+                       class="text-white ms-1 text-decoration-none">×</a>
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(status))
+            {
+                <span class="badge bg-info text-dark">
+                    Status: @status
+                    <a href="@Url.Action("List", new { searchTerm, priority, ticketType })"
+                       class="text-dark ms-1 text-decoration-none">×</a>
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(priority))
+            {
+                <span class="badge bg-warning text-dark">
+                    Priority: @priority
+                    <a href="@Url.Action("List", new { searchTerm, status, ticketType })"
+                       class="text-dark ms-1 text-decoration-none">×</a>
+                </span>
+            }
+            @if (!string.IsNullOrEmpty(ticketType))
+            {
+                <span class="badge bg-primary">
+                    Type: @ticketType
+                    <a href="@Url.Action("List", new { searchTerm, status, priority })"
+                       class="text-white ms-1 text-decoration-none">×</a>
+                </span>
+            }
+        </div>
+    }
+
+    <div id="ticketsList">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="pagination" class="mt-3"></div>
+</div>
+
+@section Scripts {
+    <script>
+        let ticketsData = @Html.Raw(ViewBag.TicketsData ?? "null");
+        let currentPage = @pageNumber;
+
+        if (ticketsData && ticketsData.success) {
+            renderTickets(ticketsData.data);
+            renderPagination(ticketsData.data);
+        } else {
+            showError();
+        }
+
+        function renderTickets(data) {
+            const tickets = data.tickets;
+
+            if (!tickets || tickets.length === 0) {
+                document.getElementById('ticketsList').innerHTML = `
+                    <div class="card shadow-sm border-0 rounded-4">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted opacity-50"></i>
+                            <h4 class="mt-3 fw-bold">No tickets found</h4>
+                            <p class="text-muted">Try adjusting your filters or create a new ticket</p>
+                            <a href="@Url.Action("Create")" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-circle me-1"></i> Create Ticket
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="card shadow-sm border-0 rounded-4 overflow-hidden">';
+            html += '<div class="card-body p-0">';
+
+            // Summary Stats
+            html += `
+                <div class="p-4 bg-light border-bottom">
+                    <div class="row text-center g-3">
+                        <div class="col-md-3">
+                            <h4 class="mb-0 fw-bold">${data.totalRecords}</h4>
+                            <small class="text-muted text-uppercase fw-semibold">Total Tickets</small>
+                        </div>
+                        <div class="col-md-3 border-start border-md-0">
+                            <h4 class="mb-0 fw-bold">${tickets.filter(t => t.status !== 'Closed').length}</h4>
+                            <small class="text-muted text-uppercase fw-semibold">Open</small>
+                        </div>
+                        <div class="col-md-3 border-start border-md-0">
+                            <h4 class="mb-0 fw-bold">${tickets.filter(t => t.priority === 'Critical' || t.priority === 'High').length}</h4>
+                            <small class="text-muted text-uppercase fw-semibold">High Priority</small>
+                        </div>
+                        <div class="col-md-3 border-start border-md-0">
+                            <h4 class="mb-0 fw-bold text-danger">${tickets.filter(t => t.isOverdue).length}</h4>
+                            <small class="text-danger text-uppercase fw-semibold">Overdue</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Table
+            html += '<div class="table-responsive">';
+            html += '<table class="table table-hover align-middle mb-0">';
+            html += '<thead class="table-light">';
+            html += '<tr>';
+            html += '<th class="ps-4" style="width: 120px">Ticket #</th>';
+            html += '<th>Title</th>';
+            html += '<th style="width: 120px">Type</th>';
+            html += '<th style="width: 120px">Priority</th>';
+            html += '<th style="width: 120px">Status</th>';
+            html += '<th style="width: 150px">Created By</th>';
+            html += '<th style="width: 150px">Assigned To</th>';
+            html += '<th style="width: 100px">Created</th>';
+            html += '<th class="text-center" style="width: 60px" title="Comments"><i class="bi bi-chat-dots"></i></th>';
+            html += '<th class="text-center" style="width: 60px" title="Attachments"><i class="bi bi-paperclip"></i></th>';
+            html += '<th class="text-end pe-4" style="width: 80px">Actions</th>';
+            html += '</tr>';
+            html += '</thead>';
+            html += '<tbody class="border-top-0">';
+
+            tickets.forEach(ticket => {
+                const isOverdue = ticket.isOverdue;
+                const rowClass = isOverdue ? 'table-danger table-opacity-10' : '';
+
+                html += `<tr class="${rowClass}">`;
+                html += `<td class="ps-4">
+                    <span class="fw-semibold text-muted">#${ticket.ticketNumber}</span>
+                    ${isOverdue ? '<i class="bi bi-exclamation-circle-fill text-danger ms-1" title="Overdue"></i>' : ''}
+                </td>`;
+                html += `<td>
+                    <a href="/Ticket/Details/${ticket.ticketId}" class="text-decoration-none fw-bold text-dark">
+                        ${truncate(ticket.title, 50)}
+                    </a>
+                    <br>
+                    <small class="text-muted">${truncate(ticket.description, 60)}</small>
+                </td>`;
+                html += `<td><span class="badge rounded-pill ${getTypeBadge(ticket.ticketType)} px-3">${ticket.ticketType}</span></td>`;
+                html += `<td><span class="badge rounded-pill ${getPriorityBadge(ticket.priority)} px-3">${ticket.priority}</span></td>`;
+                html += `<td><span class="badge rounded-pill ${getStatusBadge(ticket.status)} px-3">${ticket.status}</span></td>`;
+                html += `<td><small class="fw-medium">${ticket.createdByName || 'Unknown'}</small></td>`;
+                html += `<td><small class="fw-medium">${ticket.assignedToName || '<span class="text-muted fst-italic">Unassigned</span>'}</small></td>`;
+                html += `<td><small class="text-muted">${formatDate(ticket.createdDate)}</small></td>`;
+                html += `<td class="text-center">
+                    ${ticket.commentCount > 0 ? `<span class="badge bg-secondary bg-opacity-25 text-dark rounded-pill">${ticket.commentCount}</span>` : '<span class="text-muted opacity-25">-</span>'}
+                </td>`;
+                html += `<td class="text-center">
+                    ${ticket.attachmentCount > 0 ? `<span class="badge bg-secondary bg-opacity-25 text-dark rounded-pill">${ticket.attachmentCount}</span>` : '<span class="text-muted opacity-25">-</span>'}
+                </td>`;
+                html += `<td class="text-end pe-4">
+                    <a href="/Ticket/Details/${ticket.ticketId}" class="btn btn-sm btn-light border text-primary shadow-sm" title="View Details">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div></div></div>';
+            document.getElementById('ticketsList').innerHTML = html;
+        }
+
+        function renderPagination(data) {
+            if (data.totalPages <= 1) {
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            const currentPage = data.pageNumber;
+            const totalPages = data.totalPages;
+
+            let html = '<nav aria-label="Ticket pagination"><ul class="pagination justify-content-center shadow-sm d-inline-flex mx-auto rounded-pill overflow-hidden">';
+
+            // Previous button
+            html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link border-0 px-3 fw-semibold text-secondary" href="${getPageUrl(currentPage - 1)}"><i class="bi bi-chevron-left small"></i></a>
+            </li>`;
+
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link border-0 fw-semibold text-secondary" href="${getPageUrl(1)}">1</a></li>`;
+                if (startPage > 2) {
+                    html += `<li class="page-item disabled"><span class="page-link border-0 text-secondary">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link border-0 fw-bold" href="${getPageUrl(i)}">${i}</a>
+                </li>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<li class="page-item disabled"><span class="page-link border-0 text-secondary">...</span></li>`;
+                }
+                html += `<li class="page-item"><a class="page-link border-0 fw-semibold text-secondary" href="${getPageUrl(totalPages)}">${totalPages}</a></li>`;
+            }
+
+            // Next button
+            html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link border-0 px-3 fw-semibold text-secondary" href="${getPageUrl(currentPage + 1)}"><i class="bi bi-chevron-right small"></i></a>
+            </li>`;
+
+            html += '</ul></nav>';
+
+            html += `<p class="text-center text-muted small mt-2">
+                Showing <span class="fw-bold text-dark">${(currentPage - 1) * data.pageSize + 1}</span> to <span class="fw-bold text-dark">${Math.min(currentPage * data.pageSize, data.totalRecords)}</span>
+                of <span class="fw-bold text-dark">${data.totalRecords}</span> tickets
+            </p>`;
+
+            document.getElementById('pagination').innerHTML = html;
+        }
+
+        function getPageUrl(pageNum) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('pageNumber', pageNum);
+            return '?' + params.toString();
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'New': 'bg-info text-dark',
+                'Assigned': 'bg-primary',
+                'In Progress': 'bg-warning text-dark',
+                'Blocked': 'bg-danger',
+                'Resolved': 'bg-success',
+                'Closed': 'bg-secondary',
+                'Reopened': 'bg-warning text-dark'
+            };
+            return badges[status] || 'bg-light text-dark';
+        }
+
+        function getPriorityBadge(priority) {
+            const badges = {
+                'Critical': 'bg-danger',
+                'High': 'bg-orange text-white', // If you have a custom orange class, else it falls back
+                'Medium': 'bg-primary bg-opacity-75',
+                'Low': 'bg-secondary bg-opacity-75'
+            };
+            return badges[priority] || 'bg-secondary';
+        }
+
+        function getTypeBadge(type) {
+            const badges = {
+                'Bug': 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25',
+                'Feature Request': 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25',
+                'Improvement': 'bg-info bg-opacity-10 text-info border border-info border-opacity-25',
+                'Task': 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25'
+            };
+            return badges[type] || 'bg-light text-dark';
+        }
+
+        function formatDate(dateString) {
+            if(!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function truncate(str, length) {
+            if (!str) return '';
+            return str.length > length ? str.substring(0, length) + '...' : str;
+        }
+
+        function showError() {
+            document.getElementById('ticketsList').innerHTML =
+                '<div class="alert alert-danger shadow-sm rounded-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Failed to load tickets. Please try refreshing the page.</div>';
+        }
+    </script>
+
+    <style>
+        .table-responsive {
+            max-height: none;
+        }
+
+        /* Ensure custom orange works if Bootstrap doesn't have it natively */
+        .bg-orange {
+            background-color: #fd7e14 !important;
+        }
+    </style>
+}

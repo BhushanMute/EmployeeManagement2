@@ -1,0 +1,202 @@
+﻿@{
+    ViewData["Title"] = "My Tickets";
+    var userRole = ViewBag.UserRole as string ?? "Employee";
+    var selectedStatus = ViewBag.SelectedStatus as string;
+}
+
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-1">
+                <i class="bi bi-list-check text-primary"></i>
+                My Tickets
+            </h2>
+            <p class="text-muted">
+                @if (userRole == "QA")
+                {
+                    <span>Tickets created by you</span>
+                }
+                else if (userRole == "Developer")
+                {
+                    <span>Tickets assigned to you</span>
+                }
+                else
+                {
+                    <span>All tickets</span>
+                }
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="@Url.Action("Create", "Ticket")" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Create Ticket
+            </a>
+            <a href="@Url.Action("Index", "Ticket")" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")"
+               href="@Url.Action("MyTickets")">
+                All
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(selectedStatus == "New" ? "active" : "")"
+               href="@Url.Action("MyTickets", new { status = "New" })">
+                New
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(selectedStatus == "Assigned" ? "active" : "")"
+               href="@Url.Action("MyTickets", new { status = "Assigned" })">
+                Assigned
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(selectedStatus == "In Progress" ? "active" : "")"
+               href="@Url.Action("MyTickets", new { status = "In Progress" })">
+                In Progress
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(selectedStatus == "Resolved" ? "active" : "")"
+               href="@Url.Action("MyTickets", new { status = "Resolved" })">
+                Resolved
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(selectedStatus == "Closed" ? "active" : "")"
+               href="@Url.Action("MyTickets", new { status = "Closed" })">
+                Closed
+            </a>
+        </li>
+    </ul>
+
+    <!-- Tickets List -->
+    <div id="ticketsList">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let ticketsData = @Html.Raw(ViewBag.TicketsData ?? "null");
+
+        if (ticketsData && ticketsData.success) {
+            renderTickets(ticketsData.data);
+        } else {
+            showError();
+        }
+
+        function renderTickets(tickets) {
+            if (!tickets || tickets.length === 0) {
+                document.getElementById('ticketsList').innerHTML = `
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center py-5">
+                            <i class="bi bi-inbox display-1 text-muted"></i>
+                            <h4 class="mt-3">No tickets found</h4>
+                            <p class="text-muted">Start by creating a new ticket</p>
+                            <a href="@Url.Action("Create")" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Create Ticket
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="card shadow-sm">';
+            html += '<div class="card-body p-0">';
+            html += '<div class="table-responsive">';
+            html += '<table class="table table-hover mb-0">';
+            html += '<thead class="table-light">';
+            html += '<tr>';
+            html += '<th style="width: 120px">Ticket #</th>';
+            html += '<th>Title</th>';
+            html += '<th style="width: 100px">Type</th>';
+            html += '<th style="width: 100px">Priority</th>';
+            html += '<th style="width: 120px">Status</th>';
+            html += '<th style="width: 150px">Assigned To</th>';
+            html += '<th style="width: 100px">Created</th>';
+            html += '<th style="width: 80px">Actions</th>';
+            html += '</tr>';
+            html += '</thead>';
+            html += '<tbody>';
+
+            tickets.forEach(ticket => {
+                const isOverdue = ticket.isOverdue;
+                const rowClass = isOverdue ? 'table-danger' : '';
+
+                html += `<tr class="${rowClass}">`;
+                html += `<td><strong>${ticket.ticketNumber}</strong>${isOverdue ? ' <i class="bi bi-exclamation-triangle-fill text-danger" title="Overdue"></i>' : ''}</td>`;
+                html += `<td><a href="/Ticket/Details/${ticket.ticketId}" class="text-decoration-none">${ticket.title}</a></td>`;
+                html += `<td><span class="badge ${getTypeBadge(ticket.ticketType)}">${ticket.ticketType}</span></td>`;
+                html += `<td><span class="badge ${getPriorityBadge(ticket.priority)}">${ticket.priority}</span></td>`;
+                html += `<td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status}</span></td>`;
+                html += `<td>${ticket.assignedToName || '<span class="text-muted">Unassigned</span>'}</td>`;
+                html += `<td><small>${formatDate(ticket.createdDate)}</small></td>`;
+                html += `<td>
+                    <a href="/Ticket/Details/${ticket.ticketId}" class="btn btn-sm btn-outline-primary" title="View">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div></div></div>';
+            document.getElementById('ticketsList').innerHTML = html;
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'New': 'bg-primary',
+                'Assigned': 'bg-info',
+                'In Progress': 'bg-warning text-dark',
+                'Blocked': 'bg-danger',
+                'Resolved': 'bg-success',
+                'Closed': 'bg-secondary',
+                'Reopened': 'bg-warning'
+            };
+            return badges[status] || 'bg-secondary';
+        }
+
+        function getPriorityBadge(priority) {
+            const badges = {
+                'Critical': 'bg-danger',
+                'High': 'bg-warning text-dark',
+                'Medium': 'bg-info',
+                'Low': 'bg-secondary'
+            };
+            return badges[priority] || 'bg-secondary';
+        }
+
+        function getTypeBadge(type) {
+            const badges = {
+                'Bug': 'bg-danger',
+                'Feature Request': 'bg-primary',
+                'Improvement': 'bg-info',
+                'Task': 'bg-secondary'
+            };
+            return badges[type] || 'bg-secondary';
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showError() {
+            document.getElementById('ticketsList').innerHTML =
+                '<div class="alert alert-danger">Failed to load tickets</div>';
+        }
+    </script>
+}
