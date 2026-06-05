@@ -1,0 +1,212 @@
+﻿@model IEnumerable<EmployeeManagement.UI.Models.SalaryStructureResponse>
+@{
+    ViewData["Title"] = "Salary History | वेतन इतिहास";
+    var employeeName = ViewBag.EmployeeName as string ?? "Employee";
+    var employeeCode = ViewBag.EmployeeCode as string ?? "";
+}
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Salary History <small class="text-muted fs-5">| वेतन इतिहास</small></h2>
+            <p class="text-muted mb-0">
+                <strong>@employeeName</strong>
+                @if (!string.IsNullOrEmpty(employeeCode))
+                {
+                    <span class="badge bg-secondary ms-2">@employeeCode</span>
+                }
+            </p>
+        </div>
+        <div>
+            <a asp-action="ViewEmployeeSalary"
+               asp-route-employeeId="@ViewBag.EmployeeId"
+               class="btn btn-info text-white me-2">
+                <i class="fas fa-eye"></i> Current Structure
+            </a>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm bg-light text-center p-3">
+                    <h6 class="text-muted">Total Revisions</h6>
+                    <h3 class="text-primary fw-bold">@Model.Count()</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm bg-light text-center p-3">
+                    <h6 class="text-muted">Current Gross</h6>
+                    <h3 class="text-success fw-bold">
+                        ₹ @(Model.OrderByDescending(m => m.EffectiveDate).FirstOrDefault()?.GrossSalary?.ToString("N2") ?? "N/A")
+                    </h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm bg-light text-center p-3">
+                    <h6 class="text-muted">Current Net</h6>
+                    <h3 class="text-primary fw-bold">
+                        ₹ @(Model.OrderByDescending(m => m.EffectiveDate).FirstOrDefault()?.NetSalary?.ToString("N2") ?? "N/A")
+                    </h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm bg-light text-center p-3">
+                    <h6 class="text-muted">First Effective</h6>
+                    <h3 class="text-secondary fw-bold" style="font-size:1rem;">
+                        @(Model.OrderBy(m => m.EffectiveDate).FirstOrDefault()?.EffectiveDate?.ToString("dd MMM yyyy") ?? "N/A")
+                    </h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold">
+                <i class="fas fa-history"></i> Revision History / सुधारणा इतिहास
+            </div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-bordered mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Template / टेम्पलेट</th>
+                            <th>Effective From</th>
+                            <th>Effective To</th>
+                            <th>Gross (₹)</th>
+                            <th>Deductions (₹)</th>
+                            <th>Net (₹)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int sr = 1;
+                            foreach (var history in Model.OrderByDescending(m => m.EffectiveDate))
+                            {
+                                bool isCurrent = history.EndDate == null;
+                                <tr class="@(isCurrent ? "table-success" : "")">
+                                    <td>@sr</td>
+                                    <td class="fw-bold">@history.TemplateName</td>
+                                    <td>@history.EffectiveDate?.ToString("dd MMM yyyy")</td>
+                                    <td>
+                                        @if (isCurrent)
+                                        {
+                                            <span class="badge bg-success">Present / चालू</span>
+                                        }
+                                        else
+                                        {
+                                            @history.EndDate?.ToString("dd MMM yyyy")
+                                        }
+                                    </td>
+                                    <td class="text-success">@history.GrossSalary?.ToString("N2")</td>
+                                    <td class="text-danger">@history.TotalDeductions?.ToString("N2")</td>
+                                    <td class="fw-bold text-primary">@history.NetSalary?.ToString("N2")</td>
+                                    <td>
+                                        @if (isCurrent)
+                                        {
+                                            <span class="badge bg-success"><i class="fas fa-check"></i> Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Expired</span>
+                                        }
+                                    </td>
+                                </tr>
+                                sr++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Timeline View -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light fw-bold">
+                <i class="fas fa-stream"></i> Salary Timeline / वेतन टाइमलाइन
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    @foreach (var item in Model.OrderByDescending(m => m.EffectiveDate))
+                    {
+                        bool isCurrent = item.EndDate == null;
+                        <div class="d-flex mb-4">
+                            <div class="flex-shrink-0 me-3 text-center" style="width:80px;">
+                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center
+                                                    @(isCurrent ? "bg-success" : "bg-secondary")
+                                                    text-white"
+                                     style="width:40px; height:40px;">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="vr" style="height:60px; width:2px; margin: 4px auto;
+                                                    background:@(isCurrent ? "#198754" : "#6c757d");"></div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="card shadow-sm border-0 bg-light">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1 fw-bold">@item.TemplateName</h6>
+                                            @if (isCurrent)
+                                            {
+                                                <span class="badge bg-success">Current / चालू</span>
+                                            }
+                                        </div>
+                                        <small class="text-muted">
+                                            From: @item.EffectiveDate?.ToString("dd MMM yyyy")
+                                            @if (!isCurrent)
+                                            {
+                                                <span>→ To: @item.EndDate?.ToString("dd MMM yyyy")</span>
+                                            }
+                                        </small>
+                                        <div class="mt-2 row g-2">
+                                            <div class="col">
+                                                <small class="text-muted">Gross</small>
+                                                <div class="fw-bold text-success">₹ @item.GrossSalary?.ToString("N2")</div>
+                                            </div>
+                                            <div class="col">
+                                                <small class="text-muted">Deductions</small>
+                                                <div class="fw-bold text-danger">₹ @item.TotalDeductions?.ToString("N2")</div>
+                                            </div>
+                                            <div class="col">
+                                                <small class="text-muted">Net Pay</small>
+                                                <div class="fw-bold text-primary">₹ @item.NetSalary?.ToString("N2")</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-history fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No salary history found.</h5>
+                <p class="text-muted">कोणताही वेतन इतिहास आढळला नाही.</p>
+                <a asp-action="AssignSalary"
+                   asp-route-employeeId="@ViewBag.EmployeeId"
+                   class="btn btn-primary mt-2">
+                    <i class="fas fa-plus"></i> Assign Salary Structure
+                </a>
+            </div>
+        </div>
+    }
+
+</div>

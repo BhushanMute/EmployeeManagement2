@@ -1,0 +1,185 @@
+﻿@model EmployeeManagement.UI.Models.SalaryStructureResponse
+@{
+    ViewData["Title"] = "Employee Salary Structure | कर्मचारी वेतन रचना";
+}
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Salary Structure <small class="text-muted fs-5">| वेतन रचना</small></h2>
+            <p class="text-muted mb-0">
+                <strong>@Model.EmployeeName</strong>
+                <span class="badge bg-secondary ms-2">@Model.EmployeeCode</span>
+                <span class="badge bg-info text-dark ms-1">@Model.TemplateName</span>
+            </p>
+            <small class="text-muted">
+                Effective From / लागू तारीखपासून:
+                <strong>@Model.EffectiveDate?.ToString("dd MMM yyyy")</strong>
+            </small>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="SalaryHistory"
+               asp-route-employeeId="@Model.EmployeeId"
+               class="btn btn-info text-white">
+                <i class="fas fa-history"></i> History / इतिहास
+            </a>
+            <a asp-action="AssignSalary"
+               asp-route-employeeId="@Model.EmployeeId"
+               class="btn btn-warning text-dark">
+                <i class="fas fa-edit"></i> Revise Salary
+            </a>
+            <a asp-controller="Employee"
+               asp-action="Index"
+               class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Earnings -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success h-100">
+                <div class="card-header bg-success text-white fw-bold">
+                    <i class="fas fa-plus-circle"></i>
+                    Earnings / मिळकत
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-borderless table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component / घटक</th>
+                                <th class="text-end">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Earnings != null && Model.Earnings.Any())
+                            {
+                                foreach (var item in Model.Earnings)
+                                {
+                                    <tr>
+                                        <td>@item.ComponentName</td>
+                                        <td class="text-end text-success fw-bold">
+                                            ₹ @item.Amount.ToString("N2")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="2" class="text-center text-muted">No earnings found.</td></tr>
+                            }
+                        </tbody>
+                        <tfoot class="border-top-2 border-dark">
+                            <tr class="fw-bold fs-5 bg-light">
+                                <td class="p-3">Gross Salary / एकूण मिळकत</td>
+                                <td class="text-end text-success p-3">
+                                    ₹ @Model.GrossSalary?.ToString("N2")
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deductions -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-danger h-100">
+                <div class="card-header bg-danger text-white fw-bold">
+                    <i class="fas fa-minus-circle"></i>
+                    Deductions / कपात
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-borderless table-striped mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Component / घटक</th>
+                                <th class="text-end">Amount (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Deductions != null && Model.Deductions.Any())
+                            {
+                                foreach (var item in Model.Deductions)
+                                {
+                                    <tr>
+                                        <td>@item.ComponentName</td>
+                                        <td class="text-end text-danger fw-bold">
+                                            ₹ @item.Amount.ToString("N2")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="2" class="text-center text-muted">No deductions found.</td></tr>
+                            }
+                        </tbody>
+                        <tfoot class="border-top-2 border-dark">
+                            <tr class="fw-bold fs-5 bg-light">
+                                <td class="p-3">Total Deductions / एकूण कपात</td>
+                                <td class="text-end text-danger p-3">
+                                    ₹ @Model.TotalDeductions?.ToString("N2")
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Net Salary Banner -->
+    <div class="card mt-4 shadow border-primary">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-1">Net Monthly Salary / निव्वळ मासिक वेतन</h5>
+                    <small class="text-muted">
+                        This is the estimated take-home salary based on the current structure.
+                        / ही सध्याच्या रचनेवर आधारित अंदाजित निव्वळ वेतन आहे.
+                    </small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h2 class="fw-bold text-primary mb-0">
+                        ₹ @Model.NetSalary?.ToString("N2")
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTC Breakdown -->
+    @if (Model.AnnualCTC.HasValue)
+    {
+        <div class="card mt-3 shadow-sm bg-light">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <small class="text-muted">Annual Gross CTC</small>
+                        <h5 class="fw-bold text-success">
+                            ₹ @((Model.GrossSalary * 12)?.ToString("N2"))
+                        </h5>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Annual Deductions</small>
+                        <h5 class="fw-bold text-danger">
+                            ₹ @((Model.TotalDeductions * 12)?.ToString("N2"))
+                        </h5>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Annual Net CTC</small>
+                        <h5 class="fw-bold text-primary">
+                            ₹ @(Model.AnnualCTC?.ToString("N2"))
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>

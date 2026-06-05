@@ -41,20 +41,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 
     <style>
         :root {
             --bs-font-sans-serif: 'Inter', system-ui, -apple-system, sans-serif;
-            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); /* Modern Indigo to Purple */
-            --surface-color: #f3f4f6; /* Soft gray for modern dashboards */
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --surface-color: #f3f4f6;
             --navbar-height: 70px;
         }
 
@@ -176,7 +172,6 @@
             margin: -0.5rem -0.5rem 0.5rem -0.5rem;
         }
 
-        /* Active Indicator dot */
         .profile-img-wrapper {
             position: relative;
             display: inline-block;
@@ -213,11 +208,11 @@
         /* ===== FLOATING ALERTS (TOAST STYLE) ===== */
         .toast-container {
             z-index: 1060;
-            pointer-events: none; /* Let clicks pass through empty space */
+            pointer-events: none;
         }
 
             .toast-container .alert {
-                pointer-events: auto; /* Re-enable clicks on the alert itself */
+                pointer-events: auto;
                 border: none;
                 border-radius: 12px;
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -336,6 +331,12 @@
                             </a>
                         </li>
 
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="SalarySlip" asp-action="MySalarySlips">
+                                <i class="bi bi-receipt me-2"></i>My Slips
+                            </a>
+                        </li>
+
                         @if (permissions.Contains("Employee.View") || roles.Any())
                         {
                             <li class="nav-item">
@@ -383,6 +384,15 @@
                             </li>
                         }
 
+                        @if (isDeveloper || isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Develop" asp-action="Index">
+                                    <i class="bi bi-code-square me-2"></i>Develop
+                                </a>
+                            </li>
+                        }
+
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-calendar2-check me-2"></i>Leave
@@ -390,7 +400,7 @@
                             <ul class="dropdown-menu">
                                 <li>
                                     <a class="dropdown-item" asp-controller="Leave" asp-action="Index">
-                                        <i class="bi bi-grid"></i>Dashboard
+                                        <i class="bi bi-grid text-primary"></i>Dashboard
                                     </a>
                                 </li>
                                 <li>
@@ -431,6 +441,54 @@
                                 }
                             </ul>
                         </li>
+
+                        @if (isManager || isHR || isAdmin)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-cash-coin me-2"></i>Payroll
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Payroll" asp-action="Index">
+                                            <i class="bi bi-speedometer2 text-primary"></i>Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Payroll" asp-action="Cycles">
+                                            <i class="bi bi-arrow-repeat text-success"></i>Payroll Cycles
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+
+                        @if (isHR || isAdmin)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-diagram-3 me-2"></i>Salary Setup
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="SalaryStructure" asp-action="Components">
+                                            <i class="bi bi-puzzle text-primary"></i>Components
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="SalaryStructure" asp-action="Templates">
+                                            <i class="bi bi-file-earmark-text text-info"></i>Templates
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="SalaryStructure" asp-action="BulkAssignSalary">
+                                            <i class="bi bi-people-fill text-warning"></i>Bulk Assign
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
 
                         @if (isHR)
                         {
@@ -686,7 +744,7 @@
                     var bsAlert = new bootstrap.Alert(alertNode);
                     bsAlert.close();
                 });
-            }, 6000); // Increased slightly for readability
+            }, 6000);
         });
     </script>
 

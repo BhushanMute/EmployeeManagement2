@@ -1,0 +1,149 @@
+﻿@model EmployeeManagement.UI.Models.SalaryTemplate
+@{
+    ViewData["Title"] = "Template Details | टेम्पलेट तपशील";
+    var components = ViewBag.Components as List<EmployeeManagement.UI.Models.SalaryTemplateComponent>
+                     ?? new List<EmployeeManagement.UI.Models.SalaryTemplateComponent>();
+    var earnings = components.Where(c => c.ComponentType == "Earning").ToList();
+    var deductions = components.Where(c => c.ComponentType == "Deduction").ToList();
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>
+            <i class="fas fa-file-invoice-dollar"></i>
+            Template: @Model.TemplateName
+        </h3>
+        <a asp-action="Templates" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Template Info Card -->
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p class="mb-1">
+                        <strong>Code:</strong> @(Model.TemplateCode ?? "N/A")
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1">
+                        <strong>Description:</strong> @(Model.Description ?? "N/A")
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-0">
+                        <strong>Status:</strong>
+                        @if (Model.IsActive)
+                        {
+                            <span class="badge bg-success">Active / सक्रिय</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive / निष्क्रिय</span>
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm bg-light text-center p-3">
+                <h6 class="text-muted">Total Components</h6>
+                <h3 class="fw-bold text-primary">@components.Count</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm bg-light text-center p-3">
+                <h6 class="text-muted">Earnings</h6>
+                <h3 class="fw-bold text-success">@earnings.Count</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm bg-light text-center p-3">
+                <h6 class="text-muted">Deductions</h6>
+                <h3 class="fw-bold text-danger">@deductions.Count</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Earnings -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-success h-100">
+                <div class="card-header bg-success text-white fw-bold">
+                    <i class="fas fa-plus-circle"></i> Earnings / मिळकत
+                </div>
+                @if (earnings.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var comp in earnings.OrderBy(c => c.DisplayOrder))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>@comp.ComponentName</strong>
+                                    @if (!string.IsNullOrEmpty(comp.CalculationType))
+                                    {
+                                        <br />
+                                        <small class="text-muted">@comp.CalculationType</small>
+                                    }
+                                </span>
+                                <span class="badge bg-success-subtle text-success border px-3 py-2">
+                                    @comp.AmountOrPercentage
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="card-body text-center text-muted">
+                        <i class="fas fa-info-circle"></i> No earnings configured.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Deductions -->
+        <div class="col-md-6">
+            <div class="card shadow-sm border-danger h-100">
+                <div class="card-header bg-danger text-white fw-bold">
+                    <i class="fas fa-minus-circle"></i> Deductions / कपात
+                </div>
+                @if (deductions.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var comp in deductions.OrderBy(c => c.DisplayOrder))
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>@comp.ComponentName</strong>
+                                    @if (!string.IsNullOrEmpty(comp.CalculationType))
+                                    {
+                                        <br />
+                                        <small class="text-muted">@comp.CalculationType</small>
+                                    }
+                                </span>
+                                <span class="badge bg-danger-subtle text-danger border px-3 py-2">
+                                    @comp.AmountOrPercentage
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="card-body text-center text-muted">
+                        <i class="fas fa-info-circle"></i> No deductions configured.
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

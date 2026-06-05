@@ -1,0 +1,210 @@
+﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.EmployeePayrollDetailResponse>
+
+@{
+    ViewData["Title"] = "Salary Slip Register | वेतन पावती नोंदवही";
+    var cycleSummary = ViewBag.CycleSummary as EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse;
+}
+
+<div class="container-fluid mt-4 pb-5">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="fas fa-list-alt text-primary me-2"></i>
+                Salary Slip Register
+            </h2>
+            <p class="text-muted mb-0">
+                @ViewBag.CycleName | वेतन पावती नोंदवही
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-controller="Payroll"
+               asp-action="CycleSummary"
+               asp-route-cycleId="@ViewBag.CycleId"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Back to Cycle
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        </div>
+    }
+
+    <!-- SUMMARY -->
+    @if (cycleSummary != null)
+    {
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-3">
+                <div class="card bg-primary text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <div>Total Employees</div>
+                        <h4>@cycleSummary.TotalEmployees</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card bg-success text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <div>Total Net Pay</div>
+                        <h5>₹ @cycleSummary.TotalNetSalary.ToString("N0")</h5>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card bg-info text-white shadow-sm">
+                    <div class="card-body text-center">
+                        <div>Emails Sent</div>
+                        <h4>@Model.Count(x => x.PaymentStatus == "Sent") / @Model.Count()</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card bg-warning text-dark shadow-sm">
+                    <div class="card-body text-center">
+                        <div>Processed</div>
+                        <h4>@Model.Count() / @Model.Count()</h4>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    }
+
+    <!-- TABLE -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-dark">
+                        <tr>
+                            <th></th>
+                            <th>Emp Code</th>
+                            <th>Employee</th>
+                            <th class="text-end">Gross</th>
+                            <th class="text-end">Deductions</th>
+                            <th class="text-end">Net Pay</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Email</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var emp in Model)
+                        {
+                            <tr class="emp-row"
+                                data-name="@emp.EmployeeName?.ToLower()"
+                                data-code="@emp.EmployeeCode?.ToLower()">
+
+                                <!-- Checkbox -->
+                                <td>
+                                    <input type="checkbox"
+                                           class="form-check-input slip-checkbox"
+                                           value="@emp.PayrollProcessingId" />
+                                </td>
+
+                                <!-- Code -->
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        @emp.EmployeeCode
+                                    </span>
+                                </td>
+
+                                <!-- Name -->
+                                <td>
+                                    <div class="fw-semibold">@emp.EmployeeName</div>
+                                    <small class="text-muted">@emp.Department</small>
+                                </td>
+
+                                <!-- Gross -->
+                                <td class="text-end text-success fw-semibold">
+                                    @emp.GrossSalary.ToString("N2")
+                                </td>
+
+                                <!-- Deductions -->
+                                <td class="text-end text-danger fw-semibold">
+                                    @emp.TotalDeductions.ToString("N2")
+                                </td>
+
+                                <!-- Net -->
+                                <td class="text-end text-primary fw-bold">
+                                    ₹ @emp.NetSalary.ToString("N2")
+                                </td>
+
+                                <!-- Status -->
+                                <td class="text-center">
+                                    @if (emp.PaymentStatus == "Processed")
+                                    {
+                                        <span class="badge bg-success">Processed</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Pending</span>
+                                    }
+                                </td>
+
+                                <!-- Email -->
+                                <td class="text-center">
+                                    @if (emp.PaymentStatus == "Sent")
+                                    {
+                                        <span class="badge bg-info text-dark">Sent</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border">Pending</span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+
+                                        <a asp-action="ViewSalarySlip"
+                                           asp-route-slipId="@emp.PayrollProcessingId"
+                                           class="btn btn-outline-primary"
+                                           target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+
+                                        <a asp-action="DownloadSalarySlip"
+                                           asp-route-slipId="@emp.PayrollProcessingId"
+                                           class="btn btn-outline-danger">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- JS (minimal fix only) -->
+<script>
+    $(document).ready(function () {
+
+        $('#masterCheck').change(function () {
+            $('.slip-checkbox').prop('checked', $(this).is(':checked'));
+        });
+
+    });
+</script>

@@ -1,0 +1,64 @@
+﻿@model EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse
+@{
+    ViewData["Title"] = "Payroll Reports | वेतन अहवाल";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Payroll Reports <small class="text-muted fs-5">| वेतन अहवाल</small></h2>
+        <a asp-action="CycleSummary" asp-route-cycleId="@ViewBag.CycleId" class="btn btn-outline-secondary">Back to Cycle</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="alert alert-info">
+        <h5>Selected Cycle: <strong>@Model?.CycleName</strong></h5>
+    </div>
+
+    <div class="row g-4 mt-2">
+        <!-- Payroll Register Excel -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-success">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-file-excel fa-4x text-success mb-3"></i>
+                    <h4>Payroll Register</h4>
+                    <p class="text-muted small">Complete employee salary calculation sheet in Excel format.</p>
+                    <a asp-action="DownloadPayrollRegisterExcel" asp-route-cycleId="@ViewBag.CycleId" class="btn btn-success w-100 mt-2">
+                        <i class="fas fa-download"></i> Download Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Transfer Excel -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-primary">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-university fa-4x text-primary mb-3"></i>
+                    <h4>Bank Transfer File (Excel)</h4>
+                    <p class="text-muted small">Format required by bank for direct account transfers.</p>
+                    <a asp-action="DownloadBankTransferFile" asp-route-cycleId="@ViewBag.CycleId" asp-route-format="Excel" class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-download"></i> Download Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Transfer TXT -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-secondary">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-file-alt fa-4x text-secondary mb-3"></i>
+                    <h4>Bank Transfer File (TXT)</h4>
+                    <p class="text-muted small">Plain text format required by specific bank portals.</p>
+                    <a asp-action="DownloadBankTransferFile" asp-route-cycleId="@ViewBag.CycleId" asp-route-format="TXT" class="btn btn-secondary w-100 mt-2">
+                        <i class="fas fa-download"></i> Download TXT
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

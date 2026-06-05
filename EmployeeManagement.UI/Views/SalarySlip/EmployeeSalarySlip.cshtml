@@ -1,0 +1,164 @@
+﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.SalarySlipResponse>
+@{
+    ViewData["Title"] = "Employee Salary Slips | कर्मचारी वेतन पावत्या";
+    var availableYears = ViewBag.AvailableYears as List<int> ?? new List<int>();
+    var selectedYear = (int)ViewBag.SelectedYear;
+    var selectedMonth = ViewBag.SelectedMonth as int?;
+    var employeeId = (int)ViewBag.EmployeeId;
+}
+
+<div class="container-fluid mt-4 pb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="fas fa-user-circle text-primary me-2"></i>
+                Employee Salary Slips
+            </h2>
+            <p class="text-muted mb-0">
+                Employee ID: <strong>@employeeId</strong> |
+                कर्मचारी वेतन पावत्या
+            </p>
+        </div>
+        <a asp-controller="Employee"
+           asp-action="Index"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <!-- Filters -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="EmployeeSalarySlip" class="row g-3 align-items-end">
+                <input type="hidden" name="employeeId" value="@employeeId" />
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Year / वर्ष</label>
+                    <select name="year" class="form-select">
+                        @foreach (var yr in availableYears)
+                        {
+                            <option value="@yr" selected="@(yr == selectedYear)">@yr</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Month / महिना</label>
+                    <select name="month" class="form-select">
+                        <option value="">All / सर्व</option>
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == selectedMonth)">
+                                @System.Globalization.CultureInfo.CurrentCulture
+                                .DateTimeFormat.GetMonthName(i)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Filter
+                    </button>
+                    <a asp-action="EmployeeSalarySlip"
+                       asp-route-employeeId="@employeeId"
+                       class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Slips Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold">
+                <i class="fas fa-list me-2 text-primary"></i>
+                Salary Slips | वेतन पावत्या (@(Model?.Count() ?? 0) records)
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Month / महिना</th>
+                            <th>Slip No.</th>
+                            <th class="text-end">Gross (₹)</th>
+                            <th class="text-end">Deductions (₹)</th>
+                            <th class="text-end">Net Pay (₹)</th>
+                            <th class="text-center">Email</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var slip in Model.OrderByDescending(s => s.Year)
+                            .ThenByDescending(s => s.Month))
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-semibold">@slip.MonthName @slip.Year</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @slip.SlipNumber
+                                        </span>
+                                    </td>
+                                    <td class="text-end text-success fw-semibold">
+                                        @slip.GrossSalary?.ToString("N2")
+                                    </td>
+                                    <td class="text-end text-danger fw-semibold">
+                                        @slip.TotalDeductions?.ToString("N2")
+                                    </td>
+                                    <td class="text-end text-primary fw-bold">
+                                        ₹ @slip.NetSalary?.ToString("N2")
+                                    </td>
+                                    <td class="text-center">
+                                        @if (slip.EmailSent == true)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> Sent
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Not Sent</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="ViewSalarySlip"
+                                               asp-route-slipId="@slip.SlipId"
+                                               class="btn btn-outline-primary"
+                                               target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="DownloadSalarySlip"
+                                               asp-route-slipId="@slip.SlipId"
+                                               class="btn btn-outline-danger">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
+                                    No salary slips found for this employee.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,90 @@
+﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse>
+@{
+    ViewData["Title"] = "Payroll Cycles | वेतन सायकल्स";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Payroll Cycles <small class="text-muted fs-5">| वेतन सायकल्स</small></h2>
+        <a asp-action="CreateCycle" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Cycle / नवीन तयार करा
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Cycles" class="d-flex align-items-end gap-3">
+                <div>
+                    <label class="form-label">Year / वर्ष</label>
+                    <input type="number" name="year" class="form-control" value="@ViewBag.SelectedYear" min="2000" max="2100" />
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-secondary">Filter / फिल्टर</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body table-responsive">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cycle Name</th>
+                        <th>Month-Year</th>
+                        <th>Status</th>
+                        <th>Employees</th>
+                        <th>Total Net Pay (₹)</th>
+                        <th>Actions / कृती</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var cycle in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@cycle.CycleName</td>
+                                <td>@cycle.Month - @cycle.Year</td>
+                                <td>
+                                    <span class="badge bg-@(cycle.Status == "Draft" ? "secondary" : cycle.Status == "Approved" ? "success" : "warning")">
+                                        @cycle.Status
+                                    </span>
+                                </td>
+                                <td>@cycle.TotalEmployees</td>
+                                <td>@cycle.TotalNetSalary.ToString("N2")</td>
+                                <td>
+                                    <a asp-action="CycleSummary" asp-route-cycleId="@cycle.PayrollCycleId" class="btn btn-sm btn-info text-white" title="Summary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    <a asp-action="PayrollRegister" asp-route-cycleId="@cycle.PayrollCycleId" class="btn btn-sm btn-secondary" title="Register">
+                                        <i class="fas fa-list"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="6" class="text-center text-muted">No cycles found for this year.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

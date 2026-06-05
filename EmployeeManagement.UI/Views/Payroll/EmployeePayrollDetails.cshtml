@@ -1,0 +1,71 @@
+﻿@model EmployeeManagement.API.Models.Payroll.EmployeePayrollDetailResponse
+@{
+    ViewData["Title"] = "Employee Payroll Details | कर्मचारी वेतन तपशील";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Payroll Details: @Model.EmployeeName</h3>
+        <button class="btn btn-secondary" onclick="window.history.back()"><i class="fas fa-arrow-left"></i> Back</button>
+    </div>
+
+    <div class="card shadow-sm border-2">
+        <div class="card-header bg-light">
+            <strong>Employee Code:</strong> @Model.EmployeeCode |
+            <strong>Status:</strong>
+            <span class="badge bg-@(Model.Status == "Hold" ? "danger" : "success")">@Model.Status</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Earnings / मिळकत</th><th class="text-end">Amount (₹)</th></tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.EarningsBreakdown != null)
+                            {
+                                foreach (var e in Model.EarningsBreakdown)
+                                {
+                                    <tr><td>@e.ComponentName</td><td class="text-end">@e.Amount.ToString("N2")</td></tr>
+                                }
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td>Gross Pay</td>
+                                <td class="text-end text-success">@Model.GrossSalary.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr><th>Deductions / कपात</th><th class="text-end">Amount (₹)</th></tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.DeductionsBreakdown != null)
+                            {
+                                foreach (var d in Model.DeductionsBreakdown)
+                                {
+                                    <tr><td>@d.ComponentName</td><td class="text-end">@d.Amount.ToString("N2")</td></tr>
+                                }
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td>Total Deductions</td>
+                                <td class="text-end text-danger">@Model.TotalDeductions.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="alert alert-primary mt-3 text-end">
+                <h4 class="mb-0">Net Pay / एकूण पगार: <strong>₹ @Model.NetSalary.ToString("N2")</strong></h4>
+            </div>
+        </div>
+    </div>
+</div>

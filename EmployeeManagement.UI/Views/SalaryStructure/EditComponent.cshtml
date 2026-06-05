@@ -1,0 +1,306 @@
+﻿@model EmployeeManagement.API.Models.Payroll.SalaryComponent
+@{
+    ViewData["Title"] = "Edit Salary Component | वेतन घटक संपादित करा";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> Edit Salary Component / वेतन घटक संपादित करा
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="EditComponent" asp-route-componentId="@Model.Id" method="post">
+
+                        <!-- Hidden ID -->
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="row g-3">
+
+                            <!-- Component Code -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Component Code / घटक कोड
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="ComponentCode" class="form-control" required />
+                                <span asp-validation-for="ComponentCode" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Component Name -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Component Name / घटकाचे नाव
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="ComponentName" class="form-control" required />
+                                <span asp-validation-for="ComponentName" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Component Type -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Component Type / प्रकार
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="ComponentType" class="form-select" required>
+                                    <option value="">-- Select Type / प्रकार निवडा --</option>
+                                    <option value="Earning">Earning / मिळकत</option>
+                                    <option value="Deduction">Deduction / कपात</option>
+                                </select>
+                                <span asp-validation-for="ComponentType" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Category -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Category / श्रेणी
+                                </label>
+                                <select asp-for="Category" class="form-select">
+                                    <option value="">-- Select Category / श्रेणी निवडा --</option>
+                                    <option value="Allowance">Allowance / भत्ता</option>
+                                    <option value="Statutory">Statutory / वैधानिक</option>
+                                    <option value="Tax">Tax / कर</option>
+                                    <option value="Loan">Loan / कर्ज</option>
+                                </select>
+                            </div>
+
+                            <!-- Calculation Type -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Calculation Type / गणना प्रकार
+                                </label>
+                                <select asp-for="CalculationType" class="form-select" id="calcType">
+                                    <option value="Fixed">Flat Amount / निश्चित रक्कम</option>
+                                    <option value="Percentage">Percentage (of Basic) / टक्केवारी</option>
+                                    <option value="Formula">Formula / सूत्र</option>
+                                    <option value="Attendance">Attendance / उपस्थिती</option>
+                                </select>
+                            </div>
+
+                            <!-- Calculation Base -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Calculation Base / गणना आधार
+                                </label>
+                                <select asp-for="CalculationBase" class="form-select">
+                                    <option value="">-- Select Base / आधार निवडा --</option>
+                                    <option value="Basic">Basic / मूळ वेतन</option>
+                                    <option value="Gross">Gross / एकूण वेतन</option>
+                                    <option value="CTC">CTC</option>
+                                </select>
+                            </div>
+
+                            <!-- Default Percentage (shown only when Percentage is selected) -->
+                            <div class="col-md-6" id="percentageDiv">
+                                <label class="form-label fw-bold">
+                                    Percentage Value (%) / टक्केवारी मूल्य
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="DefaultPercentage"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           max="100"
+                                           class="form-control" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <span asp-validation-for="DefaultPercentage" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Default Amount (shown only when Fixed is selected) -->
+                            <div class="col-md-6" id="flatAmountDiv">
+                                <label class="form-label fw-bold">
+                                    Default Amount (₹) / निश्चित रक्कम
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="DefaultAmount"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control" />
+                                </div>
+                                <span asp-validation-for="DefaultAmount" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Min Amount -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Min Amount (₹) / किमान रक्कम
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="MinAmount"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control" />
+                                </div>
+                                <span asp-validation-for="MinAmount" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Max Amount -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Max Amount (₹) / कमाल रक्कम
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="MaxAmount"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control" />
+                                </div>
+                                <span asp-validation-for="MaxAmount" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Formula Expression (shown only when Formula is selected) -->
+                            <div class="col-md-12" id="formulaDiv">
+                                <label class="form-label fw-bold">
+                                    Formula Expression / सूत्र
+                                </label>
+                                <input asp-for="FormulaExpression"
+                                       class="form-control"
+                                       placeholder="e.g. Basic * 0.12" />
+                                <span asp-validation-for="FormulaExpression" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Display Order -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Display Order / प्रदर्शन क्रम
+                                </label>
+                                <input asp-for="DisplayOrder"
+                                       type="number"
+                                       min="0"
+                                       class="form-control" />
+                                <span asp-validation-for="DisplayOrder" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">
+                                    Description / वर्णन
+                                </label>
+                                <textarea asp-for="Description"
+                                          class="form-control"
+                                          rows="2"
+                                          placeholder="Optional description..."></textarea>
+                            </div>
+
+                            <!-- Remarks -->
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">
+                                    Remarks / शेरा
+                                </label>
+                                <textarea asp-for="Remarks"
+                                          class="form-control"
+                                          rows="2"
+                                          placeholder="Optional remarks..."></textarea>
+                            </div>
+
+                            <!-- Toggles -->
+                            <div class="col-md-4 mt-2">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IsTaxable"
+                                           class="form-check-input"
+                                           type="checkbox"
+                                           role="switch" />
+                                    <label class="form-check-label fw-bold">
+                                        Is Taxable? / करपात्र आहे का?
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4 mt-2">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IsStatutory"
+                                           class="form-check-input"
+                                           type="checkbox"
+                                           role="switch" />
+                                    <label class="form-check-label fw-bold">
+                                        Is Statutory? / वैधानिक आहे का?
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4 mt-2">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IsActive"
+                                           class="form-check-input"
+                                           type="checkbox"
+                                           role="switch" />
+                                    <label class="form-check-label fw-bold">
+                                        Is Active? / सक्रिय आहे का?
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a asp-action="Components" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel / रद्द करा
+                            </a>
+                            <button type="submit" class="btn btn-warning text-dark">
+                                <i class="fas fa-save"></i> Update / अपडेट करा
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+
+            function toggleCalcFields() {
+                var val = $('#calcType').val();
+
+                // Hide all first
+                $('#percentageDiv').hide();
+                $('#flatAmountDiv').hide();
+                $('#formulaDiv').hide();
+
+                // Show based on selection
+                if (val === 'Percentage') {
+                    $('#percentageDiv').show();
+                } else if (val === 'Fixed') {
+                    $('#flatAmountDiv').show();
+                } else if (val === 'Formula') {
+                    $('#formulaDiv').show();
+                }
+            }
+
+            // On page load - show/hide based on current value
+            toggleCalcFields();
+
+            // On change
+            $('#calcType').change(function () {
+                toggleCalcFields();
+            });
+        });
+    </script>
+}
