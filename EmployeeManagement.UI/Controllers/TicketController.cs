@@ -1,20 +1,13 @@
-﻿using EmployeeManagement.UI.Models;
+﻿// File: EmployeeManagement.UI/Controllers/TicketController.cs
+using EmployeeManagement.UI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace EmployeeManagement.UI.Controllers
 {
-    /// <summary>
-    /// Ticket Management UI Controller
-    /// Handles QA-Developer Ticket System Views
-    /// </summary>
     [Authorize]
     public class TicketController : Controller
     {
@@ -23,7 +16,8 @@ namespace EmployeeManagement.UI.Controllers
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
         public TicketController(IHttpClientFactory factory, ILogger<TicketController> logger)
@@ -32,219 +26,212 @@ namespace EmployeeManagement.UI.Controllers
             _logger = logger;
         }
 
-        #region HELPER METHODS
+        #region HELPERS
 
-        /// <summary>
-        /// Set Authorization Header with JWT Token
-        /// </summary>
-        private void SetAuthorizationHeader()
+        private void SetAuth()
         {
             var token = HttpContext.Session.GetString("AccessToken");
             if (!string.IsNullOrEmpty(token))
-            {
                 _client.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        private int UserId
+        {
+            get
+            {
+                var id = HttpContext.Session.GetString("UserId");
+                return int.TryParse(id, out var val) ? val : 0;
             }
         }
 
-        /// <summary>
-        /// Get Current User ID from Session
-        /// </summary>
-        private int GetCurrentUserId()
+        private string UserRole
         {
-            var userIdString = HttpContext.Session.GetString("UserId");
-            return int.TryParse(userIdString, out var userId) ? userId : 0;
+            get
+            {
+                var roles = HttpContext.Session.GetString("Roles") ?? "";
+                if (roles.Contains("Admin")) return "Admin";
+                if (roles.Contains("Manager")) return "Manager";
+                if (roles.Contains("QA")) return "QA";
+                if (roles.Contains("Developer")) return "Developer";
+                return "Employee";
+            }
         }
 
-        /// <summary>
-        /// Get Current User Role from Session
-        /// </summary>
-        private string GetCurrentUserRole()
+        private string UserName =>
+            HttpContext.Session.GetString("FullName") ?? "User";
+
+        private async Task<string> CallApiGetAsync(string url)
         {
-            return HttpContext.Session.GetString("UserRole") ?? "Employee";
+            SetAuth();
+            var response = await _client.GetAsync(url);
+            return await response.Content.ReadAsStringAsync();
         }
 
-        /// <summary>
-        /// Get Current User Name from Session
-        /// </summary>
-        private string GetCurrentUserName()
+        private async Task<(bool success, string content)> CallApiPostAsync(string url, object data)
         {
-            return HttpContext.Session.GetString("UserName") ?? "User";
+            SetAuth();
+            var json = JsonSerializer.Serialize(data, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _client.PostAsync(url, content);
+            var result = await response.Content.ReadAsStringAsync();
+            return (response.IsSuccessStatusCode, result);
+        }
+
+        private async Task<(bool success, string content)> CallApiPutAsync(string url, object data)
+        {
+            SetAuth();
+            var json = JsonSerializer.Serialize(data, _jsonOptions);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _client.PutAsync(url, content);
+            var result = await response.Content.ReadAsStringAsync();
+            return (response.IsSuccessStatusCode, result);
+        }
+
+        private void SetCommonViewBag()
+        {
+            ViewBag.UserRole = UserRole;
+            ViewBag.UserId = UserId;
+            ViewBag.UserName = UserName;
         }
 
         #endregion
 
-        #region TICKET LIST & DASHBOARD
+        #region DASHBOARD
 
-        /// <summary>
-        /// Ticket Dashboard
-        /// GET: /Ticket/Index
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
-                SetAuthorizationHeader();
-
-                // Get dashboard data
-                var response = await _client.GetAsync("api/Ticket/dashboard?myTicketsOnly=false");
-                var content = await response.Content.ReadAsStringAsync();
-
-                ViewBag.DashboardData = content;
-                ViewBag.UserRole = GetCurrentUserRole();
-                ViewBag.UserName = GetCurrentUserName();
-                ViewBag.ApiSuccess = response.IsSuccessStatusCode;
-
+                var data = await CallApiGetAsync("api/Ticket/dashboard");
+                SetCommonViewBag();
+                ViewBag.DashboardJson = data;
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading ticket dashboard");
-                TempData["Error"] = $"Error loading dashboard: {ex.Message}";
-                return View();
-            }
-        }
-
-        /// <summary>
-        /// My Tickets (Role-based)
-        /// GET: /Ticket/MyTickets
-        /// </summary>
-        [HttpGet]
-        public async Task<IActionResult> MyTickets(string? status = null)
-        {
-            try
-            {
-                SetAuthorizationHeader();
-
-                var url = $"api/Ticket/my-tickets";
-                if (!string.IsNullOrEmpty(status))
-                {
-                    url += $"?status={status}";
-                }
-
-                var response = await _client.GetAsync(url);
-                var content = await response.Content.ReadAsStringAsync();
-
-                ViewBag.TicketsData = content;
-                ViewBag.SelectedStatus = status;
-                ViewBag.UserRole = GetCurrentUserRole();
-                ViewBag.ApiSuccess = response.IsSuccessStatusCode;
-
-                return View();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading my tickets");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return View();
-            }
-        }
-
-        /// <summary>
-        /// All Tickets List with Filters
-        /// GET: /Ticket/List
-        /// </summary>
-        [HttpGet]
-        public async Task<IActionResult> List(
-            string? status = null,
-            string? priority = null,
-            string? ticketType = null,
-            string? searchTerm = null,
-            int pageNumber = 1)
-        {
-            try
-            {
-                SetAuthorizationHeader();
-
-                var queryParams = new List<string>();
-                if (!string.IsNullOrEmpty(status)) queryParams.Add($"status={status}");
-                if (!string.IsNullOrEmpty(priority)) queryParams.Add($"priority={priority}");
-                if (!string.IsNullOrEmpty(ticketType)) queryParams.Add($"ticketType={ticketType}");
-                if (!string.IsNullOrEmpty(searchTerm)) queryParams.Add($"searchTerm={searchTerm}");
-                queryParams.Add($"pageNumber={pageNumber}");
-                queryParams.Add($"pageSize=20");
-
-                var url = "api/Ticket/list";
-                if (queryParams.Any())
-                    url += "?" + string.Join("&", queryParams);
-
-                var response = await _client.GetAsync(url);
-                var content = await response.Content.ReadAsStringAsync();
-
-                ViewBag.TicketsData = content;
-                ViewBag.Status = status;
-                ViewBag.Priority = priority;
-                ViewBag.TicketType = ticketType;
-                ViewBag.SearchTerm = searchTerm;
-                ViewBag.PageNumber = pageNumber;
-                ViewBag.ApiSuccess = response.IsSuccessStatusCode;
-
-                return View();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading tickets list");
-                TempData["Error"] = $"Error: {ex.Message}";
+                _logger.LogError(ex, "Dashboard error");
+                TempData["Error"] = "Failed to load dashboard";
+                SetCommonViewBag();
+                ViewBag.DashboardJson = "{}";
                 return View();
             }
         }
 
         #endregion
 
-        #region CREATE TICKET
+        #region MY TICKETS
 
-        /// <summary>
-        /// Show Create Ticket Form
-        /// GET: /Ticket/Create
-        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> MyTickets(string? status = null)
         {
             try
             {
-                SetAuthorizationHeader();
+                var url = "api/Ticket/my-tickets";
+                if (!string.IsNullOrEmpty(status))
+                    url += $"?status={status}";
 
-                // Get dropdown data
-                var response = await _client.GetAsync("api/Ticket/dropdowns");
-                var content = await response.Content.ReadAsStringAsync();
+                var data = await CallApiGetAsync(url);
+                SetCommonViewBag();
+                ViewBag.TicketsJson = data;
+                ViewBag.SelectedStatus = status;
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "MyTickets error");
+                TempData["Error"] = "Failed to load tickets";
+                SetCommonViewBag();
+                ViewBag.TicketsJson = "{}";
+                return View();
+            }
+        }
 
-                ViewBag.DropdownData = content;
-                ViewBag.ApiSuccess = response.IsSuccessStatusCode;
+        #endregion
+
+        #region ALL TICKETS LIST
+
+        [HttpGet]
+        public async Task<IActionResult> List(
+            string? status = null, string? priority = null,
+            string? ticketType = null, string? searchTerm = null,
+            int? assignedTo = null, int? createdBy = null,
+            int pageNumber = 1, int pageSize = 20)
+        {
+            try
+            {
+                var queryParams = new List<string>();
+                if (!string.IsNullOrEmpty(status)) queryParams.Add($"status={status}");
+                if (!string.IsNullOrEmpty(priority)) queryParams.Add($"priority={priority}");
+                if (!string.IsNullOrEmpty(ticketType)) queryParams.Add($"ticketType={ticketType}");
+                if (!string.IsNullOrEmpty(searchTerm)) queryParams.Add($"searchTerm={searchTerm}");
+                if (assignedTo.HasValue) queryParams.Add($"assignedTo={assignedTo}");
+                if (createdBy.HasValue) queryParams.Add($"createdBy={createdBy}");
+                queryParams.Add($"pageNumber={pageNumber}");
+                queryParams.Add($"pageSize={pageSize}");
+
+                var url = "api/Ticket/list" +
+                    (queryParams.Any() ? "?" + string.Join("&", queryParams) : "");
+
+                var data = await CallApiGetAsync(url);
+
+                SetCommonViewBag();
+                ViewBag.TicketsJson = data;
+                ViewBag.FilterStatus = status;
+                ViewBag.FilterPriority = priority;
+                ViewBag.FilterType = ticketType;
+                ViewBag.FilterSearch = searchTerm;
+                ViewBag.PageNumber = pageNumber;
 
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading create ticket form");
-                TempData["Error"] = $"Error: {ex.Message}";
+                _logger.LogError(ex, "List error");
+                TempData["Error"] = "Failed to load tickets";
+                SetCommonViewBag();
+                ViewBag.TicketsJson = "{}";
                 return View();
             }
         }
 
-        /// <summary>
-        /// Create New Ticket
-        /// POST: /Ticket/Create
-        /// </summary>
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(
-            string title,
-            string description,
-            string ticketType,
-            string priority,
-            int? assignedTo,
-            DateTime? dueDate,
-            string? stepsToReproduce,
-            string? expectedResult,
-            string? actualResult,
-            string? environment)
+        #endregion
+
+        #region CREATE
+
+        [HttpGet]
+        public async Task<IActionResult> Create()
         {
             try
             {
-                SetAuthorizationHeader();
+                var dropdowns = await CallApiGetAsync("api/Ticket/dropdowns");
+                SetCommonViewBag();
+                ViewBag.DropdownsJson = dropdowns;
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Create form error");
+                TempData["Error"] = "Failed to load form";
+                SetCommonViewBag();
+                ViewBag.DropdownsJson = "{}";
+                return View();
+            }
+        }
 
-                var requestData = new
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(
+            string title, string description, string ticketType,
+            string priority, int? assignedTo, DateTime? dueDate,
+            string? stepsToReproduce, string? expectedResult,
+            string? actualResult, string? environment,
+            string? category, string? module, string? severity)
+        {
+            try
+            {
+                var (success, content) = await CallApiPostAsync("api/Ticket/create", new
                 {
                     title,
                     description,
@@ -255,29 +242,23 @@ namespace EmployeeManagement.UI.Controllers
                     stepsToReproduce,
                     expectedResult,
                     actualResult,
-                    environment
-                };
+                    environment,
+                    category,
+                    module,
+                    severity
+                });
 
-                var json = JsonSerializer.Serialize(requestData);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PostAsync("api/Ticket/create", httpContent);
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
+                if (success)
                 {
-                    TempData["Success"] = "Ticket created successfully!";
+                    TempData["Success"] = "🎉 Ticket created successfully!";
                     return RedirectToAction(nameof(MyTickets));
                 }
-                else
-                {
-                    TempData["Error"] = $"Failed to create ticket: {content}";
-                    return RedirectToAction(nameof(Create));
-                }
+
+                TempData["Error"] = "Failed to create ticket";
+                return RedirectToAction(nameof(Create));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating ticket");
                 TempData["Error"] = $"Error: {ex.Message}";
                 return RedirectToAction(nameof(Create));
             }
@@ -285,109 +266,85 @@ namespace EmployeeManagement.UI.Controllers
 
         #endregion
 
-        #region VIEW TICKET DETAILS
+        #region DETAILS
 
-        /// <summary>
-        /// View Ticket Details
-        /// GET: /Ticket/Details/{id}
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             try
             {
-                SetAuthorizationHeader();
+                var data = await CallApiGetAsync($"api/Ticket/{id}");
 
-                var response = await _client.GetAsync($"api/Ticket/{id}");
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
+                // Try to parse for empty check
+                var apiResult = JsonSerializer.Deserialize<JsonElement>(data, _jsonOptions);
+                if (!apiResult.TryGetProperty("data", out _) ||
+                    apiResult.GetProperty("status").GetBoolean() == false)
                 {
                     TempData["Error"] = "Ticket not found";
                     return RedirectToAction(nameof(MyTickets));
                 }
 
-                ViewBag.TicketData = content;
-                ViewBag.UserRole = GetCurrentUserRole();
-                ViewBag.UserId = GetCurrentUserId();
-                ViewBag.ApiSuccess = true;
+                SetCommonViewBag();
+                ViewBag.TicketJson = data;
+
+                // Also load dropdowns for assignment
+                try
+                {
+                    var dropdowns = await CallApiGetAsync("api/Ticket/dropdowns");
+                    ViewBag.DropdownsJson = dropdowns;
+                }
+                catch
+                {
+                    ViewBag.DropdownsJson = "{}";
+                }
 
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading ticket details");
-                TempData["Error"] = $"Error: {ex.Message}";
+                _logger.LogError(ex, "Details error for ticket {Id}", id);
+                TempData["Error"] = "Failed to load ticket";
                 return RedirectToAction(nameof(MyTickets));
             }
         }
 
         #endregion
 
-        #region EDIT TICKET
+        #region EDIT
 
-        /// <summary>
-        /// Show Edit Ticket Form
-        /// GET: /Ticket/Edit/{id}
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
             try
             {
-                SetAuthorizationHeader();
+                var ticketData = await CallApiGetAsync($"api/Ticket/{id}");
+                var dropdownData = await CallApiGetAsync("api/Ticket/dropdowns");
 
-                // Get ticket data
-                var ticketResponse = await _client.GetAsync($"api/Ticket/{id}");
-                var ticketContent = await ticketResponse.Content.ReadAsStringAsync();
-
-                if (!ticketResponse.IsSuccessStatusCode)
-                {
-                    TempData["Error"] = "Ticket not found";
-                    return RedirectToAction(nameof(MyTickets));
-                }
-
-                // Get dropdown data
-                var dropdownResponse = await _client.GetAsync("api/Ticket/dropdowns");
-                var dropdownContent = await dropdownResponse.Content.ReadAsStringAsync();
-
-                ViewBag.TicketData = ticketContent;
-                ViewBag.DropdownData = dropdownContent;
-                ViewBag.ApiSuccess = true;
+                SetCommonViewBag();
+                ViewBag.TicketJson = ticketData;
+                ViewBag.DropdownsJson = dropdownData;
 
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading edit ticket form");
                 TempData["Error"] = $"Error: {ex.Message}";
                 return RedirectToAction(nameof(MyTickets));
             }
         }
 
-        /// <summary>
-        /// Update Ticket
-        /// POST: /Ticket/Edit
-        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
-            int ticketId,
-            string title,
-            string description,
-            string ticketType,
-            string priority,
-            DateTime? dueDate,
-            string? stepsToReproduce,
-            string? expectedResult,
-            string? actualResult,
-            string? environment)
+            int ticketId, string title, string description,
+            string ticketType, string priority, DateTime? dueDate,
+            string? stepsToReproduce, string? expectedResult,
+            string? actualResult, string? environment,
+            string? category, string? module, string? severity)
         {
             try
             {
-                SetAuthorizationHeader();
-
-                var requestData = new
+                var (success, content) = await CallApiPutAsync("api/Ticket/update", new
                 {
                     ticketId,
                     title,
@@ -398,29 +355,19 @@ namespace EmployeeManagement.UI.Controllers
                     stepsToReproduce,
                     expectedResult,
                     actualResult,
-                    environment
-                };
+                    environment,
+                    category,
+                    module,
+                    severity
+                });
 
-                var json = JsonSerializer.Serialize(requestData);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+                TempData[success ? "Success" : "Error"] =
+                    success ? "✅ Ticket updated!" : "Failed to update";
 
-                var response = await _client.PutAsync("api/Ticket/update", httpContent);
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket updated successfully!";
-                    return RedirectToAction(nameof(Details), new { id = ticketId });
-                }
-                else
-                {
-                    TempData["Error"] = $"Failed to update ticket: {content}";
-                    return RedirectToAction(nameof(Edit), new { id = ticketId });
-                }
+                return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating ticket");
                 TempData["Error"] = $"Error: {ex.Message}";
                 return RedirectToAction(nameof(Edit), new { id = ticketId });
             }
@@ -428,323 +375,148 @@ namespace EmployeeManagement.UI.Controllers
 
         #endregion
 
-        #region STATUS OPERATIONS
+        #region STATUS CHANGE (Universal)
 
-        /// <summary>
-        /// Update Ticket Status
-        /// POST: /Ticket/UpdateStatus
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> UpdateStatus(int ticketId, string newStatus, string? remarks)
+        public async Task<IActionResult> ChangeStatus(int ticketId, string newStatus, string? remarks)
         {
             try
             {
-                SetAuthorizationHeader();
-
-                var requestData = new
+                var (success, content) = await CallApiPutAsync("api/Ticket/status", new
                 {
                     ticketId,
                     newStatus,
                     remarks
-                };
+                });
 
-                var json = JsonSerializer.Serialize(requestData);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PutAsync("api/Ticket/status", httpContent);
-
-                if (response.IsSuccessStatusCode)
+                // Check if AJAX
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
-                    TempData["Success"] = $"Ticket status updated to {newStatus}";
+                    var result = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+                    var message = result.TryGetProperty("message", out var msg)
+                        ? msg.GetString() : (success ? "Status updated" : "Failed");
+                    return Json(new { success, message });
                 }
-                else
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    TempData["Error"] = $"Failed to update status: {content}";
-                }
+
+                TempData[success ? "Success" : "Error"] =
+                    success ? $"✅ Status changed to {newStatus}" : "Failed to update status";
 
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating ticket status");
-                TempData["Error"] = $"Error: {ex.Message}";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = ex.Message });
+
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
         }
 
-        /// <summary>
-        /// Resolve Ticket
-        /// POST: /Ticket/Resolve/{id}
-        /// </summary>
+        // Quick action shortcuts
         [HttpPost]
-        public async Task<IActionResult> Resolve(int id, string? remarks)
-        {
-            try
-            {
-                SetAuthorizationHeader();
+        public Task<IActionResult> StartWork(int id, string? remarks = null)
+            => ChangeStatus(id, "InProgress", remarks);
 
-                var json = JsonSerializer.Serialize(remarks ?? "Ticket resolved");
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PutAsync($"api/Ticket/{id}/resolve", httpContent);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket marked as resolved";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to resolve ticket";
-                }
-
-                return RedirectToAction(nameof(Details), new { id });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resolving ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-        }
-
-        /// <summary>
-        /// Close Ticket
-        /// POST: /Ticket/Close/{id}
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Close(int id, string? remarks)
-        {
-            try
-            {
-                SetAuthorizationHeader();
+        public Task<IActionResult> MarkFixed(int id, string? remarks = null)
+            => ChangeStatus(id, "FixedByDev", remarks);
 
-                var json = JsonSerializer.Serialize(remarks ?? "Ticket closed");
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PutAsync($"api/Ticket/{id}/close", httpContent);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket closed successfully";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to close ticket";
-                }
-
-                return RedirectToAction(nameof(Details), new { id });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error closing ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-        }
-
-        /// <summary>
-        /// Reopen Ticket
-        /// POST: /Ticket/Reopen/{id}
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Reopen(int id, string? remarks)
-        {
-            try
-            {
-                SetAuthorizationHeader();
+        public Task<IActionResult> SendToQA(int id, string? remarks = null)
+            => ChangeStatus(id, "ReadyForQA", remarks);
 
-                var json = JsonSerializer.Serialize(remarks ?? "Ticket reopened");
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PutAsync($"api/Ticket/{id}/reopen", httpContent);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket reopened successfully";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to reopen ticket";
-                }
-
-                return RedirectToAction(nameof(Details), new { id });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reopening ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-        }
-
-        /// <summary>
-        /// Mark In Progress
-        /// POST: /Ticket/InProgress/{id}
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> InProgress(int id)
-        {
-            try
-            {
-                SetAuthorizationHeader();
+        public Task<IActionResult> StartTesting(int id, string? remarks = null)
+            => ChangeStatus(id, "InTesting", remarks);
 
-                var response = await _client.PutAsync($"api/Ticket/{id}/inprogress", null);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket marked as In Progress";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to update status";
-                }
-
-                return RedirectToAction(nameof(Details), new { id });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error marking ticket in progress");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-        }
-
-        /// <summary>
-        /// Mark as Blocked
-        /// POST: /Ticket/Block/{id}
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Block(int id, string? remarks)
-        {
-            try
-            {
-                SetAuthorizationHeader();
+        public Task<IActionResult> Resolve(int id, string? remarks = null)
+            => ChangeStatus(id, "Resolved", remarks);
 
-                var json = JsonSerializer.Serialize(remarks ?? "Ticket blocked");
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+        [HttpPost]
+        public Task<IActionResult> Close(int id, string? remarks = null)
+            => ChangeStatus(id, "Closed", remarks);
 
-                var response = await _client.PutAsync($"api/Ticket/{id}/block", httpContent);
+        [HttpPost]
+        public Task<IActionResult> Reopen(int id, string? remarks = null)
+            => ChangeStatus(id, "Reopened", remarks);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket marked as blocked";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to block ticket";
-                }
+        [HttpPost]
+        public Task<IActionResult> PutOnHold(int id, string? remarks = null)
+            => ChangeStatus(id, "OnHold", remarks);
 
-                return RedirectToAction(nameof(Details), new { id });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error blocking ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-        }
+        [HttpPost]
+        public Task<IActionResult> Cancel(int id, string? remarks = null)
+            => ChangeStatus(id, "Cancelled", remarks);
 
         #endregion
 
-        #region ASSIGN TICKET
+        #region ASSIGN
 
-        /// <summary>
-        /// Assign Ticket to Developer
-        /// POST: /Ticket/Assign
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> Assign(int ticketId, int assignedTo, string? remarks)
         {
             try
             {
-                SetAuthorizationHeader();
-
-                var requestData = new
+                var (success, _) = await CallApiPutAsync("api/Ticket/assign", new
                 {
                     ticketId,
                     assignedTo,
                     remarks
-                };
+                });
 
-                var json = JsonSerializer.Serialize(requestData);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _client.PutAsync("api/Ticket/assign", httpContent);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Ticket assigned successfully";
-                }
-                else
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    TempData["Error"] = $"Failed to assign ticket: {content}";
-                }
+                TempData[success ? "Success" : "Error"] =
+                    success ? "✅ Ticket assigned!" : "Failed to assign";
 
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error assigning ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
         }
 
         #endregion
 
-        #region COMMENT OPERATIONS
+        #region COMMENTS
 
-        /// <summary>
-        /// Add Comment to Ticket
-        /// POST: /Ticket/AddComment
-        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> AddComment(int ticketId, string comment)
+        public async Task<IActionResult> AddComment(int ticketId, string comment, bool isInternal = false)
         {
             try
             {
-                SetAuthorizationHeader();
-
-                var requestData = new
+                var (success, _) = await CallApiPostAsync("api/Ticket/comment", new
                 {
                     ticketId,
-                    comment
-                };
+                    comment,
+                    isInternal
+                });
 
-                var json = JsonSerializer.Serialize(requestData);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
+                // AJAX response
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success });
 
-                var response = await _client.PostAsync("api/Ticket/comment", httpContent);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Comment added successfully";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to add comment";
-                }
+                TempData[success ? "Success" : "Error"] =
+                    success ? "💬 Comment added!" : "Failed to add comment";
 
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding comment");
-                TempData["Error"] = $"Error: {ex.Message}";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = ex.Message });
+
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
         }
 
         #endregion
 
-        #region ATTACHMENT OPERATIONS
+        #region ATTACHMENTS
 
-        /// <summary>
-        /// Upload Attachment
-        /// POST: /Ticket/UploadAttachment
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> UploadAttachment(int ticketId, IFormFile file)
         {
@@ -752,140 +524,208 @@ namespace EmployeeManagement.UI.Controllers
             {
                 if (file == null || file.Length == 0)
                 {
-                    TempData["Error"] = "Please select a file to upload";
+                    TempData["Error"] = "Please select a file";
                     return RedirectToAction(nameof(Details), new { id = ticketId });
                 }
 
-                SetAuthorizationHeader();
-
-                using var content = new MultipartFormDataContent();
-                content.Add(new StringContent(ticketId.ToString()), "ticketId");
-
-                var fileContent = new StreamContent(file.OpenReadStream());
-                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                content.Add(fileContent, "file", file.FileName);
-
-                var response = await _client.PostAsync("api/Ticket/attachment/upload", content);
-
-                if (response.IsSuccessStatusCode)
+                if (file.Length > 10 * 1024 * 1024)
                 {
-                    TempData["Success"] = "File uploaded successfully";
+                    TempData["Error"] = "File must be under 10MB";
+                    return RedirectToAction(nameof(Details), new { id = ticketId });
                 }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    TempData["Error"] = $"Failed to upload file: {errorContent}";
-                }
+
+                SetAuth();
+
+                using var formContent = new MultipartFormDataContent();
+                formContent.Add(new StringContent(ticketId.ToString()), "ticketId");
+
+                var fileStream = new StreamContent(file.OpenReadStream());
+                fileStream.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                formContent.Add(fileStream, "file", file.FileName);
+
+                var response = await _client.PostAsync("api/Ticket/attachment", formContent);
+
+                TempData[response.IsSuccessStatusCode ? "Success" : "Error"] =
+                    response.IsSuccessStatusCode ? "📎 File uploaded!" : "Upload failed";
 
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error uploading attachment");
-                TempData["Error"] = $"Error: {ex.Message}";
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
         }
 
-        /// <summary>
-        /// Download Attachment
-        /// GET: /Ticket/DownloadAttachment/{attachmentId}
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> DownloadAttachment(int attachmentId)
         {
             try
             {
-                SetAuthorizationHeader();
-
+                SetAuth();
                 var response = await _client.GetAsync($"api/Ticket/attachment/{attachmentId}/download");
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    TempData["Error"] = "File not found";
-                    return RedirectToAction(nameof(MyTickets));
-                }
+                if (!response.IsSuccessStatusCode) return NotFound();
 
-                var fileBytes = await response.Content.ReadAsByteArrayAsync();
-                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "attachment";
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "file";
                 var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
 
-                return File(fileBytes, contentType, fileName);
+                return File(bytes, contentType, fileName);
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError(ex, "Error downloading attachment");
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction(nameof(MyTickets));
+                return NotFound();
             }
         }
 
-        /// <summary>
-        /// Delete Attachment
-        /// POST: /Ticket/DeleteAttachment/{attachmentId}
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> DeleteAttachment(int attachmentId, int ticketId)
         {
             try
             {
-                SetAuthorizationHeader();
-
+                SetAuth();
                 var response = await _client.DeleteAsync($"api/Ticket/attachment/{attachmentId}");
 
-                if (response.IsSuccessStatusCode)
-                {
-                    TempData["Success"] = "Attachment deleted successfully";
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to delete attachment";
-                }
+                TempData[response.IsSuccessStatusCode ? "Success" : "Error"] =
+                    response.IsSuccessStatusCode ? "Attachment deleted" : "Failed to delete";
 
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting attachment");
-                TempData["Error"] = $"Error: {ex.Message}";
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id = ticketId });
             }
         }
 
         #endregion
 
-        #region DELETE TICKET
+        #region DELETE
 
-        /// <summary>
-        /// Delete Ticket
-        /// POST: /Ticket/Delete/{id}
-        /// </summary>
         [HttpPost]
-        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                SetAuthorizationHeader();
-
-                var response = await _client.DeleteAsync($"api/Ticket/{id}");
-
-                if (response.IsSuccessStatusCode)
+                if (UserRole != "Admin")
                 {
-                    TempData["Success"] = "Ticket deleted successfully";
-                    return RedirectToAction(nameof(MyTickets));
-                }
-                else
-                {
-                    TempData["Error"] = "Failed to delete ticket";
+                    TempData["Error"] = "Only Admin can delete tickets";
                     return RedirectToAction(nameof(Details), new { id });
                 }
+
+                SetAuth();
+                var response = await _client.DeleteAsync($"api/Ticket/{id}");
+
+                TempData[response.IsSuccessStatusCode ? "Success" : "Error"] =
+                    response.IsSuccessStatusCode ? "🗑️ Ticket deleted" : "Failed to delete";
+
+                return response.IsSuccessStatusCode
+                    ? RedirectToAction(nameof(MyTickets))
+                    : RedirectToAction(nameof(Details), new { id });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting ticket");
-                TempData["Error"] = $"Error: {ex.Message}";
+                TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        #endregion
+
+        #region BULK OPERATIONS
+
+        [HttpPost]
+        public async Task<IActionResult> BulkAssign(List<int> ticketIds, int assignedTo)
+        {
+            try
+            {
+                if (!ticketIds.Any())
+                    return Json(new { success = false, message = "No tickets selected" });
+
+                SetAuth();
+                int ok = 0, fail = 0;
+
+                foreach (var id in ticketIds)
+                {
+                    var (success, _) = await CallApiPutAsync("api/Ticket/assign", new
+                    {
+                        ticketId = id,
+                        assignedTo,
+                        remarks = "Bulk assignment"
+                    });
+                    if (success) ok++; else fail++;
+                }
+
+                return Json(new { success = true, message = $"Assigned: {ok}, Failed: {fail}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> BulkStatusChange(List<int> ticketIds, string newStatus, string? remarks)
+        {
+            try
+            {
+                if (!ticketIds.Any())
+                    return Json(new { success = false, message = "No tickets selected" });
+
+                SetAuth();
+                int ok = 0, fail = 0;
+
+                foreach (var id in ticketIds)
+                {
+                    var (success, _) = await CallApiPutAsync("api/Ticket/status", new
+                    {
+                        ticketId = id,
+                        newStatus,
+                        remarks
+                    });
+                    if (success) ok++; else fail++;
+                }
+
+                return Json(new { success = true, message = $"Updated: {ok}, Failed: {fail}" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
+
+        #region AJAX
+
+        [HttpGet]
+        public async Task<IActionResult> GetTicketCount()
+        {
+            try
+            {
+                SetAuth();
+                var url = UserRole is "Admin" or "Manager"
+                    ? "api/Ticket/list?status=New&pageSize=1"
+                    : $"api/Ticket/list?assignedTo={UserId}&pageSize=1";
+
+                var response = await _client.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
+
+                    if (result.TryGetProperty("data", out var data) &&
+                        data.TryGetProperty("totalRecords", out var total))
+                    {
+                        return Json(new { count = total.GetInt32() });
+                    }
+                }
+                return Json(new { count = 0 });
+            }
+            catch
+            {
+                return Json(new { count = 0 });
             }
         }
 

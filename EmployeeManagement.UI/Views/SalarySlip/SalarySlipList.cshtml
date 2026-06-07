@@ -1,210 +1,135 @@
-﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.EmployeePayrollDetailResponse>
-
+﻿@model IEnumerable<EmployeeManagement.UI.Models.EmployeePayrollDetailResponse>
 @{
-    ViewData["Title"] = "Salary Slip Register | वेतन पावती नोंदवही";
-    var cycleSummary = ViewBag.CycleSummary as EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse;
+    ViewData["Title"] = "Salary Slip Management";
+    int cycleId = ViewBag.CycleId;
+    string cycleName = ViewBag.CycleName ?? "Cycle #" + cycleId;
 }
 
-<div class="container-fluid mt-4 pb-5">
-
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>📑 Salary Slip List: @cycleName</h3>
         <div>
-            <h2 class="fw-bold mb-1">
-                <i class="fas fa-list-alt text-primary me-2"></i>
-                Salary Slip Register
-            </h2>
-            <p class="text-muted mb-0">
-                @ViewBag.CycleName | वेतन पावती नोंदवही
-            </p>
-        </div>
-
-        <div class="d-flex gap-2">
-            <a asp-controller="Payroll"
-               asp-action="CycleSummary"
-               asp-route-cycleId="@ViewBag.CycleId"
-               class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left me-1"></i>Back to Cycle
-            </a>
+            <a asp-action="EmailStatus" asp-route-cycleId="@cycleId" class="btn btn-warning">📧 Check Email Status</a>
+            <a asp-action="GenerateSalarySlips" asp-route-cycleId="@cycleId" class="btn btn-primary">✨ Generate Slips</a>
         </div>
     </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">
-            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-        </div>
-    }
-
-    <!-- SUMMARY -->
-    @if (cycleSummary != null)
-    {
-        <div class="row g-3 mb-4">
-
-            <div class="col-md-3">
-                <div class="card bg-primary text-white shadow-sm">
-                    <div class="card-body text-center">
-                        <div>Total Employees</div>
-                        <h4>@cycleSummary.TotalEmployees</h4>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <!-- Toolbar -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="btn-group">
+                        <button id="btnSelectAll" class="btn btn-outline-secondary">Select All</button>
+                        <button id="btnSendSelected" class="btn btn-success" disabled onclick="sendSelectedEmails()">📧 Send Selected</button>
+                        <button id="btnSendAll" class="btn btn-danger" onclick="sendAllEmails()">📤 Send To All</button>
                     </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span id="selectedCount" class="badge bg-info text-dark">0 Selected</span>
                 </div>
             </div>
 
-            <div class="col-md-3">
-                <div class="card bg-success text-white shadow-sm">
-                    <div class="card-body text-center">
-                        <div>Total Net Pay</div>
-                        <h5>₹ @cycleSummary.TotalNetSalary.ToString("N0")</h5>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card bg-info text-white shadow-sm">
-                    <div class="card-body text-center">
-                        <div>Emails Sent</div>
-                        <h4>@Model.Count(x => x.PaymentStatus == "Sent") / @Model.Count()</h4>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="card bg-warning text-dark shadow-sm">
-                    <div class="card-body text-center">
-                        <div>Processed</div>
-                        <h4>@Model.Count() / @Model.Count()</h4>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    }
-
-    <!-- TABLE -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-
-                    <thead class="table-dark">
-                        <tr>
-                            <th></th>
-                            <th>Emp Code</th>
-                            <th>Employee</th>
-                            <th class="text-end">Gross</th>
-                            <th class="text-end">Deductions</th>
-                            <th class="text-end">Net Pay</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Email</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @foreach (var emp in Model)
+            <!-- Grid -->
+            <table class="table table-striped table-hover" id="slipTable">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="masterCheckbox"></th>
+                        <th>Emp Code</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Net Salary</th>
+                        <th>Slip Status</th>
+                        <th>Email Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
                         {
-                            <tr class="emp-row"
-                                data-name="@emp.EmployeeName?.ToLower()"
-                                data-code="@emp.EmployeeCode?.ToLower()">
-
-                                <!-- Checkbox -->
+                            <tr>
+                                <td><input type="checkbox" class="row-check" value="@item.PayrollProcessingId"></td>
+                                <td>@item.EmployeeCode</td>
+                                <td>@item.EmployeeName</td>
+                                <td>@item.DepartmentName</td>
+                                <td class="fw-bold">₹ @((item.NetSalary ?? 0m).ToString("N2", System.Globalization.CultureInfo.InvariantCulture))</td>
+                                <td><span class="badge bg-primary">Generated</span></td>
+                                <td><span class="badge bg-secondary">Pending</span></td>
                                 <td>
-                                    <input type="checkbox"
-                                           class="form-check-input slip-checkbox"
-                                           value="@emp.PayrollProcessingId" />
+                                    <a href="#" class="btn btn-sm btn-outline-info" onclick="viewSlip(@item.PayrollProcessingId)">👁️</a>
+                                    <a href="#" class="btn btn-sm btn-outline-danger" onclick="downloadSlip(@item.PayrollProcessingId)">📥</a>
                                 </td>
-
-                                <!-- Code -->
-                                <td>
-                                    <span class="badge bg-light text-dark border">
-                                        @emp.EmployeeCode
-                                    </span>
-                                </td>
-
-                                <!-- Name -->
-                                <td>
-                                    <div class="fw-semibold">@emp.EmployeeName</div>
-                                    <small class="text-muted">@emp.Department</small>
-                                </td>
-
-                                <!-- Gross -->
-                                <td class="text-end text-success fw-semibold">
-                                    @emp.GrossSalary.ToString("N2")
-                                </td>
-
-                                <!-- Deductions -->
-                                <td class="text-end text-danger fw-semibold">
-                                    @emp.TotalDeductions.ToString("N2")
-                                </td>
-
-                                <!-- Net -->
-                                <td class="text-end text-primary fw-bold">
-                                    ₹ @emp.NetSalary.ToString("N2")
-                                </td>
-
-                                <!-- Status -->
-                                <td class="text-center">
-                                    @if (emp.PaymentStatus == "Processed")
-                                    {
-                                        <span class="badge bg-success">Processed</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Pending</span>
-                                    }
-                                </td>
-
-                                <!-- Email -->
-                                <td class="text-center">
-                                    @if (emp.PaymentStatus == "Sent")
-                                    {
-                                        <span class="badge bg-info text-dark">Sent</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-light text-muted border">Pending</span>
-                                    }
-                                </td>
-
-                                <!-- Actions -->
-                                <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-
-                                        <a asp-action="ViewSalarySlip"
-                                           asp-route-slipId="@emp.PayrollProcessingId"
-                                           class="btn btn-outline-primary"
-                                           target="_blank">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-
-                                        <a asp-action="DownloadSalarySlip"
-                                           asp-route-slipId="@emp.PayrollProcessingId"
-                                           class="btn btn-outline-danger">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </a>
-
-                                    </div>
-                                </td>
-
                             </tr>
                         }
-                    </tbody>
-
-                </table>
-            </div>
-
+                    }
+                    else
+                    {
+                        <tr><td colspan="8" class="text-center">No records found for this cycle.</td></tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
-<!-- JS (minimal fix only) -->
-<script>
-    $(document).ready(function () {
-
-        $('#masterCheck').change(function () {
-            $('.slip-checkbox').prop('checked', $(this).is(':checked'));
+<!-- JavaScript for Bulk Logic -->
+@section Scripts {
+    <script>
+        // 1. Checkbox Logic
+        $('#masterCheckbox').on('change', function() {
+            $('.row-check').prop('checked', this.checked);
+            updateSelection();
         });
+        $('.row-check').on('change', updateSelection);
 
-    });
-</script>
+        function updateSelection() {
+            var count = $('.row-check:checked').length;
+            $('#selectedCount').text(count + ' Selected');
+            $('#btnSendSelected').prop('disabled', count === 0);
+            $('#masterCheckbox').prop('checked', count === $('.row-check').length && count > 0);
+        }
+
+        // 2. Send Selected
+        function sendSelectedEmails() {
+            var ids = [];
+            $('.row-check:checked').each(function() { ids.push($(this).val()); });
+            sendEmailRequest(ids);
+        }
+
+        // 3. Send All
+        function sendAllEmails() {
+            if(!confirm("Are you sure you want to send emails to ALL employees in this cycle?")) return;
+            sendEmailRequest([]); // Empty array triggers backend logic for "All"
+        }
+
+        // 4. AJAX Call
+        function sendEmailRequest(slipIds) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            $.ajax({
+                url: '@Url.Action("SendSalarySlipsEmail")',
+                type: 'POST',
+                data: {
+                    cycleId: @cycleId,
+                    slipIds: slipIds,
+                    __RequestVerificationToken: token
+                },
+                success: function(res) {
+                    if(res.success) {
+                        alert(res.message);
+                        window.location.href = res.redirectUrl || window.location.href;
+                    } else {
+                        alert("Error: " + res.message);
+                    }
+                },
+                error: function() { alert("Server Error!"); }
+            });
+        }
+
+        // Helpers
+        function viewSlip(id) { window.open('/SalarySlip/ViewSalarySlip?slipId=' + id, '_blank'); }
+        function downloadSlip(id) { window.location.href = '/SalarySlip/DownloadSalarySlip?slipId=' + id; }
+    </script>
+}

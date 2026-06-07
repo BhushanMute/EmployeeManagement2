@@ -2,8 +2,12 @@
 {
     public class SlipComponentResponse
     {
-        public string ComponentName { get; set; } = string.Empty;
+        public int ComponentId { get; set; }
+        public string? ComponentName { get; set; }
+        public string? ComponentCode { get; set; }
         public decimal Amount { get; set; }
-        public int DisplayOrder { get; set; }
+        public string? ComponentType { get; set; }
+        public int? DisplayOrder { get; set; }
+        public bool IsTaxable { get; set; }
     }
 }

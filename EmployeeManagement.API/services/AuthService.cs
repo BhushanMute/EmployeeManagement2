@@ -120,6 +120,12 @@ namespace EmployeeManagement.API.Services
 
         public async Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request, int? createdBy = null)
         {
+            var isAdminCreated = createdBy.HasValue;
+            if (isAdminCreated && (!request.RoleId.HasValue || request.RoleId.Value <= 0))
+            {
+                return ApiResponse<AuthResponse>.Fail("Role is required when an admin creates a user");
+            }
+
             // Hash password
             var (hash, salt) = _passwordService.HashPassword(request.Password);
 
@@ -135,7 +141,10 @@ namespace EmployeeManagement.API.Services
             };
 
             // Register user
-            var (userId, message) = await _authRepository.RegisterUserAsync(user, request.RoleId, createdBy);
+            var (userId, message) = await _authRepository.RegisterUserAsync(
+                user,
+                isAdminCreated ? request.RoleId : null,
+                createdBy);
 
             if (userId == 0)
             {
@@ -143,6 +152,21 @@ namespace EmployeeManagement.API.Services
             }
 
             user.Id = userId;
+
+            if (!isAdminCreated)
+            {
+                var pendingResponse = new AuthResponse
+                {
+                    UserId = userId,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = $"{user.FirstName} {user.LastName}"
+                };
+
+                return ApiResponse<AuthResponse>.Success(
+                    pendingResponse,
+                    "Registration submitted successfully. Admin approval and role assignment are required before login.");
+            }
 
             // Get roles and permissions
             var roles = await _authRepository.GetRolesAsync(userId);

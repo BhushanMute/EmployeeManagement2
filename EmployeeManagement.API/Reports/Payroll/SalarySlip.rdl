@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report MustUnderstand="df" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:df="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition/defaultfontfamily">
+  <df:DefaultFontFamily>Segoe UI</df:DefaultFontFamily>
+  <AutoRefresh>0</AutoRefresh>
+  
+  <!-- 1. Data Source Configuration (Embedded) -->
+  <DataSources>
+    <DataSource Name="DataSource1">
+      <ConnectionProperties>
+        <DataProvider>SQL</DataProvider>
+        <ConnectString>Data Source=localhost;Initial Catalog=EmployeeDb;Integrated Security=True</ConnectString>
+      </ConnectionProperties>
+      <rd:SecurityType>Integrated</rd:SecurityType>
+      <rd:DataSourceID>2fcae3d5-6401-435f-9889-4a00cf142ab3</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+
+  <!-- 2. Dataset with Extended Fields for Bank & Components -->
+  <DataSets>
+    <DataSet Name="DataSet1">
+      <Query>
+        <DataSourceName>DataSource1</DataSourceName>
+        <CommandType>Text</CommandType>
+        <CommandText>
+          SELECT 
+              ss.SlipNumber, e.EmployeeCode, e.Name as EmployeeName, e.Designation, 
+              e.JoiningDate, e.PAN, e.UAN, 
+              d.DepartmentName,
+              pc.Month, pc.Year,
+              pp.BasicSalary, pp.GrossSalary, pp.TotalDeductions, pp.NetSalary,
+              pp.TotalWorkingDays, pp.PresentDays, pp.LOPDays, pp.PaidLeaveDays,
+              c.CompanyName, c.Address as CompanyAddress, c.Phone, c.Email,
+              bd.BankName, bd.AccountNumber, bd.IFSCCode,
+              -- Placeholders for Component Breakdown (Update SP to select these if needed)
+              pp.PFEmployee as PF, pp.ESIEmployee as ESIC, pp.ProfessionalTax as PT, pp.TDS,
+              0 as HRA, 0 as Conveyance, 0 as Medical, 0 as SpecialAllowance
+          FROM SalarySlips ss
+          JOIN PayrollProcessing pp ON ss.PayrollProcessingId = pp.Id
+          JOIN Employees e ON ss.EmployeeId = e.Id
+          JOIN PayrollCycle pc ON pp.PayrollCycleId = pc.Id
+          LEFT JOIN Departments d ON e.DepartmentId = d.Id
+          LEFT JOIN EmployeeBankDetails bd ON e.Id = bd.EmployeeId AND bd.IsPrimaryAccount = 1
+          CROSS JOIN CompanyMaster c
+          WHERE ss.Id = @SlipId
+        </CommandText>
+        <QueryParameters>
+          <QueryParameter Name="@SlipId">
+            <Value>=Parameters!SlipId.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+      <Fields>
+        <Field Name="SlipNumber"><DataField>SlipNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="EmployeeCode"><DataField>EmployeeCode</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="EmployeeName"><DataField>EmployeeName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Designation"><DataField>Designation</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="JoiningDate"><DataField>JoiningDate</DataField><rd:TypeName>System.DateTime</rd:TypeName></Field>
+        <Field Name="PAN"><DataField>PAN</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="UAN"><DataField>UAN</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="DepartmentName"><DataField>DepartmentName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Month"><DataField>Month</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="Year"><DataField>Year</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="BasicSalary"><DataField>BasicSalary</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="GrossSalary"><DataField>GrossSalary</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TotalDeductions"><DataField>TotalDeductions</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="NetSalary"><DataField>NetSalary</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TotalWorkingDays"><DataField>TotalWorkingDays</DataField><rd:TypeName>System.Int32</rd:TypeName></Field>
+        <Field Name="PresentDays"><DataField>PresentDays</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="LOPDays"><DataField>LOPDays</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="PaidLeaveDays"><DataField>PaidLeaveDays</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="CompanyName"><DataField>CompanyName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="CompanyAddress"><DataField>CompanyAddress</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Phone"><DataField>Phone</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="Email"><DataField>Email</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="BankName"><DataField>BankName</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="AccountNumber"><DataField>AccountNumber</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="IFSCCode"><DataField>IFSCCode</DataField><rd:TypeName>System.String</rd:TypeName></Field>
+        <Field Name="PF"><DataField>PF</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="ESIC"><DataField>ESIC</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="PT"><DataField>PT</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="TDS"><DataField>TDS</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="HRA"><DataField>HRA</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Conveyance"><DataField>Conveyance</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="Medical"><DataField>Medical</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+        <Field Name="SpecialAllowance"><DataField>SpecialAllowance</DataField><rd:TypeName>System.Decimal</rd:TypeName></Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+
+  <!-- 3. Parameters -->
+  <ReportParameters>
+    <ReportParameter Name="SlipId">
+      <DataType>Integer</DataType>
+      <Prompt>Enter Slip ID</Prompt>
+    </ReportParameter>
+  </ReportParameters>
+
+  <!-- 4. Report Layout (Body) -->
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          
+          <!-- Header Section -->
+          <Textbox Name="txtCompanyHeader">
+            <Top>0.2cm</Top>
+            <Left>0.5cm</Left>
+            <Width>18cm</Width>
+            <Height>1.5cm</Height>
+            <CanGrow>true</CanGrow>
+            <Value>="   " &amp; First(Fields!CompanyName.Value, "DataSet1") &amp; vbCRLF &amp; First(Fields!CompanyAddress.Value, "DataSet1")</Value>
+            <Style>
+              <FontSize>18pt</FontSize>
+              <FontWeight>Bold</FontWeight>
+              <TextAlign>Center</TextAlign>
+              <Color>SteelBlue</Color>
+            </Style>
+          </Textbox>
+
+          <!-- Employee Info Box -->
+          <Rectangle Name="RectEmpInfo">
+            <Top>2.2cm</Top>
+            <Left>0.5cm</Left>
+            <Width>18cm</Width>
+            <Height>2.5cm</Height>
+            <ReportItems>
+              <!-- Left Column: Emp Details -->
+              <Textbox Name="txtEmpDetails">
+                <Left>0.2cm</Left>
+                <Top>0.2cm</Top>
+                <Width>8cm</Width>
+                <Height>2cm</Height>
+                <Value>="Employee: " &amp; First(Fields!EmployeeName.Value, "DataSet1") &amp; vbCrLf &amp; "Code: " &amp; First(Fields!EmployeeCode.Value, "DataSet1") &amp; vbCrLf &amp; "Dept: " &amp; First(Fields!DepartmentName.Value, "DataSet1") &amp; vbCrLf &amp; "Designation: " &amp; First(Fields!Designation.Value, "DataSet1")</Value>
+                <Style><FontSize>10pt</FontSize><PaddingLeft>2pt</PaddingLeft></Style>
+              </Textbox>
+              
+              <!-- Right Column: Bank & Statutory -->
+              <Textbox Name="txtBankDetails">
+                <Left>9cm</Left>
+                <Top>0.2cm</Top>
+                <Width>8cm</Width>
+                <Height>2cm</Height>
+                <Value>="PAN: " &amp; First(Fields!PAN.Value, "DataSet1") &amp; vbCrLf &amp; "UAN: " &amp; First(Fields!UAN.Value, "DataSet1") &amp; vbCrLf &amp; "Bank: " &amp; First(Fields!BankName.Value, "DataSet1") &amp; vbCrLf &amp; "A/C: " &amp; "XXXX" &amp; Right(First(Fields!AccountNumber.Value, "DataSet1"), 4)</Value>
+                <Style><FontSize>10pt</FontSize><PaddingLeft>2pt</PaddingLeft></Style>
+              </Textbox>
+            </ReportItems>
+            <Style><BorderStyle><Default>Solid</Default></BorderStyle></Style>
+          </Rectangle>
+
+          <!-- Main Salary Table -->
+          <Tablix Name="TablixSalary">
+            <TablixBody>
+              <TablixColumns>
+                <TablixColumn><Width>4cm</Width></TablixColumn>
+                <TablixColumn><Width>2cm</Width></TablixColumn>
+                <TablixColumn><Width>0.5cm</Width></TablixColumn>
+                <TablixColumn><Width>4cm</Width></TablixColumn>
+                <TablixColumn><Width>2cm</Width></TablixColumn>
+              </TablixColumns>
+              <TablixRows>
+                <!-- Header Row -->
+                <TablixRow><Height>0.6cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtHeadEarn"><Value>EARNINGS</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Center</TextAlign><BackgroundColor>LightGray</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtHeadAmt"><Value>AMOUNT</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Center</TextAlign><BackgroundColor>LightGray</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSpacer"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtHeadDed"><Value>DEDUCTIONS</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Center</TextAlign><BackgroundColor>LightGray</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtHeadDedAmt"><Value>AMOUNT</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Center</TextAlign><BackgroundColor>LightGray</BackgroundColor></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+                
+                <!-- Row 1: Basic | PF -->
+                <TablixRow><Height>0.5cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtLblBasic"><Value>Basic Salary</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValBasic"><Value>=First(Fields!BasicSalary.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSp1"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtLblPF"><Value>PF (Employee)</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValPF"><Value>=First(Fields!PF.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+
+                <!-- Row 2: HRA | ESIC -->
+                <TablixRow><Height>0.5cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtLblHRA"><Value>HRA</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValHRA"><Value>=First(Fields!HRA.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSp2"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtLblESIC"><Value>ESIC</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValESIC"><Value>=First(Fields!ESIC.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+
+                <!-- Row 3: Special | PT -->
+                <TablixRow><Height>0.5cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtLblSpec"><Value>Special Allowance</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValSpec"><Value>=First(Fields!SpecialAllowance.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSp3"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtLblPT"><Value>Professional Tax</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValPT"><Value>=First(Fields!PT.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+
+                 <!-- Row 4: Gross | TDS -->
+                 <TablixRow><Height>0.5cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtLblGross"><Value>Gross Earnings</Value><Style><FontWeight>Bold</FontWeight></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValGross"><Value>=First(Fields!GrossSalary.Value, "DataSet1")</Value><Style><FontWeight>Bold</FontWeight><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSp4"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtLblTDS"><Value>TDS / Income Tax</Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtValTDS"><Value>=First(Fields!TDS.Value, "DataSet1")</Value><Style><Format>C2</Format></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+
+                <!-- Total Row -->
+                <TablixRow><Height>0.7cm</Height>
+                  <TablixCells>
+                    <TablixCell><CellContents><Textbox Name="txtTotalDedLbl"><Value>Total Deductions</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Right</TextAlign><Color>Red</Color></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtTotalDedVal"><Value>=First(Fields!TotalDeductions.Value, "DataSet1")</Value><Style><FontWeight>Bold</FontWeight><Format>C2</Format><Color>Red</Color></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtSp5"><Value></Value></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtNetLbl"><Value>NET PAY</Value><Style><FontWeight>Bold</FontWeight><TextAlign>Center</TextAlign><Color>Green</Color></Style></Textbox></CellContents></TablixCell>
+                    <TablixCell><CellContents><Textbox Name="txtNetVal"><Value>=First(Fields!NetSalary.Value, "DataSet1")</Value><Style><FontWeight>Bold</FontWeight><Format>C2</Format><Color>Green</Color></Style></Textbox></CellContents></TablixCell>
+                  </TablixCells>
+                </TablixRow>
+              </TablixRows>
+            </TablixBody>
+            <TablixColumnHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixColumnHierarchy>
+            <TablixRowHierarchy><TablixMembers><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/><TablixMember/></TablixMembers></TablixRowHierarchy>
+            <Top>5cm</Top>
+            <Left>0.5cm</Left>
+            <Width>18cm</Width>
+            <DataSetName>DataSet1</DataSetName>
+            <Style><BorderStyle><Default>Solid</Default></BorderStyle></Style>
+          </Tablix>
+
+          <!-- Footer: Attendance & Net in Words -->
+          <Textbox Name="txtFooterInfo">
+            <Top>12cm</Top>
+            <Left>0.5cm</Left>
+            <Width>18cm</Width>
+            <Height>2cm</Height>
+            <Value>="Working Days: " &amp; First(Fields!TotalWorkingDays.Value, "DataSet1") &amp; " | Present: " &amp; First(Fields!PresentDays.Value, "DataSet1") &amp; " | LOP: " &amp; First(Fields!LOPDays.Value, "DataSet1") &amp; vbCrLf &amp; "Net Pay in Words: " &amp; "Rupees Only (System Generated)"</Value>
+            <Style><FontSize>9pt</FontSize><PaddingTop>5pt</PaddingTop></Style>
+          </Textbox>
+
+          <Textbox Name="txtDisclaimer">
+            <Top>14.5cm</Top>
+            <Left>0.5cm</Left>
+            <Width>18cm</Width>
+            <Value>This is a computer-generated salary slip and does not require a signature.</Value>
+            <Style><FontSize>8pt</FontSize><TextAlign>Center</TextAlign><Color>Gray</Color></Style>
+          </Textbox>
+
+        </ReportItems>
+        <Height>15cm</Height>
+        <Style />
+      </Body>
+      <Width>19cm</Width>
+      <Page>
+        <LeftMargin>1cm</LeftMargin>
+        <RightMargin>1cm</RightMargin>
+        <TopMargin>1cm</TopMargin>
+        <BottomMargin>1cm</BottomMargin>
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <rd:ReportUnitType>Cm</rd:ReportUnitType>
+  <rd:ReportID>da740d2f-42f6-48ff-baf9-82a1d0840fc1</rd:ReportID>
+</Report>

@@ -7,8 +7,15 @@ namespace EmployeeManagement.API.Models.Ticket
         [Required]
         public int TicketId { get; set; }
 
-        [Required(ErrorMessage = "Comment is required")]
-        [StringLength(5000, MinimumLength = 1, ErrorMessage = "Comment must be between 1 and 5000 characters")]
-        public string Comment { get; set; } = string.Empty;
+        [Required]
+        [MinLength(1, ErrorMessage = "Comment cannot be empty")]
+        [MaxLength(5000, ErrorMessage = "Comment too long")]
+        public string Comment { get; set; } = "";
+
+        // ✅ NEW: For internal notes (visible only to staff, not creator)
+        public bool IsInternal { get; set; } = false;
+
+        // ✅ Optional: For threaded replies
+        public int? ParentCommentId { get; set; }
     }
 }

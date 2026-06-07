@@ -46,3 +46,57 @@ button.accept-policy {
   white-space: nowrap;
   line-height: 60px;
 }
+/* ===== Leave Nav Special Styling ===== */
+.nav-leave .nav-link {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+    .nav-leave .nav-link:hover {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+    }
+
+    .nav-leave .nav-link i {
+        color: #d97706 !important;
+    }
+
+/* Pending count badge animation */
+#pendingLeaveCount {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    animation: pulse 2s infinite;
+}
+
+@@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Active state for current action */
+.dropdown-item.active {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%) !important;
+    color: #4f46e5 !important;
+    font-weight: 600;
+}
+
+    .dropdown-item.active::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 70%;
+        background: #4f46e5;
+        border-radius: 0 4px 4px 0;
+    }
+
+.dropdown-item {
+    position: relative;
+}

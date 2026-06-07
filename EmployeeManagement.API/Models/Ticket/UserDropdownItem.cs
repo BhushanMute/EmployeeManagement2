@@ -3,8 +3,12 @@
     public class UserDropdownItem
     {
         public int UserId { get; set; }
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
         public string? Role { get; set; }
+        public string? DepartmentName { get; set; }
+        public string? DesignationName { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? ProfilePicture { get; set; }
     }
 }

@@ -1396,7 +1396,302 @@ namespace EmployeeManagement.UI.Controllers
                 return View("Apply", model);
             }
         }
+        /// <summary>
+        /// AJAX: Get pending leave count for badge
+        /// </summary>
+        //[HttpGet]
+        //public async Task<IActionResult> GetPendingCount()
+        //{
+        //    try
+        //    {
+        //        SetAuthorizationHeader();
+        //        var response = await _client.GetAsync("api/Leave/pending");
 
+        //        if (response.IsSuccessStatusCode)
+        //        {
+        //            var content = await response.Content.ReadAsStringAsync();
+        //            var result = JsonSerializer.Deserialize<ApiResponse<List<LeaveRequestViewModel>>>(
+        //                content, _jsonOptions);
+
+        //            return Json(new { count = result?.Data?.Count ?? 0 });
+        //        }
+
+        //        return Json(new { count = 0 });
+        //    }
+        //    catch
+        //    {
+        //        return Json(new { count = 0 });
+        //    }
+        //}
+
+        #region Missing Actions
+
+        /// <summary>
+        /// AJAX: Get pending leave count for navbar badge
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetPendingCount()
+        {
+            try
+            {
+                SetAuthorizationHeader();
+                var response = await _client.GetAsync("api/Leave/pending");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<ApiResponse<List<LeaveRequestViewModel>>>(
+                        content, _jsonOptions);
+
+                    return Json(new { count = result?.Data?.Count ?? 0 });
+                }
+                return Json(new { count = 0 });
+            }
+            catch
+            {
+                return Json(new { count = 0 });
+            }
+        }
+
+        /// <summary>
+        /// View Leave Request Details
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            try
+            {
+                SetAuthorizationHeader();
+
+                var response = await _client.GetAsync($"api/Leave/request/{id}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Leave request not found";
+                    return RedirectToAction(nameof(History));
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ApiResponse<LeaveRequestViewModel>>(
+                    content, _jsonOptions);
+
+                if (result?.Data == null)
+                {
+                    TempData["Error"] = "Leave request not found";
+                    return RedirectToAction(nameof(History));
+                }
+
+                ViewBag.ApiBaseUrl = _apiBaseUrl.TrimEnd('/');
+                return View(result.Data);
+            }
+            catch (Exception ex)
+            {
+                return HandleHttpError(ex, nameof(Details));
+            }
+        }
+
+        /// <summary>
+        /// Team History - Manager view
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> TeamHistory(int? year = null,
+            string? status = null, int? departmentId = null,
+            int pageNumber = 1, int pageSize = 20)
+        {
+            try
+            {
+                SetAuthorizationHeader();
+                var selectedYear = year ?? DateTime.Now.Year;
+
+                var url = $"api/Leave/all?pageNumber={pageNumber}&pageSize={pageSize}";
+                if (!string.IsNullOrEmpty(status)) url += $"&status={status}";
+                if (departmentId.HasValue) url += $"&departmentId={departmentId}";
+
+                var response = await _client.GetAsync(url);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Failed to load team history";
+                    return View(new PagedResultViewModel<LeaveRequestViewModel>());
+                }
+
+                var content = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<ApiResponse<PagedResultViewModel<LeaveRequestViewModel>>>(
+                    content, _jsonOptions);
+
+                ViewBag.SelectedYear = selectedYear;
+                ViewBag.SelectedStatus = status;
+                ViewBag.SelectedDepartmentId = departmentId;
+                ViewBag.CurrentPage = pageNumber;
+
+                return View(result?.Data ?? new PagedResultViewModel<LeaveRequestViewModel>());
+            }
+            catch (Exception ex)
+            {
+                return HandleHttpError(ex, nameof(TeamHistory));
+            }
+        }
+
+        /// <summary>
+        /// Bulk Approve Multiple Leave Requests
+        /// </summary>
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> BulkApprove(List<int> leaveIds, string? remarks = null)
+        //{
+        //    try
+        //    {
+        //        if (leaveIds == null || !leaveIds.Any())
+        //        {
+        //            return Json(new { success = false, message = "Please select at least one request" });
+        //        }
+
+        //        SetAuthorizationHeader();
+        //        int successCount = 0;
+        //        int failCount = 0;
+        //        var errors = new List<string>();
+
+        //        foreach (var leaveId in leaveIds)
+        //        {
+        //            try
+        //            {
+        //                var response = await _client.PostAsJsonAsync("api/Leave/approve",
+        //                    new { LeaveRequestId = leaveId, Remarks = remarks });
+
+        //                if (response.IsSuccessStatusCode) successCount++;
+        //                else
+        //                {
+        //                    failCount++;
+        //                    errors.Add($"Failed: ID {leaveId}");
+        //                }
+        //            }
+        //            catch
+        //            {
+        //                failCount++;
+        //            }
+        //        }
+
+        //        ClearLeaveCache();
+
+        //        return Json(new
+        //        {
+        //            success = true,
+        //            message = $"Approved: {successCount}, Failed: {failCount}",
+        //            successCount,
+        //            failCount
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return Json(new { success = false, message = ex.Message });
+        //    }
+        //}
+
+        #endregion
+
+        /// <summary>
+        /// Bulk Approve Multiple Leave Requests (AJAX)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkApprove(List<int> leaveIds, string? remarks = null)
+        {
+            try
+            {
+                if (leaveIds == null || !leaveIds.Any())
+                    return Json(new { success = false, message = "No leaves selected" });
+
+                SetAuthorizationHeader();
+                int successCount = 0;
+                int failCount = 0;
+                var errors = new List<string>();
+
+                foreach (var leaveId in leaveIds)
+                {
+                    try
+                    {
+                        var response = await _client.PostAsJsonAsync("api/Leave/approve",
+                            new { LeaveRequestId = leaveId, Remarks = remarks });
+
+                        if (response.IsSuccessStatusCode) successCount++;
+                        else
+                        {
+                            failCount++;
+                            errors.Add($"ID {leaveId}");
+                        }
+                    }
+                    catch
+                    {
+                        failCount++;
+                    }
+                }
+
+                ClearLeaveCache();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Approved: {successCount}, Failed: {failCount}",
+                    successCount,
+                    failCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Bulk Reject Multiple Leave Requests (AJAX)
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkReject(List<int> leaveIds, string? remarks = null)
+        {
+            try
+            {
+                if (leaveIds == null || !leaveIds.Any())
+                    return Json(new { success = false, message = "No leaves selected" });
+
+                if (string.IsNullOrWhiteSpace(remarks))
+                    return Json(new { success = false, message = "Remarks are required for rejection" });
+
+                SetAuthorizationHeader();
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var leaveId in leaveIds)
+                {
+                    try
+                    {
+                        var response = await _client.PostAsJsonAsync("api/Leave/reject",
+                            new { LeaveRequestId = leaveId, Remarks = remarks });
+
+                        if (response.IsSuccessStatusCode) successCount++;
+                        else failCount++;
+                    }
+                    catch
+                    {
+                        failCount++;
+                    }
+                }
+
+                ClearLeaveCache();
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Rejected: {successCount}, Failed: {failCount}",
+                    successCount,
+                    failCount
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
         #endregion
     }
 }

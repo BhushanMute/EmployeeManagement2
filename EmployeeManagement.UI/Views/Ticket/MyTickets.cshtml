@@ -1,202 +1,268 @@
 ﻿@{
     ViewData["Title"] = "My Tickets";
     var userRole = ViewBag.UserRole as string ?? "Employee";
+    var ticketsJson = ViewBag.TicketsJson as string ?? "{}";
     var selectedStatus = ViewBag.SelectedStatus as string;
 }
 
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2 class="mb-1">
-                <i class="bi bi-list-check text-primary"></i>
-                My Tickets
-            </h2>
-            <p class="text-muted">
-                @if (userRole == "QA")
-                {
-                    <span>Tickets created by you</span>
-                }
-                else if (userRole == "Developer")
-                {
-                    <span>Tickets assigned to you</span>
-                }
-                else
-                {
-                    <span>All tickets</span>
-                }
-            </p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="@Url.Action("Create", "Ticket")" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create Ticket
-            </a>
-            <a href="@Url.Action("Index", "Ticket")" class="btn btn-outline-secondary">
-                <i class="bi bi-speedometer2"></i> Dashboard
+@section Styles {
+    <style>
+        body {
+            background: #f0f2f5;
+        }
+
+        .my-hero {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 1.75rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-mini {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+            .stat-mini:hover {
+                transform: translateY(-3px);
+                border-color: #667eea;
+                color: inherit;
+                text-decoration: none;
+            }
+
+            .stat-mini.active {
+                border-color: #11998e;
+                background: linear-gradient(135deg, #d1fae5, #fff);
+            }
+
+        .stat-num {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .stat-name {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
+
+        .ticket-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: all 0.2s;
+            border-left: 4px solid #cbd5e0;
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+            .ticket-card:hover {
+                transform: translateX(5px);
+                box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+                color: inherit;
+                text-decoration: none;
+            }
+
+            .ticket-card.critical {
+                border-left-color: #ef4444;
+            }
+
+            .ticket-card.high {
+                border-left-color: #f97316;
+            }
+
+            .ticket-card.medium {
+                border-left-color: #eab308;
+            }
+
+            .ticket-card.low {
+                border-left-color: #22c55e;
+            }
+
+        .ticket-num {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        .empty-state {
+            background: white;
+            border-radius: 14px;
+            padding: 4rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+    </style>
+}
+
+<div class="container-fluid py-3 pb-5">
+
+    <!-- HERO -->
+    <div class="my-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    <i class="bi bi-person-badge me-2"></i>My Tickets
+                </h3>
+                <p class="mb-0 opacity-90">Tickets created by or assigned to you</p>
+            </div>
+            <a asp-action="Create" class="btn btn-light fw-bold">
+                <i class="bi bi-plus-circle me-1"></i>New Ticket
             </a>
         </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")"
-               href="@Url.Action("MyTickets")">
-                All
+    <!-- STATUS FILTERS -->
+    <div class="row g-2 mb-3">
+        <div class="col">
+            <a href="@Url.Action("MyTickets")"
+               class="stat-mini @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")">
+                <h4 class="stat-num text-primary" id="allCount">0</h4>
+                <div class="stat-name">All</div>
             </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(selectedStatus == "New" ? "active" : "")"
-               href="@Url.Action("MyTickets", new { status = "New" })">
-                New
+        </div>
+        <div class="col">
+            <a href="@Url.Action("MyTickets", new { status = "New" })"
+               class="stat-mini @(selectedStatus == "New" ? "active" : "")">
+                <h4 class="stat-num text-info" id="newCount">0</h4>
+                <div class="stat-name">New</div>
             </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(selectedStatus == "Assigned" ? "active" : "")"
-               href="@Url.Action("MyTickets", new { status = "Assigned" })">
-                Assigned
+        </div>
+        <div class="col">
+            <a href="@Url.Action("MyTickets", new { status = "InProgress" })"
+               class="stat-mini @(selectedStatus == "InProgress" ? "active" : "")">
+                <h4 class="stat-num text-warning" id="progressCount">0</h4>
+                <div class="stat-name">In Progress</div>
             </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(selectedStatus == "In Progress" ? "active" : "")"
-               href="@Url.Action("MyTickets", new { status = "In Progress" })">
-                In Progress
+        </div>
+        <div class="col">
+            <a href="@Url.Action("MyTickets", new { status = "Resolved" })"
+               class="stat-mini @(selectedStatus == "Resolved" ? "active" : "")">
+                <h4 class="stat-num text-success" id="resolvedCount">0</h4>
+                <div class="stat-name">Resolved</div>
             </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(selectedStatus == "Resolved" ? "active" : "")"
-               href="@Url.Action("MyTickets", new { status = "Resolved" })">
-                Resolved
+        </div>
+        <div class="col">
+            <a href="@Url.Action("MyTickets", new { status = "Closed" })"
+               class="stat-mini @(selectedStatus == "Closed" ? "active" : "")">
+                <h4 class="stat-num text-dark" id="closedCount">0</h4>
+                <div class="stat-name">Closed</div>
             </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(selectedStatus == "Closed" ? "active" : "")"
-               href="@Url.Action("MyTickets", new { status = "Closed" })">
-                Closed
-            </a>
-        </li>
-    </ul>
+        </div>
+    </div>
 
-    <!-- Tickets List -->
-    <div id="ticketsList">
+    <!-- TICKETS -->
+    <div id="ticketsContainer">
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+            <div class="spinner-border text-primary"></div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        let ticketsData = @Html.Raw(ViewBag.TicketsData ?? "null");
+        const ticketsData = @Html.Raw(ticketsJson);
 
-        if (ticketsData && ticketsData.success) {
-            renderTickets(ticketsData.data);
-        } else {
-            showError();
+        $(document).ready(function() {
+            if (ticketsData?.data) {
+                renderTickets(ticketsData.data);
+                updateCounts(ticketsData.data);
+            } else {
+                showEmpty();
+            }
+        });
+
+        function updateCounts(tickets) {
+            $('#allCount').text(tickets.length);
+            $('#newCount').text(tickets.filter(t => t.status === 'New').length);
+            $('#progressCount').text(tickets.filter(t => t.status === 'InProgress').length);
+            $('#resolvedCount').text(tickets.filter(t => t.status === 'Resolved').length);
+            $('#closedCount').text(tickets.filter(t => t.status === 'Closed').length);
         }
 
         function renderTickets(tickets) {
-            if (!tickets || tickets.length === 0) {
-                document.getElementById('ticketsList').innerHTML = `
-                    <div class="card shadow-sm">
-                        <div class="card-body text-center py-5">
-                            <i class="bi bi-inbox display-1 text-muted"></i>
-                            <h4 class="mt-3">No tickets found</h4>
-                            <p class="text-muted">Start by creating a new ticket</p>
-                            <a href="@Url.Action("Create")" class="btn btn-primary">
-                                <i class="bi bi-plus-circle"></i> Create Ticket
-                            </a>
+            const container = $('#ticketsContainer');
+            container.empty();
+
+            if (!tickets.length) { showEmpty(); return; }
+
+            tickets.forEach(t => {
+                const pClass = t.priority.toLowerCase();
+
+                container.append(`
+                    <a href="/Ticket/Details/${t.ticketId}" class="ticket-card ${pClass}">
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                    <span class="ticket-num">${t.ticketNumber}</span>
+                                    <span class="badge bg-light text-dark small">${t.ticketType}</span>
+                                    ${t.isOverdue ? '<span class="badge bg-danger small">⚠️ OVERDUE</span>' : ''}
+                                </div>
+                                <h6 class="fw-bold mb-1">${escapeHtml(t.title)}</h6>
+                                <small class="text-muted">${escapeHtml(t.description?.substring(0,100) || '')}${t.description?.length > 100 ? '...' : ''}</small>
+                            </div>
+                            <div class="col-md-3 text-md-end">
+                                <span class="badge bg-primary">${t.status}</span>
+                                <div class="small text-muted mt-1">
+                                    ${t.assignedToName ? `<i class="bi bi-person"></i> ${escapeHtml(t.assignedToName)}` : 'Unassigned'}
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-md-end">
+                                <small class="text-muted">${formatDate(t.createdDate)}</small>
+                            </div>
                         </div>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '<div class="card shadow-sm">';
-            html += '<div class="card-body p-0">';
-            html += '<div class="table-responsive">';
-            html += '<table class="table table-hover mb-0">';
-            html += '<thead class="table-light">';
-            html += '<tr>';
-            html += '<th style="width: 120px">Ticket #</th>';
-            html += '<th>Title</th>';
-            html += '<th style="width: 100px">Type</th>';
-            html += '<th style="width: 100px">Priority</th>';
-            html += '<th style="width: 120px">Status</th>';
-            html += '<th style="width: 150px">Assigned To</th>';
-            html += '<th style="width: 100px">Created</th>';
-            html += '<th style="width: 80px">Actions</th>';
-            html += '</tr>';
-            html += '</thead>';
-            html += '<tbody>';
-
-            tickets.forEach(ticket => {
-                const isOverdue = ticket.isOverdue;
-                const rowClass = isOverdue ? 'table-danger' : '';
-
-                html += `<tr class="${rowClass}">`;
-                html += `<td><strong>${ticket.ticketNumber}</strong>${isOverdue ? ' <i class="bi bi-exclamation-triangle-fill text-danger" title="Overdue"></i>' : ''}</td>`;
-                html += `<td><a href="/Ticket/Details/${ticket.ticketId}" class="text-decoration-none">${ticket.title}</a></td>`;
-                html += `<td><span class="badge ${getTypeBadge(ticket.ticketType)}">${ticket.ticketType}</span></td>`;
-                html += `<td><span class="badge ${getPriorityBadge(ticket.priority)}">${ticket.priority}</span></td>`;
-                html += `<td><span class="badge ${getStatusBadge(ticket.status)}">${ticket.status}</span></td>`;
-                html += `<td>${ticket.assignedToName || '<span class="text-muted">Unassigned</span>'}</td>`;
-                html += `<td><small>${formatDate(ticket.createdDate)}</small></td>`;
-                html += `<td>
-                    <a href="/Ticket/Details/${ticket.ticketId}" class="btn btn-sm btn-outline-primary" title="View">
-                        <i class="bi bi-eye"></i>
                     </a>
-                </td>`;
-                html += '</tr>';
+                `);
             });
-
-            html += '</tbody></table></div></div></div>';
-            document.getElementById('ticketsList').innerHTML = html;
         }
 
-        function getStatusBadge(status) {
-            const badges = {
-                'New': 'bg-primary',
-                'Assigned': 'bg-info',
-                'In Progress': 'bg-warning text-dark',
-                'Blocked': 'bg-danger',
-                'Resolved': 'bg-success',
-                'Closed': 'bg-secondary',
-                'Reopened': 'bg-warning'
-            };
-            return badges[status] || 'bg-secondary';
+        function showEmpty() {
+            $('#ticketsContainer').html(`
+                <div class="empty-state">
+                    <i class="bi bi-inbox display-1 text-muted opacity-50"></i>
+                    <h5 class="mt-3 text-muted">No tickets yet</h5>
+                    <p class="text-muted">Create your first ticket to get started</p>
+                    <a href="/Ticket/Create" class="btn btn-success mt-2">
+                        <i class="bi bi-plus-circle me-1"></i>Create Ticket
+                    </a>
+                </div>
+            `);
         }
 
-        function getPriorityBadge(priority) {
-            const badges = {
-                'Critical': 'bg-danger',
-                'High': 'bg-warning text-dark',
-                'Medium': 'bg-info',
-                'Low': 'bg-secondary'
-            };
-            return badges[priority] || 'bg-secondary';
+        function formatDate(d) {
+            if (!d) return '';
+            const date = new Date(d);
+            const diff = (new Date() - date) / 1000;
+            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         }
 
-        function getTypeBadge(type) {
-            const badges = {
-                'Bug': 'bg-danger',
-                'Feature Request': 'bg-primary',
-                'Improvement': 'bg-info',
-                'Task': 'bg-secondary'
-            };
-            return badges[type] || 'bg-secondary';
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        function showError() {
-            document.getElementById('ticketsList').innerHTML =
-                '<div class="alert alert-danger">Failed to load tickets</div>';
+        function escapeHtml(t) {
+            if (!t) return '';
+            const div = document.createElement('div');
+            div.textContent = t;
+            return div.innerHTML;
         }
     </script>
 }

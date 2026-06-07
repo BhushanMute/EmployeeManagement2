@@ -4,7 +4,6 @@ using EmployeeManagement.API.Models;
 using EmployeeManagement.API.Repositories;
 using EmployeeManagement.API.Salary;
 using EmployeeManagement.API.Repositories.Ticket;
-using EmployeeManagement.API.Salary;
 using EmployeeManagement.API.services;
 using EmployeeManagement.API.Services;
 using EmployeeManagement.API.Services.Implementation;
@@ -83,6 +82,7 @@ builder.Services.AddScoped<ILoanRepository, LoanRepository>();
 builder.Services.AddScoped<IPayrollService, PayrollService>();
 builder.Services.AddScoped<ISalaryStructureService, SalaryStructureService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
+builder.Services.AddScoped<ISalarySlipService, SalarySlipService>();
 // Add more as needed:
 // builder.Services.AddScoped<IAdvanceService, AdvanceService>();
 // builder.Services.AddScoped<IReimbursementService, ReimbursementService>();
@@ -112,6 +112,12 @@ builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IStudentIdGenerator, StudentIdGenerator>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
 builder.Services.AddScoped<ISalaryStructureRepository, SalaryStructureRepository>();
+builder.Services.AddScoped<ISsrsReportService, SsrsReportService>();
+builder.Services.AddHostedService<PayrollEmailBackgroundService>();
+builder.Services.AddScoped<IUserManagementRepository, UserManagementRepository>();
+
+
+
 // =============================================
 // AUDIT LOGGING (EXISTING)
 // =============================================

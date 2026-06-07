@@ -1,158 +1,840 @@
-﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.SalarySlipResponse>
+﻿@model IEnumerable<EmployeeManagement.UI.Models.SalarySlipResponse>
 @{
     ViewData["Title"] = "Employee Salary Slips | कर्मचारी वेतन पावत्या";
     var availableYears = ViewBag.AvailableYears as List<int> ?? new List<int>();
     var selectedYear = (int)ViewBag.SelectedYear;
     var selectedMonth = ViewBag.SelectedMonth as int?;
     var employeeId = (int)ViewBag.EmployeeId;
+
+    var totalGross = Model?.Sum(s => s.GrossSalary ?? 0) ?? 0;
+    var totalDeductions = Model?.Sum(s => s.TotalDeductions ?? 0) ?? 0;
+    var totalNet = Model?.Sum(s => s.NetSalary ?? 0) ?? 0;
+    var emailSentCount = Model?.Count(s => s.EmailSent == true) ?? 0;
+    var totalSlips = Model?.Count() ?? 0;
 }
 
-<div class="container-fluid mt-4 pb-5">
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        }
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold mb-1">
-                <i class="fas fa-user-circle text-primary me-2"></i>
-                Employee Salary Slips
-            </h2>
-            <p class="text-muted mb-0">
-                Employee ID: <strong>@employeeId</strong> |
-                कर्मचारी वेतन पावत्या
-            </p>
+        body {
+            background: #f4f6f9;
+        }
+
+        /* ===== Hero Header ===== */
+        .page-hero {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .page-hero::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+            .page-hero::after {
+                content: '';
+                position: absolute;
+                bottom: -30%;
+                left: -5%;
+                width: 200px;
+                height: 200px;
+                background: rgba(255,255,255,0.08);
+                border-radius: 50%;
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .employee-avatar {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.25);
+            border: 3px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+        }
+
+        /* ===== Stats Cards ===== */
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.25rem;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+            }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 5px;
+                height: 100%;
+            }
+
+            .stat-card.stat-primary::before {
+                background: var(--primary-gradient);
+            }
+
+            .stat-card.stat-success::before {
+                background: var(--success-gradient);
+            }
+
+            .stat-card.stat-danger::before {
+                background: var(--danger-gradient);
+            }
+
+            .stat-card.stat-info::before {
+                background: var(--info-gradient);
+            }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            color: white;
+        }
+
+            .stat-icon.bg-primary-gradient {
+                background: var(--primary-gradient);
+            }
+
+            .stat-icon.bg-success-gradient {
+                background: var(--success-gradient);
+            }
+
+            .stat-icon.bg-danger-gradient {
+                background: var(--danger-gradient);
+            }
+
+            .stat-icon.bg-info-gradient {
+                background: var(--info-gradient);
+            }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        /* ===== Filter Card ===== */
+        .filter-card {
+            background: white;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+            .filter-card .form-control,
+            .filter-card .form-select {
+                border-radius: 10px;
+                border: 1.5px solid #e2e8f0;
+                padding: 0.55rem 0.9rem;
+                font-size: 0.9rem;
+                transition: all 0.2s;
+            }
+
+                .filter-card .form-control:focus,
+                .filter-card .form-select:focus {
+                    border-color: #667eea;
+                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+                }
+
+        .btn-gradient-primary {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 0.55rem 1.5rem;
+            transition: all 0.3s;
+        }
+
+            .btn-gradient-primary:hover {
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+            }
+
+        /* ===== Quick Month Pills ===== */
+        .month-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+
+        .month-pill {
+            padding: 0.35rem 0.85rem;
+            background: #f7fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+            .month-pill:hover {
+                background: #edf2f7;
+                color: #2d3748;
+                transform: translateY(-1px);
+            }
+
+            .month-pill.active {
+                background: var(--primary-gradient);
+                color: white;
+                border-color: transparent;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            }
+
+        /* ===== Data Table ===== */
+        .data-card {
+            background: white;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+            .data-card .card-header {
+                background: white;
+                border-bottom: 2px solid #f1f5f9;
+                padding: 1.25rem 1.5rem;
+            }
+
+        .table-modern {
+            margin-bottom: 0;
+        }
+
+            .table-modern thead th {
+                background: #f8fafc;
+                color: #475569;
+                font-size: 0.78rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding: 1rem 1.25rem;
+                border-bottom: 2px solid #e2e8f0;
+                border-top: none;
+            }
+
+            .table-modern tbody tr {
+                transition: all 0.2s;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+                .table-modern tbody tr:hover {
+                    background: linear-gradient(90deg, #f8fafc 0%, transparent 100%);
+                    transform: scale(1.005);
+                }
+
+            .table-modern tbody td {
+                padding: 1rem 1.25rem;
+                vertical-align: middle;
+                font-size: 0.9rem;
+            }
+
+        .month-badge {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+            padding: 0.4rem 0.75rem;
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            border-radius: 10px;
+            border: 1px solid #c7d2fe;
+        }
+
+            .month-badge .month {
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #4338ca;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .month-badge .year {
+                font-size: 1.05rem;
+                font-weight: 800;
+                color: #312e81;
+                line-height: 1;
+            }
+
+        .slip-number {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            background: #f1f5f9;
+            color: #475569;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .amount-cell {
+            font-weight: 600;
+            font-size: 0.95rem;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .amount-gross {
+            color: #059669;
+        }
+
+        .amount-deduction {
+            color: #dc2626;
+        }
+
+        .amount-net {
+            color: #6366f1;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .email-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .email-sent {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+
+        .email-pending {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-draft {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .status-generated {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-published {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        /* ===== Action Buttons ===== */
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            transition: all 0.2s;
+            color: white;
+            margin: 0 2px;
+        }
+
+            .action-btn:hover {
+                transform: translateY(-3px) scale(1.05);
+                box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+                color: white;
+            }
+
+        .btn-view {
+            background: var(--info-gradient);
+        }
+
+        .btn-download {
+            background: var(--danger-gradient);
+        }
+
+        .btn-excel {
+            background: var(--success-gradient);
+        }
+
+        .btn-email {
+            background: var(--warning-gradient);
+        }
+
+        /* ===== Empty State ===== */
+        .empty-state {
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #9ca3af;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== Loading Spinner ===== */
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+        }
+
+            .spinner-overlay.active {
+                display: flex;
+            }
+
+        .spinner-box {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        /* ===== Animation ===== */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        tbody tr {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        @@media (max-width: 768px) {
+            .page-hero {
+                padding: 1.5rem 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.2rem;
+            }
+
+            .table-modern tbody td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.82rem;
+            }
+        }
+    </style>
+}
+
+<div class="container-fluid px-4 py-3 pb-5">
+
+    <!-- ====================== HERO HEADER ====================== -->
+    <div class="page-hero fade-in-up">
+        <div class="hero-content">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="employee-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-1">Employee Salary Slips</h2>
+                        <p class="mb-0 opacity-90">
+                            <i class="fas fa-id-badge me-1"></i>
+                            Employee ID: <strong>#@employeeId</strong>
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-calendar me-1"></i>
+                            Year: <strong>@selectedYear</strong>
+                            @if (selectedMonth.HasValue)
+                            {
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-clock me-1"></i>
+                                <strong>@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(selectedMonth.Value)</strong>
+                            }
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-controller="Employee" asp-action="Index"
+                       class="btn btn-light btn-sm fw-semibold">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Employees
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-light btn-sm fw-semibold">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
         </div>
-        <a asp-controller="Employee"
-           asp-action="Index"
-           class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-1"></i>Back
-        </a>
     </div>
 
+    <!-- ====================== ALERTS ====================== -->
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger">@TempData["Error"]</div>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     }
 
-    <!-- Filters -->
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <form method="get" asp-action="EmployeeSalarySlip" class="row g-3 align-items-end">
+    <!-- ====================== STAT CARDS ====================== -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Total Slips</div>
+                        <h3 class="stat-value">@totalSlips</h3>
+                    </div>
+                    <div class="stat-icon bg-primary-gradient">
+                        <i class="fas fa-file-invoice"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Total Gross</div>
+                        <h3 class="stat-value">₹@totalGross.ToString("N2")</h3>
+                    </div>
+                    <div class="stat-icon bg-success-gradient">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Total Deductions</div>
+                        <h3 class="stat-value">₹@totalDeductions.ToString("N2")</h3>
+                    </div>
+                    <div class="stat-icon bg-danger-gradient">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="stat-label">Total Net Pay</div>
+                        <h3 class="stat-value">₹@totalNet.ToString("N2")</h3>
+                    </div>
+                    <div class="stat-icon bg-info-gradient">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================== FILTERS ====================== -->
+    <div class="card filter-card mb-4">
+        <div class="card-body p-4">
+            <h6 class="fw-bold mb-3 text-dark">
+                <i class="fas fa-filter text-primary me-2"></i>Filters / फिल्टर
+            </h6>
+            <form method="get" asp-action="EmployeeSalarySlip" id="filterForm" class="row g-3 align-items-end">
                 <input type="hidden" name="employeeId" value="@employeeId" />
+
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold small">Year / वर्ष</label>
-                    <select name="year" class="form-select">
+                    <label class="form-label fw-semibold small text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>Year / वर्ष
+                    </label>
+                    <select name="year" id="yearSelect" class="form-select">
                         @foreach (var yr in availableYears)
                         {
                             <option value="@yr" selected="@(yr == selectedYear)">@yr</option>
                         }
                     </select>
                 </div>
+
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold small">Month / महिना</label>
-                    <select name="month" class="form-select">
-                        <option value="">All / सर्व</option>
+                    <label class="form-label fw-semibold small text-muted">
+                        <i class="fas fa-clock me-1"></i>Month / महिना
+                    </label>
+                    <select name="month" id="monthSelect" class="form-select">
+                        <option value="">All Months / सर्व महिने</option>
                         @for (int i = 1; i <= 12; i++)
                         {
                             <option value="@i" selected="@(i == selectedMonth)">
-                                @System.Globalization.CultureInfo.CurrentCulture
-                                .DateTimeFormat.GetMonthName(i)
+                                @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)
                             </option>
                         }
                     </select>
                 </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small text-muted">
+                        <i class="fas fa-search me-1"></i>Search Slip
+                    </label>
+                    <input type="text" id="searchInput" class="form-control"
+                           placeholder="Slip number / amount..." />
+                </div>
+
                 <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i>Filter
+                    <button type="submit" class="btn btn-gradient-primary flex-fill">
+                        <i class="fas fa-search me-1"></i>Apply Filter
                     </button>
                     <a asp-action="EmployeeSalarySlip"
                        asp-route-employeeId="@employeeId"
-                       class="btn btn-outline-secondary">Reset</a>
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-redo"></i>
+                    </a>
                 </div>
             </form>
+
+            <!-- Quick Month Pills -->
+            <div class="month-pills">
+                <a class="month-pill @(!selectedMonth.HasValue ? "active" : "")"
+                   href="@Url.Action("EmployeeSalarySlip", new { employeeId, year = selectedYear })">
+                    All
+                </a>
+                @for (int i = 1; i <= 12; i++)
+                {
+                    var monthShort = System.Globalization.CultureInfo.CurrentCulture
+                    .DateTimeFormat.GetAbbreviatedMonthName(i);
+                    <a class="month-pill @(selectedMonth == i ? "active" : "")"
+                       href="@Url.Action("EmployeeSalarySlip", new { employeeId, year = selectedYear, month = i })">
+                        @monthShort
+                    </a>
+                }
+            </div>
         </div>
     </div>
 
-    <!-- Slips Table -->
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-white border-bottom py-3">
-            <h6 class="mb-0 fw-bold">
-                <i class="fas fa-list me-2 text-primary"></i>
-                Salary Slips | वेतन पावत्या (@(Model?.Count() ?? 0) records)
+    <!-- ====================== DATA TABLE ====================== -->
+    <div class="card data-card">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="mb-0 fw-bold text-dark">
+                <i class="fas fa-list-ul text-primary me-2"></i>
+                Salary Slips
+                <span class="badge bg-primary ms-2">@totalSlips records</span>
             </h6>
+            <div class="d-flex gap-2">
+                <span class="email-status email-sent">
+                    <i class="fas fa-envelope-circle-check"></i>
+                    @emailSentCount Sent
+                </span>
+                <span class="email-status email-pending">
+                    <i class="fas fa-envelope"></i>
+                    @(totalSlips - emailSentCount) Pending
+                </span>
+            </div>
         </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
+                <table class="table table-modern align-middle" id="slipsTable">
+                    <thead>
                         <tr>
-                            <th class="ps-4">Month / महिना</th>
-                            <th>Slip No.</th>
+                            <th style="width: 110px;">Period</th>
+                            <th>Slip Number</th>
                             <th class="text-end">Gross (₹)</th>
                             <th class="text-end">Deductions (₹)</th>
                             <th class="text-end">Net Pay (₹)</th>
+                            <th class="text-center">Status</th>
                             <th class="text-center">Email</th>
-                            <th class="text-center">Actions</th>
+                            <th class="text-center" style="width: 200px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @if (Model != null && Model.Any())
                         {
-                            foreach (var slip in Model.OrderByDescending(s => s.Year)
-                            .ThenByDescending(s => s.Month))
+                            var index = 0;
+                            foreach (var slip in Model.OrderByDescending(s => s.Year).ThenByDescending(s => s.Month))
                             {
-                                <tr>
-                                    <td class="ps-4">
-                                        <div class="fw-semibold">@slip.MonthName @slip.Year</div>
+                                <tr style="animation-delay: @(index * 50)ms;" data-slip-id="@slip.SlipId">
+                                    <td>
+                                        <div class="month-badge">
+                                            <span class="month">@slip.MonthName?.Substring(0, Math.Min(3, slip.MonthName.Length))</span>
+                                            <span class="year">@slip.Year</span>
+                                        </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-dark border">
-                                            @slip.SlipNumber
+                                        <span class="slip-number" title="@slip.SlipNumber">
+                                            <i class="fas fa-hashtag me-1 opacity-50"></i>@slip.SlipNumber
                                         </span>
                                     </td>
-                                    <td class="text-end text-success fw-semibold">
-                                        @slip.GrossSalary?.ToString("N2")
+                                    <td class="text-end amount-cell amount-gross">
+                                        @(slip.GrossSalary?.ToString("N2") ?? "0.00")
                                     </td>
-                                    <td class="text-end text-danger fw-semibold">
-                                        @slip.TotalDeductions?.ToString("N2")
+                                    <td class="text-end amount-cell amount-deduction">
+                                        @(slip.TotalDeductions?.ToString("N2") ?? "0.00")
                                     </td>
-                                    <td class="text-end text-primary fw-bold">
-                                        ₹ @slip.NetSalary?.ToString("N2")
+                                    <td class="text-end amount-cell amount-net">
+                                        ₹ @(slip.NetSalary?.ToString("N2") ?? "0.00")
+                                    </td>
+                                    <td class="text-center">
+                                        @{
+                                            var statusClass = slip.Status?.ToLower() switch
+                                            {
+                                                "draft" => "status-draft",
+                                                "generated" => "status-generated",
+                                                "published" => "status-published",
+                                                _ => "status-generated"
+                                            };
+                                        }
+                                        <span class="status-badge @statusClass">
+                                            @(slip.Status ?? "Generated")
+                                        </span>
                                     </td>
                                     <td class="text-center">
                                         @if (slip.EmailSent == true)
                                         {
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check"></i> Sent
+                                            <span class="email-status email-sent"
+                                                  title="Sent on @slip.EmailSentDate?.ToString("dd MMM yyyy HH:mm")">
+                                                <i class="fas fa-check-circle"></i> Sent
                                             </span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-secondary">Not Sent</span>
+                                            <span class="email-status email-pending">
+                                                <i class="fas fa-clock"></i> Pending
+                                            </span>
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <a asp-action="ViewSalarySlip"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-primary"
-                                               target="_blank">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a asp-action="DownloadSalarySlip"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-danger">
-                                                <i class="fas fa-file-pdf"></i>
-                                            </a>
-                                        </div>
+                                        <button type="button"
+                                                class="action-btn btn-view"
+                                                onclick="previewSlip(@slip.SlipId)"
+                                                title="Quick Preview">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a asp-action="ViewSalarySlip"
+                                           asp-route-slipId="@slip.SlipId"
+                                           class="action-btn btn-view"
+                                           target="_blank"
+                                           title="View Full">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        <a href="@Url.Action("DownloadSalarySlip", new { slipId = slip.SlipId })"
+                                           class="action-btn btn-download"
+                                           title="Download PDF"
+                                           onclick="showLoader('Generating PDF...')">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                        <a href="@Url.Action("DownloadSalarySlipExcel", new { slipId = slip.SlipId })"
+                                           class="action-btn btn-excel"
+                                           title="Download Excel"
+                                           onclick="showLoader('Generating Excel...')">
+                                            <i class="fas fa-file-excel"></i>
+                                        </a>
+                                        @if (slip.EmailSent != true)
+                                        {
+                                            <button type="button"
+                                                    class="action-btn btn-email"
+                                                    onclick="sendEmail(@slip.SlipId)"
+                                                    title="Send Email">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        }
                                     </td>
                                 </tr>
+                                index++;
                             }
                         }
                         else
                         {
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-5">
-                                    <i class="fas fa-inbox fa-3x mb-3 d-block opacity-50"></i>
-                                    No salary slips found for this employee.
+                                <td colspan="8" class="empty-state">
+                                    <div class="empty-icon">
+                                        <i class="fas fa-inbox"></i>
+                                    </div>
+                                    <h5 class="text-muted fw-bold">No Salary Slips Found</h5>
+                                    <p class="text-muted mb-0">
+                                        No records found for the selected filters.<br />
+                                        <small>निवडलेल्या फिल्टरसाठी रेकॉर्ड आढळले नाहीत.</small>
+                                    </p>
                                 </td>
                             </tr>
                         }
@@ -160,5 +842,261 @@
                 </table>
             </div>
         </div>
+
+        @if (Model != null && Model.Any())
+        {
+            <div class="card-footer bg-white border-top py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Showing <strong>@totalSlips</strong> salary slip(s)
+                    </small>
+                    <div class="d-flex gap-2">
+                        <strong class="text-muted">Total Net Payable:</strong>
+                        <strong class="text-primary">₹ @totalNet.ToString("N2")</strong>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
+
+<!-- ====================== QUICK PREVIEW MODAL ====================== -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header text-white"
+                 style="background: var(--primary-gradient); border-radius: 14px 14px 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-file-invoice me-2"></i>Salary Slip Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading preview...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Close
+                </button>
+                <a href="#" id="modalDownloadBtn" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i>Download PDF
+                </a>
+                <a href="#" id="modalViewBtn" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-external-link-alt me-1"></i>View Full
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================== LOADING OVERLAY ====================== -->
+<div class="spinner-overlay" id="loaderOverlay">
+    <div class="spinner-box">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+        <h6 class="mb-0 fw-bold" id="loaderText">Processing...</h6>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ===== Loading Functions =====
+        function showLoader(text = 'Processing...') {
+            document.getElementById('loaderText').textContent = text;
+            document.getElementById('loaderOverlay').classList.add('active');
+            setTimeout(() => hideLoader(), 3000);
+        }
+
+        function hideLoader() {
+            document.getElementById('loaderOverlay').classList.remove('active');
+        }
+
+        // ===== Quick Preview (AJAX) =====
+        // Calls UI Controller -> GetSlipSummary -> API: api/SalarySlip/{slipId}
+        function previewSlip(slipId) {
+            const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+            const body = document.getElementById('previewBody');
+
+            // Reset body
+            body.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading preview...</p>
+                </div>`;
+
+            // Update action buttons
+            document.getElementById('modalDownloadBtn').href =
+                '@Url.Action("DownloadSalarySlip")?slipId=' + slipId;
+            document.getElementById('modalViewBtn').href =
+                '@Url.Action("ViewSalarySlip")?slipId=' + slipId;
+
+            modal.show();
+
+            // AJAX call to UI Controller
+            fetch('@Url.Action("GetSlipSummary")?slipId=' + slipId)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        const d = result.data;
+                        body.innerHTML = `
+                            <div class="text-center mb-4">
+                                <h4 class="fw-bold text-primary">${d.slipNumber || 'N/A'}</h4>
+                                <p class="text-muted mb-0">${d.monthName || ''} ${d.year || ''}</p>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <div class="card border-0" style="background:#d1fae5;">
+                                        <div class="card-body text-center py-3">
+                                            <small class="text-success fw-bold">GROSS</small>
+                                            <h5 class="mb-0 mt-1 text-success">₹ ${formatNum(d.grossSalary)}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-0" style="background:#fee2e2;">
+                                        <div class="card-body text-center py-3">
+                                            <small class="text-danger fw-bold">DEDUCTIONS</small>
+                                            <h5 class="mb-0 mt-1 text-danger">₹ ${formatNum(d.totalDeductions)}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-0" style="background:#dbeafe;">
+                                        <div class="card-body text-center py-3">
+                                            <small class="text-primary fw-bold">NET PAY</small>
+                                            <h5 class="mb-0 mt-1 text-primary">₹ ${formatNum(d.netSalary)}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ${d.netSalaryInWords ? `
+                                <div class="alert alert-info mb-0">
+                                    <strong><i class="fas fa-quote-left me-1"></i>In Words:</strong>
+                                    ${d.netSalaryInWords}
+                                </div>` : ''}
+                            <div class="mt-3 text-center">
+                                <span class="badge bg-secondary">Status: ${d.status || 'N/A'}</span>
+                            </div>`;
+                    } else {
+                        body.innerHTML = `
+                            <div class="alert alert-warning text-center">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                ${result.message || 'Unable to load preview'}
+                            </div>`;
+                    }
+                })
+                .catch(err => {
+                    body.innerHTML = `
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Error loading preview
+                        </div>`;
+                });
+        }
+
+        // ===== Send Email (AJAX) =====
+        // Calls UI Controller -> SendSalarySlipsEmail -> API: api/SalarySlip/send-bulk-email
+        function sendEmail(slipId) {
+            if (!confirm('Send salary slip email to employee?')) return;
+
+            showLoader('Sending email...');
+
+            const formData = new FormData();
+            formData.append('cycleId', 0); // Single slip mode
+            formData.append('slipIds', slipId);
+
+            // Add antiforgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) formData.append('__RequestVerificationToken', token.value);
+
+            fetch('@Url.Action("SendSalarySlipsEmail")', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(result => {
+                hideLoader();
+                if (result.success) {
+                    showToast('success', result.message || 'Email sent successfully');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', result.message || 'Failed to send email');
+                }
+            })
+            .catch(err => {
+                hideLoader();
+                showToast('error', 'Error sending email');
+            });
+        }
+
+        // ===== Search Filter =====
+        document.getElementById('searchInput')?.addEventListener('keyup', function () {
+            const query = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#slipsTable tbody tr[data-slip-id]');
+            let visible = 0;
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    row.style.display = '';
+                    visible++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // ===== Auto Submit on Year Change =====
+        document.getElementById('yearSelect')?.addEventListener('change', function () {
+            document.getElementById('filterForm').submit();
+        });
+
+        // ===== Helper Functions =====
+        function formatNum(num) {
+            if (num == null || isNaN(num)) return '0.00';
+            return Number(num).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function showToast(type, message) {
+            const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? 'check-circle' : 'times-circle';
+
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
+            toast.style.zIndex = '10000';
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-${icon} me-2"></i>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>`;
+            document.body.appendChild(toast);
+            new bootstrap.Toast(toast, { delay: 3000 }).show();
+            setTimeout(() => toast.remove(), 3500);
+        }
+
+        // ===== Auto-hide loader after window load =====
+        window.addEventListener('beforeunload', () => {
+            // Loader will show automatically on navigation
+        });
+
+        // ===== Print Styles =====
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('.action-btn, .btn').forEach(el => el.style.display = 'none');
+        });
+        window.addEventListener('afterprint', () => {
+            document.querySelectorAll('.action-btn, .btn').forEach(el => el.style.display = '');
+        });
+    </script>
+
+    @* Add antiforgery token for AJAX POST calls *@
+    @Html.AntiForgeryToken()
+}

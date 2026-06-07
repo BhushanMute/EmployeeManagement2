@@ -1,16 +1,11 @@
-﻿using EmployeeManagement.API.Models.Payroll;
+﻿using EmployeeManagement.UI.Models;
 using EmployeeManagement.UI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace EmployeeManagement.UI.Controllers
 {
-    /// <summary>
-    /// Salary Slip MVC Controller - Complete Implementation
-    /// वेतन पावती MVC नियंत्रक - संपूर्ण अंमलबजावणी
-    /// </summary>
     [Authorize]
     public class SalarySlipController : Controller
     {
@@ -86,7 +81,6 @@ namespace EmployeeManagement.UI.Controllers
                 {
                     // Track view
                     await TrackSlipViewAsync(slipId, token);
-
                     return View(result.Data);
                 }
 
@@ -102,30 +96,43 @@ namespace EmployeeManagement.UI.Controllers
         }
 
         /// <summary>
-        /// Download Salary Slip PDF
+        /// Download Salary Slip PDF via SSRS
         /// वेतन पावती PDF डाउनलोड करा
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> DownloadSalarySlip(int slipId, string? password = null)
+        public async Task<IActionResult> DownloadSalarySlip(int slipId)
         {
             try
             {
                 var token = HttpContext.Session.GetString("AccessToken");
 
-                // Get SSRS Report
+                // ✅ FIX 1: First try SSRS PDF generation
                 var pdfBytes = await GenerateSSRSSalarySlipPdfAsync(slipId, token);
+
+                // ✅ FIX 2: If SSRS not configured, fallback to API download
+                if (pdfBytes == null || pdfBytes.Length == 0)
+                {
+                    var apiResponse = await _apiService.GetAsync<byte[]>(
+                        $"api/SalarySlip/{slipId}/download",
+                        token);
+
+                    // ✅ FIX 3: Correctly extract Data from ApiResponse<byte[]>
+                    pdfBytes = apiResponse?.Data;
+                }
 
                 if (pdfBytes != null && pdfBytes.Length > 0)
                 {
-                    // Track download
-                    await TrackSlipDownloadAsync(slipId, token);
+                    // Track download (Fire and forget)
+                    _ = TrackSlipDownloadAsync(slipId, token);
 
                     var fileName = $"SalarySlip_{slipId}_{DateTime.Now:yyyyMMdd}.pdf";
+
+                    // ✅ FIX 4: Correct File() usage - (byte[], contentType, fileName)
                     return File(pdfBytes, "application/pdf", fileName);
                 }
 
                 TempData["Error"] = "PDF डाउनलोड अयशस्वी झाली";
-                return RedirectToAction(nameof(ViewSalarySlip), new { slipId });
+                return RedirectToAction(nameof(MySalarySlips));
             }
             catch (Exception ex)
             {
@@ -174,7 +181,7 @@ namespace EmployeeManagement.UI.Controllers
 
         /// <summary>
         /// Generate Salary Slips for Cycle (HR/Admin)
-        /// सायकलसाठी वेतन पावत्या तयार करा (HR/Admin)
+        /// सायकलसाठी वेतन पावत्या तयार करा
         /// </summary>
         [Authorize(Roles = "Admin,HR")]
         [HttpGet]
@@ -184,7 +191,6 @@ namespace EmployeeManagement.UI.Controllers
             {
                 var token = HttpContext.Session.GetString("AccessToken");
 
-                // Get cycle summary
                 var cycleResult = await _apiService.GetAsync<PayrollSummaryResponse>(
                     $"api/payroll/cycle/{cycleId}/summary",
                     token);
@@ -195,7 +201,6 @@ namespace EmployeeManagement.UI.Controllers
                     return RedirectToAction("Cycles", "Payroll");
                 }
 
-                // Check if cycle is in correct status
                 if (cycleResult.Data.Status != "Processed" &&
                     cycleResult.Data.Status != "Approved")
                 {
@@ -223,7 +228,8 @@ namespace EmployeeManagement.UI.Controllers
                 if (!ModelState.IsValid)
                 {
                     TempData["Error"] = "अवैध विनंती";
-                    return RedirectToAction(nameof(GenerateSalarySlips), new { cycleId = request.PayrollCycleId });
+                    return RedirectToAction(nameof(GenerateSalarySlips),
+                        new { cycleId = request.PayrollCycleId });
                 }
 
                 var token = HttpContext.Session.GetString("AccessToken");
@@ -236,11 +242,13 @@ namespace EmployeeManagement.UI.Controllers
                 if (result?.Status == true)
                 {
                     TempData["SuccessMessage"] = "वेतन पावत्या यशस्वीरित्या तयार झाल्या";
-                    return RedirectToAction(nameof(SalarySlipList), new { cycleId = request.PayrollCycleId });
+                    return RedirectToAction(nameof(SalarySlipList),
+                        new { cycleId = request.PayrollCycleId });
                 }
 
                 TempData["Error"] = result?.Message ?? "पावत्या तयार करणे अयशस्वी झाले";
-                return RedirectToAction(nameof(GenerateSalarySlips), new { cycleId = request.PayrollCycleId });
+                return RedirectToAction(nameof(GenerateSalarySlips),
+                    new { cycleId = request.PayrollCycleId });
             }
             catch (Exception ex)
             {
@@ -250,10 +258,6 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        /// <summary>
-        /// Salary Slip List for Cycle (HR/Admin)
-        /// सायकलसाठी वेतन पावत्यांची यादी
-        /// </summary>
         [Authorize(Roles = "Admin,HR")]
         [HttpGet]
         public async Task<IActionResult> SalarySlipList(int cycleId, int? departmentId = null)
@@ -285,23 +289,35 @@ namespace EmployeeManagement.UI.Controllers
         }
 
         /// <summary>
-        /// Send Salary Slips via Email (HR/Admin)
-        /// ईमेलद्वारे वेतन पावत्या पाठवा
+        /// ✅ FIX 5: SINGLE SendSalarySlipsEmail method - Merged both duplicate methods
+        /// Supports both AJAX and normal POST requests
         /// </summary>
-        [Authorize(Roles = "Admin,HR")]
+        [Authorize(Roles = "Admin,HR,Payroll")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendSalarySlipsEmail(int cycleId, List<int>? slipIds = null)
         {
             try
             {
                 var token = HttpContext.Session.GetString("AccessToken");
 
+                // Clean and validate slip IDs
+                slipIds = slipIds?.Where(x => x > 0).Distinct().ToList() ?? new List<int>();
+
                 var request = new SendBulkSalarySlipEmailRequest
                 {
                     CycleId = cycleId,
                     SlipIds = slipIds,
-                    SendToAll = slipIds == null || !slipIds.Any()
+                    // If no specific slips selected, send to all
+                    SendToAll = !slipIds.Any()
                 };
+
+                // Validate: If not sending to all, must have at least one slip
+                if (!request.SendToAll && !slipIds.Any())
+                {
+                    return SalarySlipEmailResult(cycleId, false,
+                        "कृपया किमान एक वेतन पावती निवडा");
+                }
 
                 var result = await _apiService.PostAsync<bool>(
                     "api/SalarySlip/send-bulk-email",
@@ -310,25 +326,43 @@ namespace EmployeeManagement.UI.Controllers
 
                 if (result?.Status == true)
                 {
-                    return Json(new { success = true, message = "ईमेल यशस्वीरित्या पाठवला" });
+                    // Check if AJAX request
+                    var isAjax = string.Equals(
+                        Request.Headers["X-Requested-With"].ToString(),
+                        "XMLHttpRequest",
+                        StringComparison.OrdinalIgnoreCase);
+
+                    if (isAjax)
+                    {
+                        return Json(new
+                        {
+                            success = true,
+                            message = "Email processing शुरू हो गई है।",
+                            redirectUrl = Url.Action(nameof(EmailStatus), new { cycleId })
+                        });
+                    }
+
+                    TempData["SuccessMessage"] = "Email processing शुरू हो गई है। " +
+                                                 "कृपया status page पर progress देखें।";
+                    return RedirectToAction(nameof(EmailStatus), new { cycleId });
                 }
 
-                return Json(new { success = false, message = result?.Message ?? "ईमेल पाठवणे अयशस्वी झाले" });
+                return SalarySlipEmailResult(cycleId, false,
+                    result?.Message ?? "ईमेल पाठवणे अयशस्वी झाले");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending salary slips email");
-                return Json(new { success = false, message = "त्रुटी आली" });
+                _logger.LogError(ex, "Error sending salary slips email for cycle: {CycleId}", cycleId);
+                return SalarySlipEmailResult(cycleId, false, "Server error आई। कृपया पुन्हा प्रयत्न करा।");
             }
         }
 
-        /// <summary>
-        /// View Employee Salary Slip (HR can view any employee's slip)
-        /// कर्मचाऱ्याची वेतन पावती पहा (HR कोणत्याही कर्मचाऱ्याची पाहू शकतो)
-        /// </summary>
         [Authorize(Roles = "Admin,HR")]
         [HttpGet]
-        public async Task<IActionResult> EmployeeSalarySlip(int employeeId, int? year = null, int? month = null)
+        public async Task<IActionResult> EmployeeSalarySlip(
+            int employeeId,
+            int? year = null,
+            int? month = null)
         {
             try
             {
@@ -340,7 +374,8 @@ namespace EmployeeManagement.UI.Controllers
                 if (month.HasValue)
                     queryString += $"&month={month}";
 
-                var result = await _apiService.GetAsync<List<SalarySlipResponse>>(queryString, token);
+                var result = await _apiService.GetAsync<List<SalarySlipResponse>>(
+                    queryString, token);
 
                 ViewBag.EmployeeId = employeeId;
                 ViewBag.SelectedYear = currentYear;
@@ -361,10 +396,6 @@ namespace EmployeeManagement.UI.Controllers
 
         #region SSRS Report Integration
 
-        /// <summary>
-        /// View Salary Slip via SSRS (Inline Report)
-        /// SSRS द्वारे वेतन पावती पहा (इनलाइन अहवाल)
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> ViewSSRSSalarySlip(int slipId)
         {
@@ -372,14 +403,16 @@ namespace EmployeeManagement.UI.Controllers
             {
                 var token = HttpContext.Session.GetString("AccessToken");
 
-                // Get report URL from API
-                var urlResult = await _apiService.GetAsync<string>(
-                    $"api/SalarySlip/{slipId}/report-url",
-                    token);
-
                 var ssrsSettings = _configuration.GetSection("SSRSSettings");
                 var reportServerUrl = ssrsSettings["ReportServerUrl"];
                 var reportPath = ssrsSettings["ReportPath"];
+
+                if (string.IsNullOrWhiteSpace(reportServerUrl) ||
+                    string.IsNullOrWhiteSpace(reportPath))
+                {
+                    TempData["Error"] = "SSRS सेटिंग कॉन्फिगर केलेली नाही";
+                    return RedirectToAction(nameof(ViewSalarySlip), new { slipId });
+                }
 
                 var reportUrl = $"{reportServerUrl}?{reportPath}/SalarySlip" +
                                $"&SlipId={slipId}" +
@@ -401,6 +434,50 @@ namespace EmployeeManagement.UI.Controllers
 
         #endregion
 
+        #region Email Status & Queue Monitoring
+
+        /// <summary>
+        /// Email Status Page - Shows progress bar
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin,HR,Payroll")]
+        public IActionResult EmailStatus(int cycleId)
+        {
+            ViewBag.CycleId = cycleId;
+            return View();
+        }
+
+        /// <summary>
+        /// AJAX Polling - UI calls this every 3 seconds to get progress
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin,HR,Payroll")]
+        public async Task<IActionResult> GetEmailQueueStatus(int cycleId)
+        {
+            try
+            {
+                var token = HttpContext.Session.GetString("AccessToken");
+
+                var result = await _apiService.GetAsync<EmailQueueStatusDto>(
+                    $"api/SalarySlip/email-progress/{cycleId}",
+                    token);
+
+                if (result?.Data != null)
+                {
+                    return Json(new { success = true, data = result.Data });
+                }
+
+                return Json(new { success = false, message = "Status not found" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching email queue status for cycle: {CycleId}", cycleId);
+                return Json(new { success = false, message = "Error fetching status" });
+            }
+        }
+
+        #endregion
+
         #region AJAX Methods
 
         /// <summary>
@@ -417,21 +494,21 @@ namespace EmployeeManagement.UI.Controllers
                     $"api/SalarySlip/{slipId}",
                     token);
 
-                if (result?.Status == true)
+                if (result?.Status == true && result.Data != null)
                 {
                     return Json(new
                     {
                         success = true,
                         data = new
                         {
-                            slipNumber = result.Data?.SlipNumber,
-                            monthName = result.Data?.MonthName,
-                            year = result.Data?.Year,
-                            grossSalary = result.Data?.GrossSalary,
-                            totalDeductions = result.Data?.TotalDeductions,
-                            netSalary = result.Data?.NetSalary,
-                            netSalaryInWords = result.Data?.NetSalaryInWords,
-                            status = result.Data?.Status
+                            slipNumber = result.Data.SlipNumber,
+                            monthName = result.Data.MonthName,
+                            year = result.Data.Year,
+                            grossSalary = result.Data.GrossSalary,
+                            totalDeductions = result.Data.TotalDeductions,
+                            netSalary = result.Data.NetSalary,
+                            netSalaryInWords = result.Data.NetSalaryInWords,
+                            status = result.Data.Status
                         }
                     });
                 }
@@ -440,7 +517,7 @@ namespace EmployeeManagement.UI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting slip summary");
+                _logger.LogError(ex, "Error getting slip summary for: {SlipId}", slipId);
                 return Json(new { success = false, message = "Error occurred" });
             }
         }
@@ -459,13 +536,13 @@ namespace EmployeeManagement.UI.Controllers
                     $"api/SalarySlip/{slipId}",
                     token);
 
-                if (result?.Status == true)
+                if (result?.Status == true && result.Data != null)
                 {
                     return Json(new
                     {
                         success = true,
-                        emailSent = result.Data?.EmailSent,
-                        emailSentDate = result.Data?.EmailSentDate?.ToString("dd/MM/yyyy HH:mm")
+                        emailSent = result.Data.EmailSent,
+                        emailSentDate = result.Data.EmailSentDate?.ToString("dd/MM/yyyy HH:mm")
                     });
                 }
 
@@ -473,7 +550,7 @@ namespace EmployeeManagement.UI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking email status");
+                _logger.LogError(ex, "Error checking email status for slip: {SlipId}", slipId);
                 return Json(new { success = false });
             }
         }
@@ -481,6 +558,25 @@ namespace EmployeeManagement.UI.Controllers
         #endregion
 
         #region Private Helper Methods
+
+        /// <summary>
+        /// Handle Email Result for both AJAX and normal requests
+        /// </summary>
+        private IActionResult SalarySlipEmailResult(int cycleId, bool success, string message)
+        {
+            var isAjax = string.Equals(
+                Request.Headers["X-Requested-With"].ToString(),
+                "XMLHttpRequest",
+                StringComparison.OrdinalIgnoreCase);
+
+            if (isAjax)
+            {
+                return Json(new { success, message });
+            }
+
+            TempData[success ? "SuccessMessage" : "Error"] = message;
+            return RedirectToAction(nameof(SalarySlipList), new { cycleId });
+        }
 
         /// <summary>
         /// Generate SSRS Salary Slip PDF
@@ -496,12 +592,19 @@ namespace EmployeeManagement.UI.Controllers
                 var username = ssrsSettings["Username"];
                 var password = ssrsSettings["Password"];
 
-                // Build SSRS URL
+                if (string.IsNullOrWhiteSpace(reportServerUrl) ||
+                    string.IsNullOrWhiteSpace(reportPath))
+                {
+                    _logger.LogWarning(
+                        "SSRS settings not configured; cannot generate PDF for slip {SlipId}",
+                        slipId);
+                    return null;
+                }
+
                 var ssrsUrl = $"{reportServerUrl}?{reportPath}/SalarySlip" +
                              $"&SlipId={slipId}" +
                              $"&rs:Format=PDF";
 
-                // Create HTTP Client with Windows Authentication
                 var handler = new HttpClientHandler
                 {
                     Credentials = new System.Net.NetworkCredential(username, password)
@@ -517,8 +620,10 @@ namespace EmployeeManagement.UI.Controllers
                     return await response.Content.ReadAsByteArrayAsync();
                 }
 
-                _logger.LogWarning("SSRS PDF generation failed for slip: {SlipId}, Status: {Status}",
-                    slipId, response.StatusCode);
+                _logger.LogWarning(
+                    "SSRS PDF generation failed for slip: {SlipId}, Status: {Status}",
+                    slipId,
+                    response.StatusCode);
 
                 return null;
             }
@@ -543,7 +648,15 @@ namespace EmployeeManagement.UI.Controllers
                 var username = ssrsSettings["Username"];
                 var password = ssrsSettings["Password"];
 
-                // Build SSRS URL for Excel
+                if (string.IsNullOrWhiteSpace(reportServerUrl) ||
+                    string.IsNullOrWhiteSpace(reportPath))
+                {
+                    _logger.LogWarning(
+                        "SSRS settings not configured; cannot generate Excel for slip {SlipId}",
+                        slipId);
+                    return null;
+                }
+
                 var ssrsUrl = $"{reportServerUrl}?{reportPath}/SalarySlip" +
                              $"&SlipId={slipId}" +
                              $"&rs:Format=Excel";
@@ -562,6 +675,11 @@ namespace EmployeeManagement.UI.Controllers
                 {
                     return await response.Content.ReadAsByteArrayAsync();
                 }
+
+                _logger.LogWarning(
+                    "SSRS Excel generation failed for slip: {SlipId}, Status: {Status}",
+                    slipId,
+                    response.StatusCode);
 
                 return null;
             }
@@ -609,24 +727,36 @@ namespace EmployeeManagement.UI.Controllers
         }
 
         /// <summary>
-        /// Get current user ID
+        /// Get current logged-in user ID
         /// </summary>
         private int GetCurrentUserId()
         {
-            return int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
+            return int.TryParse(
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value,
                 out var id) ? id : 0;
         }
 
         #endregion
     }
 
-    #region Request Models
+    #region DTOs / Request Models
 
     public class SendBulkSalarySlipEmailRequest
     {
         public int CycleId { get; set; }
         public List<int>? SlipIds { get; set; }
         public bool SendToAll { get; set; }
+    }
+
+    public class EmailQueueStatusDto
+    {
+        public int Total { get; set; }
+        public int Sent { get; set; }
+        public int Failed { get; set; }
+        public int Pending { get; set; }
+        public string? Status { get; set; }
+        public double ProgressPercentage =>
+            Total > 0 ? Math.Round((double)(Sent + Failed) / Total * 100, 2) : 0;
     }
 
     #endregion

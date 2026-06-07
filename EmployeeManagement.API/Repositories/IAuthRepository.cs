@@ -6,7 +6,7 @@ namespace EmployeeManagement.API.Repositories
     {
         // Authentication
         Task<User?> GetUserByUsernameOrEmailAsync(string usernameOrEmail);
-        Task<(int UserId, string Message)> RegisterUserAsync(User user, int roleId, int? createdBy);
+        Task<(int UserId, string Message)> RegisterUserAsync(User user, int? roleId, int? createdBy);
         Task UpdateLoginStatusAsync(int userId, bool isSuccess, string? ipAddress);
 
         // Roles & Permissions

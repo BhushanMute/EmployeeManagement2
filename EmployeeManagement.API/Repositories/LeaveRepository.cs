@@ -1,5 +1,7 @@
-﻿using EmployeeManagement.API.Common;
+﻿using Dapper;
+using EmployeeManagement.API.Common;
 using EmployeeManagement.API.Models;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.Data.SqlClient;
 using System.Data;
 
@@ -85,23 +87,39 @@ namespace EmployeeManagement.API.Repositories
         {
             try
             {
+                _logger.LogInformation("🚀 ApplyLeave called for Employee: {EmpId}, AttachmentPath: {Path}",
+                    request.EmployeeId,
+                    request.AttachmentPath ?? "NULL");
+
                 using var conn = GetConnection();
                 using var cmd = new SqlCommand("sp_ApplyLeave", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
+                // ✅ ALL 12 input parameters (matching SP)
                 cmd.Parameters.AddWithValue("@EmployeeId", request.EmployeeId);
                 cmd.Parameters.AddWithValue("@LeaveTypeId", request.LeaveTypeId);
                 cmd.Parameters.AddWithValue("@StartDate", request.StartDate);
                 cmd.Parameters.AddWithValue("@EndDate", request.EndDate);
                 cmd.Parameters.AddWithValue("@TotalDays", request.TotalDays);
-                cmd.Parameters.AddWithValue("@Reason", request.Reason);
+                cmd.Parameters.AddWithValue("@Reason", request.Reason ?? string.Empty);
                 cmd.Parameters.AddWithValue("@IsHalfDay", request.IsHalfDay);
-                cmd.Parameters.AddWithValue("@HalfDayType", (object?)request.HalfDayType ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@AttachmentPath", (object?)request.AttachmentPath ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@EmergencyContact", (object?)request.EmergencyContact ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@CreatedBy", (object?)request.CreatedBy ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@HalfDayType",
+                    (object?)request.HalfDayType ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@EmergencyContact",
+                    (object?)request.EmergencyContact ?? DBNull.Value);
 
-                var newIdParam = new SqlParameter("@NewId", SqlDbType.Int)
+                // ✅ CRITICAL: AttachmentPath
+                cmd.Parameters.AddWithValue("@AttachmentPath",
+                    (object?)request.AttachmentPath ?? DBNull.Value);
+
+                // ✅ ADD: Status parameter (was missing!)
+                cmd.Parameters.AddWithValue("@Status", request.Status ?? "Pending");
+
+                cmd.Parameters.AddWithValue("@CreatedBy",
+                    (object?)request.CreatedBy ?? DBNull.Value);
+
+                // ✅ FIX: Output parameter name must match SP (@NewLeaveRequestId, not @NewId)
+                var newIdParam = new SqlParameter("@NewLeaveRequestId", SqlDbType.Int)
                 {
                     Direction = ParameterDirection.Output
                 };
@@ -110,7 +128,12 @@ namespace EmployeeManagement.API.Repositories
                 await conn.OpenAsync();
                 await cmd.ExecuteNonQueryAsync();
 
-                return (int)newIdParam.Value;
+                var newId = (int)newIdParam.Value;
+
+                _logger.LogInformation("✅ Leave created: ID={Id}, AttachmentPath={Path}",
+                    newId, request.AttachmentPath ?? "NULL");
+
+                return newId;
             }
             catch (SqlException ex) when (ex.Message.Contains("overlapping") || ex.Message.Contains("already have"))
             {
@@ -1078,9 +1101,69 @@ namespace EmployeeManagement.API.Repositories
 
             return dashboard;
         }
+        public async Task<int> CreateLeaveRequestAsync(LeaveRequest request, int createdBy)
+        {
+            try
+            {
+                using var conn = GetConnection();
 
+                if (conn.State != ConnectionState.Open)
+                    await conn.OpenAsync();
+
+                var parameters = new DynamicParameters();
+
+                // ✅ Input parameters - MUST match SP exactly (12 inputs)
+                parameters.Add("@EmployeeId", request.EmployeeId, DbType.Int32);
+                parameters.Add("@LeaveTypeId", request.LeaveTypeId, DbType.Int32);
+                parameters.Add("@StartDate", request.StartDate, DbType.Date);
+                parameters.Add("@EndDate", request.EndDate, DbType.Date);
+                parameters.Add("@TotalDays", request.TotalDays, DbType.Decimal);
+                parameters.Add("@Reason", request.Reason ?? string.Empty, DbType.String, size: 1000);
+                parameters.Add("@IsHalfDay", request.IsHalfDay, DbType.Boolean);
+                parameters.Add("@HalfDayType", (object?)request.HalfDayType ?? DBNull.Value, DbType.String, size: 20);
+                parameters.Add("@EmergencyContact", (object?)request.EmergencyContact ?? DBNull.Value, DbType.String, size: 100);
+                parameters.Add("@AttachmentPath", (object?)request.AttachmentPath ?? DBNull.Value, DbType.String, size: 500);
+                parameters.Add("@Status", request.Status ?? "Pending", DbType.String, size: 20);
+                parameters.Add("@CreatedBy", createdBy, DbType.Int32);
+
+                // ✅ Output parameter (1)
+                parameters.Add("@NewLeaveRequestId",
+                    dbType: DbType.Int32,
+                    direction: ParameterDirection.Output);
+
+                // Total = 12 input + 1 output = 13 parameters ✅
+
+                // ✅ Execute the stored procedure
+                await conn.ExecuteAsync(
+                    "sp_ApplyLeave",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                // ✅ Get output parameter value
+                var newId = parameters.Get<int>("@NewLeaveRequestId");
+
+                _logger.LogInformation("✅ Leave request created with ID: {Id} for Employee: {EmpId}",
+                    newId, request.EmployeeId);
+
+                return newId;
+            }
+            catch (SqlException sqlEx)
+            {
+                _logger.LogError(sqlEx,
+                    "❌ SQL Error creating leave for Employee {EmpId}. Error: {Error}",
+                    request.EmployeeId, sqlEx.Message);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "❌ Error creating leave request for Employee {EmpId}",
+                    request.EmployeeId);
+                throw;
+            }
+        } 
         #endregion
-         #endregion
+        #endregion
 
         #region Mapper Methods
 

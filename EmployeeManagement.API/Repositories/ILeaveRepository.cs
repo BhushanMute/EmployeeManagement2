@@ -50,6 +50,8 @@ namespace EmployeeManagement.API.Repositories
         Task<List<LeaveBalance>> GetAllEmployeeBalances(int year);
 
         Task<AdminLeaveDashboard> GetAdminLeaveDashboard(int? year = null);
+        Task<int> CreateLeaveRequestAsync(LeaveRequest request, int createdBy);
+
 
     }
 }

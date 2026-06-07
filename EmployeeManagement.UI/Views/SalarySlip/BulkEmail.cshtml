@@ -1,0 +1,700 @@
+﻿@{
+    ViewData["Title"] = "Bulk Send Salary Slips | वेतन पावत्या ईमेल";
+    int cycleId = ViewBag.CycleId;
+    string cycleName = ViewBag.CycleName ?? "Payroll Cycle";
+    int totalEmployees = ViewBag.TotalEmployees ?? 0;
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        }
+
+        body {
+            background: #f4f6f9;
+        }
+
+        .page-hero {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .page-hero::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 12px;
+            border-left: 4px solid #0ea5e9;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-mini {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+            .stat-mini h3 {
+                font-size: 1.8rem;
+                font-weight: 800;
+                margin: 0;
+            }
+
+            .stat-mini small {
+                color: #64748b;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 600;
+            }
+
+        /* === Big Action Button === */
+        .btn-send-bulk {
+            background: var(--success-gradient);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 1.25rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(17, 153, 142, 0.3);
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+            .btn-send-bulk:hover:not(:disabled) {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 25px rgba(17, 153, 142, 0.4);
+                color: white;
+            }
+
+            .btn-send-bulk:disabled {
+                background: #cbd5e0;
+                box-shadow: none;
+                cursor: not-allowed;
+            }
+
+        /* === Progress Section === */
+        .progress-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 14px;
+            padding: 2rem;
+            border: 2px dashed #cbd5e0;
+            margin-top: 2rem;
+        }
+
+        .progress-modern {
+            height: 35px;
+            border-radius: 20px;
+            background: #e2e8f0;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar-modern {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+            background-size: 30px 30px;
+            background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: width 0.5s ease;
+            animation: progressStripes 1s linear infinite;
+        }
+
+        @@keyframes progressStripes {
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: 30px 0;
+            }
+        }
+
+        .progress-bar-modern.completed {
+            animation: none;
+            background: var(--success-gradient);
+        }
+
+        .progress-stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+            .progress-stat-card.sent {
+                border-color: #10b981;
+                background: linear-gradient(135deg, #d1fae5 0%, #ffffff 100%);
+            }
+
+            .progress-stat-card.failed {
+                border-color: #ef4444;
+                background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
+            }
+
+            .progress-stat-card.pending {
+                border-color: #f59e0b;
+                background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
+            }
+
+            .progress-stat-card .icon-large {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .progress-stat-card .number {
+                font-size: 2rem;
+                font-weight: 800;
+                margin: 0;
+                line-height: 1;
+            }
+
+            .progress-stat-card .label {
+                font-size: 0.78rem;
+                text-transform: uppercase;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                color: #64748b;
+            }
+
+        /* === Live Activity Feed === */
+        .activity-feed {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #1e293b;
+            color: #94a3b8;
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+        }
+
+            .activity-feed::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .activity-feed::-webkit-scrollbar-thumb {
+                background: #475569;
+                border-radius: 10px;
+            }
+
+        .activity-line {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #334155;
+        }
+
+            .activity-line.success {
+                color: #4ade80;
+            }
+
+            .activity-line.error {
+                color: #f87171;
+            }
+
+            .activity-line.info {
+                color: #60a5fa;
+            }
+
+        /* === Toast Notifications === */
+        .toast-container-custom {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+        }
+
+        @@keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .pulse-icon {
+            animation: pulse 1.5s ease infinite;
+        }
+
+        @@keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+}
+
+<div class="container-fluid px-4 py-3 pb-5">
+
+    <!-- ===== HERO HEADER ===== -->
+    <div class="page-hero">
+        <div class="hero-content">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white bg-opacity-25 rounded-circle p-3"
+                         style="width: 70px; height: 70px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-paper-plane fa-2x"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-1">Bulk Email Salary Slips</h2>
+                        <p class="mb-0 opacity-90">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Cycle: <strong>@cycleName</strong>
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-users me-1"></i>
+                            <strong>@totalEmployees</strong> Employees
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <a asp-action="SalarySlipList" asp-route-cycleId="@cycleId"
+                       class="btn btn-light fw-semibold">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Slips
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MAIN CARD ===== -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="main-card p-4">
+
+                <!-- Info Banner -->
+                <div class="info-card">
+                    <div class="d-flex gap-3">
+                        <i class="fas fa-info-circle fa-2x text-info"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">
+                                How does this work? | हे कसे काम करते?
+                            </h6>
+                            <p class="mb-0 small text-muted">
+                                Click <strong>"Send to All"</strong> to queue emails for all employees in this cycle.
+                                The process runs in the background. You can monitor the live progress below.
+                                <br />
+                                <span class="text-secondary">सर्व कर्मचाऱ्यांसाठी ईमेल पाठवण्याची प्रक्रिया पार्श्वभूमीत चालू राहील.</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mini Stats -->
+                <div class="row g-3 mb-4" id="statsRow">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-mini">
+                            <small><i class="fas fa-users me-1"></i>Total Employees</small>
+                            <h3 class="text-primary">@totalEmployees</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-mini">
+                            <small><i class="fas fa-envelope me-1"></i>Estimated Emails</small>
+                            <h3 class="text-info">@totalEmployees</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-mini">
+                            <small><i class="fas fa-clock me-1"></i>Est. Time</small>
+                            <h3 class="text-warning">~@(totalEmployees * 2)s</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="stat-mini">
+                            <small><i class="fas fa-shield-alt me-1"></i>Status</small>
+                            <h3 class="text-success">Ready</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="text-center py-4" id="actionSection">
+                    <button id="btnSendAll" class="btn btn-send-bulk">
+                        <i class="fas fa-bolt me-2"></i>
+                        Send Salary Slips to All Employees
+                    </button>
+                    <p class="text-muted mt-3 small">
+                        <i class="fas fa-lock me-1"></i>
+                        Secure transmission via SMTP
+                    </p>
+                </div>
+
+                <!-- ===== Progress Section ===== -->
+                <div id="progressContainer" class="progress-section" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fas fa-sync-alt spin me-2 text-primary" id="progressIcon"></i>
+                            Live Processing Status
+                        </h5>
+                        <span class="badge bg-primary fs-6" id="elapsedTime">0s</span>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-modern mb-3">
+                        <div id="progressBar" class="progress-bar-modern" style="width: 0%">
+                            0%
+                        </div>
+                    </div>
+
+                    <!-- Status Text -->
+                    <p class="text-center text-muted mb-4" id="statusText">
+                        Initializing background process...
+                    </p>
+
+                    <!-- Stat Cards -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3 col-6">
+                            <div class="progress-stat-card">
+                                <div class="icon-large text-primary">
+                                    <i class="fas fa-list"></i>
+                                </div>
+                                <p class="number text-primary" id="statTotal">0</p>
+                                <p class="label">Total</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="progress-stat-card sent">
+                                <div class="icon-large text-success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <p class="number text-success" id="statSent">0</p>
+                                <p class="label">Sent</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="progress-stat-card failed">
+                                <div class="icon-large text-danger">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <p class="number text-danger" id="statFailed">0</p>
+                                <p class="label">Failed</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="progress-stat-card pending">
+                                <div class="icon-large text-warning">
+                                    <i class="fas fa-hourglass-half pulse-icon"></i>
+                                </div>
+                                <p class="number text-warning" id="statPending">0</p>
+                                <p class="label">Pending</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Feed -->
+                    <h6 class="fw-bold mb-2">
+                        <i class="fas fa-terminal me-2"></i>Activity Log
+                    </h6>
+                    <div class="activity-feed" id="activityFeed">
+                        <div class="activity-line info">
+                            [<span id="bootTime"></span>] System ready. Waiting for command...
+                        </div>
+                    </div>
+
+                    <!-- Complete Actions -->
+                    <div id="completionActions" class="mt-4 text-center" style="display:none;">
+                        <div class="alert alert-success">
+                            <h5 class="fw-bold mb-2">
+                                <i class="fas fa-check-circle me-2"></i>Process Completed!
+                            </h5>
+                            <p class="mb-0">All emails have been processed successfully.</p>
+                        </div>
+                        <a asp-action="SalarySlipList" asp-route-cycleId="@cycleId"
+                           class="btn btn-primary">
+                            <i class="fas fa-list me-1"></i>View Salary Slips
+                        </a>
+                        <button onclick="location.reload()" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-1"></i>Send More
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container-custom" id="toastContainer"></div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            let pollingInterval;
+            let startTime;
+            let elapsedInterval;
+            const cycleId = @cycleId;
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            // Set initial boot time
+            $('#bootTime').text(new Date().toLocaleTimeString());
+
+            // ===== Main Send Button Click =====
+            $('#btnSendAll').click(function () {
+                if (!confirmAction()) return;
+
+                const $btn = $(this);
+                $btn.prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-2"></i>Initiating...');
+
+                $('#progressContainer').slideDown();
+                startTime = Date.now();
+                addLog('info', 'Initiating bulk email process...');
+
+                // Start elapsed time counter
+                elapsedInterval = setInterval(updateElapsed, 1000);
+
+                // ===== Call UI Controller (which calls API) =====
+                // UI Endpoint: POST /SalarySlip/SendSalarySlipsEmail
+                // API Endpoint: POST api/SalarySlip/send-bulk-email
+                $.ajax({
+                    url: '@Url.Action("SendSalarySlipsEmail", "SalarySlip")',
+                    type: 'POST',
+                    data: {
+                        cycleId: cycleId,
+                        __RequestVerificationToken: token
+                    },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    success: function (res) {
+                        if (res.success) {
+                            showToast('success', res.message || 'Email queue started successfully');
+                            addLog('success', '✓ Background process started successfully');
+                            addLog('info', 'Polling for status every 3 seconds...');
+
+                            // Start polling
+                            pollingInterval = setInterval(() => checkProgress(cycleId), 3000);
+                        } else {
+                            showToast('error', res.message || 'Failed to start process');
+                            addLog('error', '✗ ' + (res.message || 'Failed to initiate'));
+                            resetButton();
+                        }
+                    },
+                    error: function (xhr) {
+                        showToast('error', 'Failed to initiate process. Please try again.');
+                        addLog('error', '✗ Network error or unauthorized');
+                        resetButton();
+                    }
+                });
+            });
+
+            // ===== Check Progress (Polling) =====
+            // UI Endpoint: GET /SalarySlip/GetEmailQueueStatus
+            // API Endpoint: GET api/SalarySlip/email-progress/{cycleId}
+            function checkProgress(id) {
+                $.ajax({
+                    url: '@Url.Action("GetEmailQueueStatus", "SalarySlip")',
+                    type: 'GET',
+                    data: { cycleId: id },
+                    success: function (res) {
+                        if (res.success && res.data) {
+                            updateProgressUI(res.data);
+                        }
+                    },
+                    error: function () {
+                        addLog('error', '✗ Failed to fetch status');
+                    }
+                });
+            }
+
+            // ===== Update Progress UI =====
+            function updateProgressUI(data) {
+                const total = data.total || 0;
+                const sent = data.sent || 0;
+                const failed = data.failed || 0;
+                const pending = data.pending || 0;
+                const completed = sent + failed;
+                const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                // Update progress bar
+                $('#progressBar').css('width', percent + '%').text(percent + '%');
+
+                // Update counters
+                animateCounter('#statTotal', total);
+                animateCounter('#statSent', sent);
+                animateCounter('#statFailed', failed);
+                animateCounter('#statPending', pending);
+
+                // Update status text
+                $('#statusText').html(
+                    `Processing... <strong>${completed}</strong> of <strong>${total}</strong> completed`
+                );
+
+                // Add to activity log (only on changes)
+                if (sent > (window.lastSent || 0)) {
+                    addLog('success', `✓ ${sent - (window.lastSent || 0)} emails sent successfully`);
+                    window.lastSent = sent;
+                }
+                if (failed > (window.lastFailed || 0)) {
+                    addLog('error', `✗ ${failed - (window.lastFailed || 0)} emails failed`);
+                    window.lastFailed = failed;
+                }
+
+                // Check if completed
+                if (completed >= total && total > 0) {
+                    onProcessComplete(sent, failed, total);
+                }
+            }
+
+            // ===== Process Complete =====
+            function onProcessComplete(sent, failed, total) {
+                clearInterval(pollingInterval);
+                clearInterval(elapsedInterval);
+
+                // Update UI to completed state
+                $('#progressBar')
+                    .removeClass('progress-bar-modern')
+                    .addClass('progress-bar-modern completed')
+                    .css('width', '100%')
+                    .text('100% Complete');
+
+                $('#progressIcon')
+                    .removeClass('fa-sync-alt spin text-primary')
+                    .addClass('fa-check-circle text-success');
+
+                $('#statusText').html(
+                    `<strong class="text-success">Completed!</strong> ${sent} sent, ${failed} failed of ${total} total`
+                );
+
+                addLog('success', `✓ Process completed in ${getElapsedTime()}`);
+                addLog('info', `Final: ${sent} sent | ${failed} failed | ${total} total`);
+
+                $('#completionActions').slideDown();
+                $('#actionSection').hide();
+
+                showToast('success', `All emails processed! ${sent} sent, ${failed} failed`);
+
+                // Reset window stats
+                window.lastSent = 0;
+                window.lastFailed = 0;
+            }
+
+            // ===== Helper Functions =====
+            function confirmAction() {
+                return confirm(
+                    "⚠️ Confirm Bulk Email Send\n\n" +
+                    "This will queue salary slip emails for all employees in this cycle.\n" +
+                    "Total Employees: @totalEmployees\n\n" +
+                    "Continue?"
+                );
+            }
+
+            function resetButton() {
+                $('#btnSendAll').prop('disabled', false)
+                    .html('<i class="fas fa-bolt me-2"></i>Send Salary Slips to All Employees');
+                clearInterval(elapsedInterval);
+            }
+
+            function addLog(type, message) {
+                const time = new Date().toLocaleTimeString();
+                const line = `<div class="activity-line ${type}">[${time}] ${message}</div>`;
+                $('#activityFeed').append(line);
+                $('#activityFeed').scrollTop($('#activityFeed')[0].scrollHeight);
+            }
+
+            function animateCounter(selector, target) {
+                const $el = $(selector);
+                const current = parseInt($el.text()) || 0;
+                if (current === target) return;
+
+                $({ value: current }).animate({ value: target }, {
+                    duration: 400,
+                    step: function () {
+                        $el.text(Math.round(this.value));
+                    },
+                    complete: function () {
+                        $el.text(target);
+                    }
+                });
+            }
+
+            function updateElapsed() {
+                $('#elapsedTime').text(getElapsedTime());
+            }
+
+            function getElapsedTime() {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                if (elapsed < 60) return elapsed + 's';
+                const mins = Math.floor(elapsed / 60);
+                const secs = elapsed % 60;
+                return `${mins}m ${secs}s`;
+            }
+
+            function showToast(type, message) {
+                const bgClass = type === 'success' ? 'bg-success' :
+                               type === 'error' ? 'bg-danger' : 'bg-info';
+                const icon = type === 'success' ? 'check-circle' :
+                            type === 'error' ? 'times-circle' : 'info-circle';
+
+                const toast = $(`
+                    <div class="toast align-items-center text-white ${bgClass} border-0 mb-2 show"
+                         role="alert" style="min-width: 300px;">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-${icon} me-2"></i>${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                                    data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                `);
+
+                $('#toastContainer').append(toast);
+                setTimeout(() => toast.fadeOut(() => toast.remove()), 4000);
+            }
+        });
+    </script>
+}

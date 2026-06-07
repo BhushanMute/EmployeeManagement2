@@ -1,358 +1,97 @@
-﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.SalarySlipResponse>
+﻿@model IEnumerable<EmployeeManagement.UI.Models.SalarySlipResponse>
 @{
-    ViewData["Title"] = "My Salary Slips | माझ्या वेतन पावत्या";
-    var selectedYear = (int)ViewBag.SelectedYear;
-    var selectedMonth = ViewBag.SelectedMonth as int?;
-    var availableYears = ViewBag.AvailableYears as List<int> ?? new List<int>();
-    var totalNet = Model?.Sum(s => s.NetSalary ?? 0) ?? 0;
-    var latestSlip = Model?.OrderByDescending(s => s.Year)
-                          .ThenByDescending(s => s.Month)
-                          .FirstOrDefault();
+    ViewData["Title"] = "My Salary Slips";
+    int selectedYear = ViewBag.SelectedYear ?? DateTime.Now.Year;
+    int? selectedMonth = ViewBag.SelectedMonth;
+    var years = ViewBag.AvailableYears as List<int> ?? new List<int> { DateTime.Now.Year, DateTime.Now.Year - 1, DateTime.Now.Year - 2 };
 }
 
-<div class="container-fluid mt-4 pb-5">
-
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="fw-bold mb-1">
-                        <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
-                        My Salary Slips
-                    </h2>
-                    <p class="text-muted mb-0">
-                        माझ्या वेतन पावत्या | Year: <strong>@selectedYear</strong>
-                    </p>
-                </div>
-                <div class="d-flex gap-2">
-                    <a asp-action="MySalarySlips"
-                       asp-route-year="@selectedYear"
-                       class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </a>
-                </div>
-            </div>
+<div class="container-fluid py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📂 माझ्या वेतन पावत्या (My Salary Slips)</h5>
         </div>
-    </div>
-
-    <!-- Alerts -->
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <!-- Summary Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-sm-6">
-            <div class="card shadow-sm border-0 bg-gradient"
-                 style="background: linear-gradient(135deg,#667eea,#764ba2);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <p class="mb-1 opacity-75 small">Total Slips / एकूण पावत्या</p>
-                            <h3 class="fw-bold mb-0">@(Model?.Count() ?? 0)</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-file-alt fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card shadow-sm border-0"
-                 style="background: linear-gradient(135deg,#11998e,#38ef7d);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <p class="mb-1 opacity-75 small">YTD Net Pay / वार्षिक निव्वळ</p>
-                            <h3 class="fw-bold mb-0">₹ @totalNet.ToString("N0")</h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-rupee-sign fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card shadow-sm border-0"
-                 style="background: linear-gradient(135deg,#f093fb,#f5576c);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <p class="mb-1 opacity-75 small">Latest Month / शेवटचा महिना</p>
-                            <h4 class="fw-bold mb-0">
-                                @(latestSlip != null ? $"{latestSlip.MonthName} {latestSlip.Year}" : "N/A")
-                            </h4>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-calendar-check fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card shadow-sm border-0"
-                 style="background: linear-gradient(135deg,#4facfe,#00f2fe);">
-                <div class="card-body text-white">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <p class="mb-1 opacity-75 small">Latest Net Pay</p>
-                            <h3 class="fw-bold mb-0">
-                                ₹ @(latestSlip?.NetSalary?.ToString("N0") ?? "0")
-                            </h3>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-hand-holding-usd fa-2x opacity-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filter Section -->
-    <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
-            <form method="get" asp-action="MySalarySlips" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold small text-muted">
-                        <i class="fas fa-calendar-alt me-1"></i>Year / वर्ष
-                    </label>
+            <!-- Filter Form -->
+            <form method="get" class="row g-3 mb-4 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Financial Year</label>
                     <select name="year" class="form-select">
-                        @foreach (var yr in availableYears)
+                        @foreach (var y in years)
                         {
-                            <option value="@yr" selected="@(yr == selectedYear)">@yr</option>
+                            <option value="@y" selected="@(y == selectedYear)">@y - @(y + 1)</option>
                         }
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold small text-muted">
-                        <i class="fas fa-calendar me-1"></i>Month / महिना
-                    </label>
+                    <label class="form-label">Month</label>
                     <select name="month" class="form-select">
-                        <option value="">All Months / सर्व महिने</option>
-                        @for (int i = 1; i <= 12; i++)
+                        <option value="">All Months</option>
+                        @for (int m = 1; m <= 12; m++)
                         {
-                            <option value="@i" selected="@(i == selectedMonth)">
-                                @System.Globalization.CultureInfo.CurrentCulture
-                                .DateTimeFormat.GetMonthName(i)
-                            </option>
+                            <option value="@m" selected="@(m == selectedMonth)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
                         }
                     </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i>Search / शोधा
-                    </button>
-                    <a asp-action="MySalarySlips" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo me-1"></i>Reset
-                    </a>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">🔍 Filter</button>
                 </div>
             </form>
-        </div>
-    </div>
 
-    <!-- Salary Slips List -->
-    @if (Model != null && Model.Any())
-    {
-        <!-- Card View for Mobile -->
-        <div class="d-md-none">
-            @foreach (var slip in Model.OrderByDescending(s => s.Year).ThenByDescending(s => s.Month))
+            <!-- Slips Grid -->
+            @if (Model != null && Model.Any())
             {
-                <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h6 class="fw-bold mb-0">@slip.MonthName @slip.Year</h6>
-                                <small class="text-muted">@slip.SlipNumber</small>
-                            </div>
-                            <span class="badge bg-success">@slip.Status</span>
-                        </div>
-                        <div class="row g-2 mb-3">
-                            <div class="col-4 text-center">
-                                <small class="text-muted d-block">Gross</small>
-                                <span class="fw-bold text-success small">
-                                    ₹@slip.GrossSalary?.ToString("N0")
-                                </span>
-                            </div>
-                            <div class="col-4 text-center">
-                                <small class="text-muted d-block">Deductions</small>
-                                <span class="fw-bold text-danger small">
-                                    ₹@slip.TotalDeductions?.ToString("N0")
-                                </span>
-                            </div>
-                            <div class="col-4 text-center">
-                                <small class="text-muted d-block">Net Pay</small>
-                                <span class="fw-bold text-primary small">
-                                    ₹@slip.NetSalary?.ToString("N0")
-                                </span>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a asp-action="ViewSalarySlip"
-                               asp-route-slipId="@slip.SlipId"
-                               class="btn btn-sm btn-primary flex-fill">
-                                <i class="fas fa-eye me-1"></i>View
-                            </a>
-                            <a asp-action="DownloadSalarySlip"
-                               asp-route-slipId="@slip.SlipId"
-                               class="btn btn-sm btn-danger">
-                                <i class="fas fa-file-pdf"></i>
-                            </a>
-                            <a asp-action="DownloadSalarySlipExcel"
-                               asp-route-slipId="@slip.SlipId"
-                               class="btn btn-sm btn-success">
-                                <i class="fas fa-file-excel"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-
-        <!-- Table View for Desktop -->
-        <div class="card shadow-sm border-0 d-none d-md-block">
-            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3">
-                <h6 class="mb-0 fw-bold">
-                    <i class="fas fa-list me-2 text-primary"></i>
-                    Salary Slips (@Model.Count() records)
-                </h6>
-            </div>
-            <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-4">Month / महिना</th>
-                                <th>Slip Number</th>
-                                <th class="text-end">Gross (₹)</th>
-                                <th class="text-end">Deductions (₹)</th>
-                                <th class="text-end">Net Pay (₹)</th>
-                                <th class="text-center">Email</th>
-                                <th class="text-center">Actions</th>
+                                <th>Slip No.</th>
+                                <th>Month / Year</th>
+                                <th>Gross Salary</th>
+                                <th>Net Pay</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var slip in Model.OrderByDescending(s => s.Year)
-                                                    .ThenByDescending(s => s.Month))
+                            @foreach (var slip in Model)
                             {
                                 <tr>
-                                    <td class="ps-4">
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                                                <i class="fas fa-calendar text-primary small"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">@slip.MonthName @slip.Year</div>
-                                                <small class="text-muted">@slip.TotalWorkingDays days worked</small>
-                                            </div>
-                                        </div>
-                                    </td>
+                                    <td><strong>@slip.SlipNumber</strong></td>
+                                    <td>@slip.MonthName @slip.Year</td>
+                                    <td>₹ @(string.Format("{0:N2}", slip.GrossSalary))</td>
+                                    <td class="text-success fw-bold">₹ @(string.Format("{0:N2}", slip.NetSalary))</td>
                                     <td>
-                                        <span class="badge bg-light text-dark border">
-                                            @slip.SlipNumber
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <span class="text-success fw-semibold">
-                                            ₹ @slip.GrossSalary?.ToString("N2")
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <span class="text-danger fw-semibold">
-                                            ₹ @slip.TotalDeductions?.ToString("N2")
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <span class="text-primary fw-bold fs-6">
-                                            ₹ @slip.NetSalary?.ToString("N2")
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        @if (slip.EmailSent == true)
+                                        @if (slip.Status == "Generated")
                                         {
-                                            <span class="badge bg-success"
-                                                  title="Sent on @slip.EmailSentDate?.ToString("dd/MM/yyyy")">
-                                                <i class="fas fa-check me-1"></i>Sent
-                                            </span>
+                                            <span class="badge bg-success">Generated</span>
+                                        }
+                                        else if (slip.Status == "Sent")
+                                        {
+
+                                            <span class="badge bg-info">Emailed</span>
                                         }
                                         else
                                         {
-                                            <span class="badge bg-secondary">Pending</span>
+
+
+                                            <span class="badge bg-secondary">@slip.Status</span>
                                         }
                                     </td>
-                                    <td class="text-center">
-                                        <div class="btn-group btn-group-sm">
-                                            <a asp-action="ViewSalarySlip"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-primary"
-                                               title="View Slip">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a asp-action="DownloadSalarySlip"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-danger"
-                                               title="Download PDF">
-                                                <i class="fas fa-file-pdf"></i>
-                                            </a>
-                                            <a asp-action="DownloadSalarySlipExcel"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-success"
-                                               title="Download Excel">
-                                                <i class="fas fa-file-excel"></i>
-                                            </a>
-                                            <a asp-action="ViewSSRSSalarySlip"
-                                               asp-route-slipId="@slip.SlipId"
-                                               class="btn btn-outline-secondary"
-                                               title="View Official Report">
-                                                <i class="fas fa-chart-bar"></i>
-                                            </a>
-                                        </div>
+                                    <td>
+                                        <a asp-action="ViewSalarySlip" asp-route-slipId="@slip.SlipId" class="btn btn-sm btn-outline-primary">👁️ View</a>
+                                        <a asp-action="DownloadSalarySlip" asp-route-slipId="@slip.SlipId" class="btn btn-sm btn-outline-danger">📥 PDF</a>
                                     </td>
                                 </tr>
                             }
                         </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <td colspan="2" class="ps-4 fw-bold">
-                                    Total (@Model.Count() months)
-                                </td>
-                                <td class="text-end fw-bold text-success">
-                                    ₹ @Model.Sum(s => s.GrossSalary ?? 0).ToString("N2")
-                                </td>
-                                <td class="text-end fw-bold text-danger">
-                                    ₹ @Model.Sum(s => s.TotalDeductions ?? 0).ToString("N2")
-                                </td>
-                                <td class="text-end fw-bold text-primary">
-                                    ₹ @Model.Sum(s => s.NetSalary ?? 0).ToString("N2")
-                                </td>
-                                <td colspan="2"></td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">No salary slips found for selected criteria.</div>
+            }
         </div>
-    }
-    else
-    {
-        <div class="card shadow-sm border-0">
-            <div class="card-body text-center py-5">
-                <i class="fas fa-file-invoice-dollar fa-4x text-muted mb-3 opacity-50"></i>
-                <h5 class="text-muted">No salary slips found</h5>
-                <p class="text-muted small">
-                    कोणतीही वेतन पावती आढळली नाही.<br />
-                    Try selecting a different year or month.
-                </p>
-            </div>
-        </div>
-    }
-
+    </div>
 </div>

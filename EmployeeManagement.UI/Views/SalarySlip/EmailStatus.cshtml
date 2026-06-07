@@ -1,0 +1,983 @@
+﻿@{
+    ViewData["Title"] = "Email Queue Status | ईमेल स्थिती";
+    int cycleId = ViewBag.CycleId;
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        /* ===== Hero Header ===== */
+        .page-hero {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 350px;
+            height: 350px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .hero-content { position: relative; z-index: 2; }
+
+        .hero-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        /* ===== Status Banner ===== */
+        .status-banner {
+            background: white;
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #10b981;
+            position: relative;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot::after {
+            content: '';
+            position: absolute;
+            top: -4px; left: -4px;
+            right: -4px; bottom: -4px;
+            border-radius: 50%;
+            border: 2px solid #10b981;
+            animation: pulseRing 2s ease-out infinite;
+        }
+
+        .status-dot.completed {
+            background: #6366f1;
+            animation: none;
+        }
+        .status-dot.completed::after { display: none; }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @@keyframes pulseRing {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* ===== Main Progress Card ===== */
+        .main-card {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header-modern {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border: none;
+        }
+
+        .card-header-modern h5 {
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* ===== Circular Progress ===== */
+        .circular-progress-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        .circular-progress {
+            position: relative;
+            width: 220px;
+            height: 220px;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+        }
+
+        .circular-progress circle {
+            fill: none;
+            stroke-width: 14;
+            stroke-linecap: round;
+        }
+
+        .circular-bg {
+            stroke: #e2e8f0;
+        }
+
+        .circular-fill {
+            stroke: url(#gradient);
+            stroke-dasharray: 628;
+            stroke-dashoffset: 628;
+            transition: stroke-dashoffset 0.6s ease;
+        }
+
+        .circular-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-text .percent {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+        }
+
+        .circular-text .label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* ===== Linear Progress Bar ===== */
+        .progress-modern {
+            height: 30px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+
+        .progress-bar-modern {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+            background-size: 30px 30px;
+            background-image: linear-gradient(45deg,
+                rgba(255,255,255,0.2) 25%, transparent 25%,
+                transparent 50%, rgba(255,255,255,0.2) 50%,
+                rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: width 0.6s ease;
+            animation: stripes 1s linear infinite;
+        }
+
+        @@keyframes stripes {
+            from { background-position: 0 0; }
+            to { background-position: 30px 0; }
+        }
+
+        .progress-bar-modern.completed {
+            animation: none;
+            background: var(--success-gradient);
+        }
+
+        .progress-bar-modern.has-failures {
+            background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+        }
+
+        /* ===== Stats Grid ===== */
+        .stats-grid {
+            padding: 0 2rem 2rem 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid #f1f5f9;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+        }
+
+        .stat-card.total::before { background: var(--primary-gradient); }
+        .stat-card.total { border-color: #c7d2fe; }
+        .stat-card.total .icon-circle { background: var(--primary-gradient); }
+        .stat-card.total .number { color: #4f46e5; }
+
+        .stat-card.sent::before { background: var(--success-gradient); }
+        .stat-card.sent { border-color: #a7f3d0; }
+        .stat-card.sent .icon-circle { background: var(--success-gradient); }
+        .stat-card.sent .number { color: #059669; }
+
+        .stat-card.pending::before { background: var(--warning-gradient); }
+        .stat-card.pending { border-color: #fde68a; }
+        .stat-card.pending .icon-circle { background: var(--warning-gradient); }
+        .stat-card.pending .number { color: #d97706; }
+
+        .stat-card.failed::before { background: var(--danger-gradient); }
+        .stat-card.failed { border-color: #fecaca; }
+        .stat-card.failed .icon-circle { background: var(--danger-gradient); }
+        .stat-card.failed .number { color: #dc2626; }
+
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        .stat-card .percentage {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.2rem 0.75rem;
+            background: #f1f5f9;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        /* Pulse animation for pending */
+        .stat-card.pending .icon-circle {
+            animation: pulse 2s ease infinite;
+        }
+
+        /* ===== Live Activity Feed ===== */
+        .activity-section {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .activity-feed {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 1rem 1.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .activity-feed::-webkit-scrollbar { width: 8px; }
+        .activity-feed::-webkit-scrollbar-track { background: #1e293b; }
+        .activity-feed::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+        .log-entry {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #1e293b;
+            animation: slideIn 0.3s ease;
+        }
+
+        .log-entry .time {
+            color: #64748b;
+            margin-right: 0.5rem;
+        }
+
+        .log-entry.success { color: #4ade80; }
+        .log-entry.error { color: #f87171; }
+        .log-entry.info { color: #60a5fa; }
+        .log-entry.warning { color: #fbbf24; }
+
+        @@keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ===== Action Buttons ===== */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 1.5rem 2rem;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn-action-modern {
+            padding: 0.75rem 1.75rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-action-modern:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-retry {
+            background: var(--danger-gradient);
+            color: white;
+        }
+        .btn-retry:hover { color: white; }
+
+        .btn-back-list {
+            background: #64748b;
+            color: white;
+        }
+        .btn-back-list:hover { background: #475569; color: white; }
+
+        .btn-refresh {
+            background: var(--info-gradient);
+            color: white;
+        }
+        .btn-refresh:hover { color: white; }
+
+        .btn-pause {
+            background: var(--warning-gradient);
+            color: white;
+        }
+        .btn-pause:hover { color: white; }
+
+        /* ===== Meta Info ===== */
+        .meta-row {
+            display: flex;
+            justify-content: space-around;
+            background: #f8fafc;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-item .icon {
+            color: #6366f1;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .meta-item .label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-item .value {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.95rem;
+        }
+
+        /* ===== Completion Card ===== */
+        .completion-card {
+            background: var(--success-gradient);
+            color: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(17, 153, 142, 0.3);
+            display: none;
+        }
+
+        .completion-card.show {
+            display: block;
+            animation: bounceIn 0.6s ease;
+        }
+
+        @@keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        .completion-card .big-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== Loader ===== */
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .loader-overlay.show { display: flex; }
+
+        .loader-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            text-align: center;
+            min-width: 300px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+
+        /* ===== Connection Status ===== */
+        .connection-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.8rem;
+            background: #d1fae5;
+            color: #065f46;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .connection-badge.offline {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        .connection-badge.offline .connection-dot {
+            background: #ef4444;
+        }
+
+        @@media (max-width: 768px) {
+            .circular-progress { width: 180px; height: 180px; }
+            .circular-text .percent { font-size: 2.5rem; }
+            .stat-card .number { font-size: 2rem; }
+        }
+    </style>
+}
+
+<div class="container py-3 pb-5">
+
+    <!-- ===== HERO HEADER ===== -->
+    <div class="page-hero">
+        <div class="hero-content">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="hero-icon">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <div>
+                        <h2 class="fw-bold mb-1">Email Queue Status</h2>
+                        <p class="mb-0 opacity-90">
+                            <i class="fas fa-tag me-1"></i>
+                            Cycle ID: <strong>#@cycleId</strong>
+                            <span class="mx-2">|</span>
+                            Live monitoring of bulk email processing
+                            <br>
+                            <small>ईमेल प्रक्रियेची थेट देखरेख</small>
+                        </p>
+                    </div>
+                </div>
+                <a asp-action="SalarySlipList" asp-route-cycleId="@cycleId"
+                   class="btn btn-light fw-semibold">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Slips
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STATUS BANNER ===== -->
+    <div class="status-banner">
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <div>
+                <strong class="d-block" id="statusTitle">Processing...</strong>
+                <small class="text-muted" id="statusSubtitle">Sending emails in the background</small>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="connection-badge" id="connectionBadge">
+                <div class="connection-dot"></div>
+                <span id="connectionText">Connected</span>
+            </div>
+            <small class="text-muted">
+                <i class="fas fa-sync me-1"></i>
+                Last update: <strong id="lastUpdate">--</strong>
+            </small>
+        </div>
+    </div>
+
+    <!-- ===== COMPLETION CARD (Hidden by default) ===== -->
+    <div class="completion-card" id="completionCard">
+        <div class="big-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 class="fw-bold mb-2">Process Completed! 🎉</h3>
+        <p class="mb-3" id="completionMessage">All emails have been processed successfully.</p>
+        <a asp-action="SalarySlipList" asp-route-cycleId="@cycleId"
+           class="btn btn-light fw-bold">
+            <i class="fas fa-list me-1"></i>View Salary Slips
+        </a>
+    </div>
+
+    <!-- ===== MAIN PROGRESS CARD ===== -->
+    <div class="main-card">
+        <div class="card-header-modern">
+            <h5>
+                <i class="fas fa-chart-line"></i>
+                Real-Time Progress
+                <span class="badge bg-white text-dark ms-2" id="elapsedBadge">
+                    <i class="fas fa-clock me-1"></i>0s
+                </span>
+            </h5>
+        </div>
+
+        <!-- Circular Progress -->
+        <div class="circular-progress-container">
+            <div class="circular-progress">
+                <svg width="220" height="220">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#11998e" />
+                            <stop offset="100%" stop-color="#38ef7d" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="circular-bg" cx="110" cy="110" r="100"></circle>
+                    <circle id="circularFill" class="circular-fill" cx="110" cy="110" r="100"></circle>
+                </svg>
+                <div class="circular-text">
+                    <div class="percent" id="circularPercent">0%</div>
+                    <div class="label">Complete</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linear Progress Bar -->
+        <div class="px-4">
+            <div class="d-flex justify-content-between mb-2">
+                <small class="text-muted fw-semibold">
+                    <i class="fas fa-tasks me-1"></i>Processing Progress
+                </small>
+                <small class="text-muted fw-semibold" id="progressFraction">0 / 0</small>
+            </div>
+            <div class="progress-modern">
+                <div id="progressBar" class="progress-bar-modern" style="width: 0%">0%</div>
+            </div>
+        </div>
+
+        <!-- Meta Info Row -->
+        <div class="meta-row mt-4">
+            <div class="meta-item">
+                <div class="icon"><i class="fas fa-tachometer-alt"></i></div>
+                <div class="label">Speed</div>
+                <div class="value" id="metaSpeed">-- /min</div>
+            </div>
+            <div class="meta-item">
+                <div class="icon"><i class="fas fa-hourglass-half"></i></div>
+                <div class="label">ETA</div>
+                <div class="value" id="metaEta">--</div>
+            </div>
+            <div class="meta-item">
+                <div class="icon"><i class="fas fa-check-double"></i></div>
+                <div class="label">Success Rate</div>
+                <div class="value" id="metaSuccessRate">--%</div>
+            </div>
+            <div class="meta-item">
+                <div class="icon"><i class="fas fa-clock"></i></div>
+                <div class="label">Started</div>
+                <div class="value" id="metaStarted">--</div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="row g-3 mt-2">
+                <div class="col-md-3 col-6">
+                    <div class="stat-card total">
+                        <div class="icon-circle">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="number" id="statTotal">0</div>
+                        <div class="stat-label">Total</div>
+                        <div class="percentage" id="pctTotal">100%</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card sent">
+                        <div class="icon-circle">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="number" id="statSent">0</div>
+                        <div class="stat-label">Sent</div>
+                        <div class="percentage" id="pctSent">0%</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card pending">
+                        <div class="icon-circle">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="number" id="statPending">0</div>
+                        <div class="stat-label">Pending</div>
+                        <div class="percentage" id="pctPending">0%</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card failed">
+                        <div class="icon-circle">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="number" id="statFailed">0</div>
+                        <div class="stat-label">Failed</div>
+                        <div class="percentage" id="pctFailed">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button id="btnRefresh" class="btn-action-modern btn-refresh" onclick="manualRefresh()">
+                <i class="fas fa-sync-alt"></i>Refresh Now
+            </button>
+            <button id="btnPause" class="btn-action-modern btn-pause" onclick="togglePolling()">
+                <i class="fas fa-pause" id="pauseIcon"></i>
+                <span id="pauseText">Pause Updates</span>
+            </button>
+            <button id="btnRetry" class="btn-action-modern btn-retry" onclick="retryFailed()"
+                    style="display: none;">
+                <i class="fas fa-redo"></i>Retry Failed (<span id="retryCount">0</span>)
+            </button>
+            <a asp-action="SalarySlipList" asp-route-cycleId="@cycleId"
+               class="btn-action-modern btn-back-list">
+                <i class="fas fa-list"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== ACTIVITY LOG ===== -->
+    <div class="activity-section">
+        <div class="card-header-modern">
+            <h5>
+                <i class="fas fa-terminal"></i>
+                Live Activity Log
+                <span class="badge bg-success ms-2 pulse-icon">
+                    <i class="fas fa-circle" style="font-size: 0.5rem;"></i> LIVE
+                </span>
+            </h5>
+        </div>
+        <div class="activity-feed" id="activityFeed">
+            <div class="log-entry info">
+                <span class="time">[<span id="bootTime"></span>]</span>
+                <i class="fas fa-power-off me-1"></i> System initialized. Monitoring started...
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOADER ===== -->
+<div class="loader-overlay" id="loader">
+    <div class="loader-box">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+        <h6 class="mb-0 fw-bold" id="loaderText">Processing...</h6>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // ===== Global State =====
+        const cycleId = @cycleId;
+        let pollingInterval = null;
+        let elapsedInterval = null;
+        let startTime = Date.now();
+        let isPolling = true;
+        let lastSent = 0;
+        let lastFailed = 0;
+        let lastTotal = 0;
+        let speedHistory = [];
+
+        $(document).ready(function () {
+            $('#bootTime').text(formatTime(new Date()));
+            $('#metaStarted').text(formatTime(new Date()));
+
+            // Start polling immediately
+            startPolling();
+            elapsedInterval = setInterval(updateElapsed, 1000);
+
+            // Initial fetch
+            fetchStatus();
+        });
+
+        // ===== Polling Logic =====
+        function startPolling() {
+            isPolling = true;
+            pollingInterval = setInterval(fetchStatus, 3000);
+            addLog('info', '<i class="fas fa-play me-1"></i>Auto-refresh started (every 3s)');
+        }
+
+        function stopPolling() {
+            isPolling = false;
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+            addLog('warning', '<i class="fas fa-pause me-1"></i>Auto-refresh paused');
+        }
+
+        function togglePolling() {
+            if (isPolling) {
+                stopPolling();
+                $('#pauseIcon').removeClass('fa-pause').addClass('fa-play');
+                $('#pauseText').text('Resume Updates');
+            } else {
+                startPolling();
+                $('#pauseIcon').removeClass('fa-play').addClass('fa-pause');
+                $('#pauseText').text('Pause Updates');
+            }
+        }
+
+        function manualRefresh() {
+            $('#btnRefresh').prop('disabled', true)
+                .html('<i class="fas fa-spinner fa-spin"></i>Refreshing...');
+            fetchStatus(true);
+            setTimeout(() => {
+                $('#btnRefresh').prop('disabled', false)
+                    .html('<i class="fas fa-sync-alt"></i>Refresh Now');
+            }, 1000);
+        }
+
+        // ===== Fetch Status from API =====
+        // UI: GET /SalarySlip/GetEmailQueueStatus
+        // API: GET api/SalarySlip/email-progress/{cycleId}
+        function fetchStatus(isManual = false) {
+            $.ajax({
+                url: '@Url.Action("GetEmailQueueStatus", "SalarySlip")',
+                type: 'GET',
+                data: { cycleId: cycleId },
+                timeout: 5000,
+                success: function (res) {
+                    setConnectionStatus(true);
+                    if (res.success && res.data) {
+                        updateUI(res.data);
+                        $('#lastUpdate').text(formatTime(new Date()));
+
+                        if (isManual) {
+                            addLog('info', '<i class="fas fa-sync me-1"></i>Manual refresh completed');
+                        }
+                    } else {
+                        addLog('warning', '<i class="fas fa-exclamation-triangle me-1"></i>' +
+                            (res.message || 'No data received'));
+                    }
+                },
+                error: function (xhr) {
+                    setConnectionStatus(false);
+                    addLog('error', '<i class="fas fa-times me-1"></i>Connection error: ' +
+                        (xhr.statusText || 'Network failed'));
+                }
+            });
+        }
+
+        // ===== Update UI with Status Data =====
+        function updateUI(data) {
+            // Support both PascalCase and camelCase from API
+            const total = data.total ?? data.Total ?? 0;
+            const sent = data.sent ?? data.Sent ?? 0;
+            const failed = data.failed ?? data.Failed ?? 0;
+            const pending = data.pending ?? data.Pending ?? 0;
+            const completed = sent + failed;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            // Update circular progress
+            const dashOffset = 628 - (628 * percent / 100);
+            $('#circularFill').css('stroke-dashoffset', dashOffset);
+            $('#circularPercent').text(percent + '%');
+
+            // Update linear progress bar
+            $('#progressBar').css('width', percent + '%').text(percent + '%');
+            $('#progressFraction').text(`${completed} / ${total}`);
+
+            // Update stat cards with animation
+            animateNumber('#statTotal', total);
+            animateNumber('#statSent', sent);
+            animateNumber('#statPending', pending);
+            animateNumber('#statFailed', failed);
+
+            // Update percentages
+            if (total > 0) {
+                $('#pctSent').text(Math.round((sent / total) * 100) + '%');
+                $('#pctPending').text(Math.round((pending / total) * 100) + '%');
+                $('#pctFailed').text(Math.round((failed / total) * 100) + '%');
+            }
+
+            // Update meta info
+            updateMeta(sent, failed, total);
+
+            // Log changes
+            if (sent > lastSent) {
+                addLog('success',
+                    `<i class="fas fa-check-circle me-1"></i>${sent - lastSent} email(s) sent successfully`);
+                lastSent = sent;
+            }
+            if (failed > lastFailed) {
+                addLog('error',
+                    `<i class="fas fa-times-circle me-1"></i>${failed - lastFailed} email(s) failed`);
+                lastFailed = failed;
+            }
+
+            // Check completion
+            if (percent === 100 && total > 0) {
+                onComplete(sent, failed, total);
+            } else {
+                updateStatusBanner('processing', total, completed);
+            }
+
+            // Show retry button if there are failures
+            if (failed > 0) {
+                $('#btnRetry').show();
+                $('#retryCount').text(failed);
+            } else {
+                $('#btnRetry').hide();
+            }
+
+            // Color progress bar based on failures
+            if (failed > 0 && percent < 100) {
+                $('#progressBar').addClass('has-failures');
+            }
+        }
+
+        // ===== Animate Counter =====
+        function animateNumber(selector, target) {
+            const $el = $(selector);
+            const current = parseInt($el.text()) || 0;
+            if (current === target) return;
+
+            $({ value: current }).animate({ value: target }, {
+                duration: 500,
+                step: function () {
+                    $el.text(Math.round(this.value));
+                },
+                complete: function () {
+                    $el.text(target);
+                }
+            });
+        }
+
+    </script>
+}

@@ -1,87 +1,36 @@
-﻿@{
-    ViewData["Title"] = "Official Salary Slip Report | अधिकृत वेतन पावती";
+﻿@model EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse
+@{
+    ViewData["Title"] = "Generate Slips";
 }
 
-<div class="container-fluid mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="fw-bold mb-1">
-                <i class="fas fa-chart-bar text-primary me-2"></i>
-                Official Salary Slip Report
-            </h4>
-            <p class="text-muted small mb-0">SSRS Report Viewer | अधिकृत अहवाल</p>
+<div class="container py-5">
+    <div class="card mx-auto shadow" style="max-width: 700px;">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">✨ Generate Salary Slips</h4>
         </div>
-        <div class="d-flex gap-2">
-            <a asp-action="DownloadSalarySlip"
-               asp-route-slipId="@ViewBag.SlipId"
-               class="btn btn-danger btn-sm">
-                <i class="fas fa-file-pdf me-1"></i>PDF
-            </a>
-            <a asp-action="DownloadSalarySlipExcel"
-               asp-route-slipId="@ViewBag.SlipId"
-               class="btn btn-success btn-sm">
-                <i class="fas fa-file-excel me-1"></i>Excel
-            </a>
-            <a asp-action="ViewSalarySlip"
-               asp-route-slipId="@ViewBag.SlipId"
-               class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-eye me-1"></i>Web View
-            </a>
-            <button class="btn btn-secondary btn-sm"
-                    onclick="window.history.back()">
-                <i class="fas fa-arrow-left me-1"></i>Back
-            </button>
-        </div>
-    </div>
+        <div class="card-body">
+            <form method="post" asp-action="GenerateSalarySlips">
+                <input type="hidden" name="PayrollCycleId" value="@ViewBag.CycleId" />
+                @Html.AntiForgeryToken()
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
+                <div class="alert alert-info">
+                    <strong>Cycle:</strong> @Model?.CycleName <br>
+                    <strong>Employees:</strong> @Model?.TotalEmployees
+                </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0" style="height:85vh;">
-            @if (!string.IsNullOrEmpty(ViewBag.SSRSReportUrl as string))
-            {
-                <iframe src="@ViewBag.SSRSReportUrl"
-                        width="100%"
-                        height="100%"
-                        frameborder="0"
-                        id="ssrsFrame"
-                        style="border:none; background:#fff;">
-                    <p class="p-4 text-muted">
-                        Your browser does not support iframes.
-                        <a href="@ViewBag.SSRSReportUrl" target="_blank">Click here to view report.</a>
-                    </p>
-                </iframe>
-            }
-            else
-            {
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="text-center">
-                        <i class="fas fa-exclamation-triangle fa-4x text-warning mb-3"></i>
-                        <h5 class="text-muted">SSRS Report URL is not configured.</h5>
-                        <p class="text-muted small">
-                            Please configure SSRSSettings in appsettings.json
-                        </p>
-                        <a asp-action="ViewSalarySlip"
-                           asp-route-slipId="@ViewBag.SlipId"
-                           class="btn btn-primary">
-                            View Web Version Instead
-                        </a>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                        <label class="form-check-label" for="confirmCheck">
+                            I confirm that payroll is approved and data is correct.
+                        </label>
                     </div>
                 </div>
-            }
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success btn-lg">🚀 Generate Now</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        // Show loading indicator while SSRS loads
-        document.getElementById('ssrsFrame')?.addEventListener('load', function () {
-            console.log('SSRS Report loaded.');
-        });
-    </script>
-}

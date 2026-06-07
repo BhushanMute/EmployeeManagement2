@@ -67,7 +67,7 @@ namespace EmployeeManagement.API.Repositories
             }
         }
 
-        public async Task<(int UserId, string Message)> RegisterUserAsync(User user, int roleId, int? createdBy)
+        public async Task<(int UserId, string Message)> RegisterUserAsync(User user, int? roleId, int? createdBy)
         {
             try
             {
@@ -85,7 +85,8 @@ namespace EmployeeManagement.API.Repositories
                 command.Parameters.Add("@LastName", SqlDbType.NVarChar, 100).Value = user.LastName;
                 command.Parameters.Add("@PhoneNumber", SqlDbType.NVarChar, 20).Value =
                     (object?)user.PhoneNumber ?? DBNull.Value;
-                command.Parameters.Add("@RoleId", SqlDbType.Int).Value = roleId;
+                command.Parameters.Add("@RoleId", SqlDbType.Int).Value =
+                    (object?)roleId ?? DBNull.Value;
                 command.Parameters.Add("@CreatedBy", SqlDbType.Int).Value =
                     (object?)createdBy ?? DBNull.Value;
 

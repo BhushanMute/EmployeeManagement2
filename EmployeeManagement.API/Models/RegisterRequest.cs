@@ -33,6 +33,6 @@ namespace EmployeeManagement.API.Models
         [Phone(ErrorMessage = "Invalid phone number")]
         public string? PhoneNumber { get; set; }
 
-        public int RoleId { get; set; } = 4; // Default: Employee
+        public int? RoleId { get; set; }
     }
 }

@@ -168,5 +168,387 @@ namespace EmployeeManagement.API.Repositories
                 AssignedRoles = reader["AssignedRoles"]?.ToString()
             };
         }
+
+        public async Task<UserListResponse> GetAllUsersAsync(string? search, string? role, string? status, int pageNumber, int pageSize)
+        {
+            var response = new UserListResponse { PageNumber = pageNumber, PageSize = pageSize };
+
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_GetAllUsers", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@SearchTerm", (object?)search ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@RoleFilter", (object?)role ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@StatusFilter", (object?)status ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@PageNumber", pageNumber);
+            cmd.Parameters.AddWithValue("@PageSize", pageSize);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            // First: total count
+            if (await reader.ReadAsync())
+                response.TotalRecords = reader.GetInt32(0);
+
+            // Second: users
+            if (await reader.NextResultAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    response.Users.Add(new UserListItem
+                    {
+                        UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        Username = reader["Username"]?.ToString() ?? "",
+                        FullName = reader["FullName"]?.ToString() ?? "",
+                        Email = reader["Email"]?.ToString() ?? "",
+                        PhoneNumber = reader["PhoneNumber"]?.ToString(),
+                        ProfilePicture = reader["ProfilePicture"]?.ToString(),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                        IsEmailVerified = reader.GetBoolean(reader.GetOrdinal("IsEmailVerified")),
+                        CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                        LastLoginDate = reader.IsDBNull(reader.GetOrdinal("LastLoginDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastLoginDate")),
+                        Roles = reader["Roles"]?.ToString(),
+                        RoleIds = reader["RoleIds"]?.ToString()
+                    });
+                }
+            }
+
+            return response;
+        }
+
+        public async Task<UserDetailResponse?> GetUserByIdAsync(int userId)
+        {
+            UserDetailResponse? user = null;
+
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_GetUserById", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserId", userId);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                user = new UserDetailResponse
+                {
+                    UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                    Username = reader["Username"]?.ToString() ?? "",
+                    FullName = reader["FullName"]?.ToString() ?? "",
+                    Email = reader["Email"]?.ToString() ?? "",
+                    PhoneNumber = reader["PhoneNumber"]?.ToString(),
+                    ProfilePicture = reader["ProfilePicture"]?.ToString(),
+                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                    IsEmailVerified = reader.GetBoolean(reader.GetOrdinal("IsEmailVerified")),
+                    CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                    LastLoginDate = reader.IsDBNull(reader.GetOrdinal("LastLoginDate")) ? null : reader.GetDateTime(reader.GetOrdinal("LastLoginDate")),
+                    EmployeeCode = reader["EmployeeCode"]?.ToString(),
+                    DepartmentId = reader.IsDBNull(reader.GetOrdinal("DepartmentId")) ? null : reader.GetInt32(reader.GetOrdinal("DepartmentId")),
+                    DepartmentName = reader["DepartmentName"]?.ToString(),
+                    DesignationId = reader.IsDBNull(reader.GetOrdinal("DesignationId")) ? null : reader.GetInt32(reader.GetOrdinal("DesignationId")),
+                    DesignationName = reader["DesignationName"]?.ToString(),
+                    JoiningDate = reader.IsDBNull(reader.GetOrdinal("JoiningDate")) ? null : reader.GetDateTime(reader.GetOrdinal("JoiningDate"))
+                };
+            }
+
+            // Roles
+            if (user != null && await reader.NextResultAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    user.Roles.Add(new UserRoleItem
+                    {
+                        UserRoleId = reader.GetInt32(reader.GetOrdinal("UserRoleId")),
+                        RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                        RoleName = reader["RoleName"]?.ToString() ?? "",
+                        RoleDescription = reader["RoleDescription"]?.ToString(),
+                        AssignedDate = reader.GetDateTime(reader.GetOrdinal("AssignedDate")),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive"))
+                    });
+                }
+            }
+
+            return user;
+        }
+
+        public async Task<UserOperationResult> CreateUserAsync(CreateUserRequest request, int createdBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_CreateUser", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@Username", request.Username);
+            cmd.Parameters.AddWithValue("@FullName", request.FullName);
+            cmd.Parameters.AddWithValue("@Email", request.Email);
+            cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
+            cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
+            cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
+
+            var newIdParam = new SqlParameter("@NewUserId", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            cmd.Parameters.Add(newIdParam);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1),
+                    NewId = newIdParam.Value as int?
+                };
+            }
+
+            return new UserOperationResult { Success = false, Message = "No response" };
+        }
+
+        public async Task<UserOperationResult> UpdateUserAsync(UpdateUserRequest request, int updatedBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_UpdateUser", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@UserId", request.UserId);
+            cmd.Parameters.AddWithValue("@FullName", request.FullName);
+            cmd.Parameters.AddWithValue("@Email", request.Email);
+            cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
+            cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
+            cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "No response" };
+        }
+
+        public async Task<UserOperationResult> DeleteUserAsync(int userId, int deletedBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_DeleteUser", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserId", userId);
+            cmd.Parameters.AddWithValue("@DeletedBy", deletedBy);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<UserOperationResult> ToggleStatusAsync(int userId, bool isActive, int updatedBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_ToggleUserStatus", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserId", userId);
+            cmd.Parameters.AddWithValue("@IsActive", isActive);
+            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<UserOperationResult> ResetPasswordAsync(int userId, string passwordHash, int resetBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_ResetUserPassword", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@UserId", userId);
+            cmd.Parameters.AddWithValue("@NewPasswordHash", passwordHash);
+            cmd.Parameters.AddWithValue("@ResetBy", resetBy);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<List<RoleWithCountResponse>> GetAllRolesAsync()
+        {
+            var roles = new List<RoleWithCountResponse>();
+
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_GetAllRolesWithCount", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                roles.Add(new RoleWithCountResponse
+                {
+                    RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                    RoleName = reader["RoleName"]?.ToString() ?? "",
+                    RoleDescription = reader["RoleDescription"]?.ToString(),
+                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                    CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                    UserCount = reader.GetInt32(reader.GetOrdinal("UserCount"))
+                });
+            }
+
+            return roles;
+        }
+
+        public async Task<UserOperationResult> CreateRoleAsync(CreateRoleRequest request, int createdBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_CreateRole", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
+            cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
+
+            var newIdParam = new SqlParameter("@NewRoleId", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            cmd.Parameters.Add(newIdParam);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1),
+                    NewId = newIdParam.Value as int?
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<UserOperationResult> UpdateRoleAsync(UpdateRoleRequest request, int updatedBy)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_UpdateRole", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@RoleId", request.RoleId);
+            cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
+            cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
+            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<UserOperationResult> DeleteRoleAsync(int roleId)
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_DeleteRole", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@RoleId", roleId);
+
+            await conn.OpenAsync();
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new UserOperationResult
+                {
+                    Success = reader.GetInt32(0) == 1,
+                    Message = reader.GetString(1)
+                };
+            }
+            return new UserOperationResult { Success = false, Message = "Failed" };
+        }
+
+        public async Task<UserDropdownData> GetDropdownDataAsync()
+        {
+            var data = new UserDropdownData();
+
+            // Get roles
+            data.Roles = await GetAllRolesAsync();
+
+            // Get departments
+            using (var conn = GetConnection())
+            {
+                using var cmd = new SqlCommand(
+                    "SELECT DepartmentId, DepartmentName FROM Departments WHERE IsActive = 1 ORDER BY DepartmentName",
+                    conn);
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    data.Departments.Add(new DropdownItem
+                    {
+                        Id = reader.GetInt32(0),
+                        Name = reader.GetString(1)
+                    });
+                }
+            }
+
+            // Get designations
+            using (var conn = GetConnection())
+            {
+                using var cmd = new SqlCommand(
+                    "SELECT DesignationId, DesignationName FROM Designations WHERE IsActive = 1 ORDER BY DesignationName",
+                    conn);
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    data.Designations.Add(new DropdownItem
+                    {
+                        Id = reader.GetInt32(0),
+                        Name = reader.GetString(1)
+                    });
+                }
+            }
+
+            return data;
+        }
     }
 }
