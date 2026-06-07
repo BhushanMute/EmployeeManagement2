@@ -1,0 +1,107 @@
+﻿@model EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse
+@{
+    ViewData["Title"] = "Cycle Summary | सायकल सारांश";
+}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Cycle Summary: @Model.CycleName</h2>
+        <div>
+            <a asp-action="Cycles" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back</a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">@TempData["SuccessMessage"]</div>
+    }
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-bold">Financial Summary / आर्थिक सारांश</div>
+                <div class="card-body row">
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Total Gross (₹)</small>
+                        <h5>@Model.TotalGrossSalary.ToString("N2")</h5>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted">Total Deductions (₹)</small>
+                        <h5>@Model.TotalDeductions.ToString("N2")</h5>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <small class="text-muted text-primary fw-bold">Total Net Pay (₹)</small>
+                        <h5 class="text-primary fw-bold">@Model.TotalNetSalary.ToString("N2")</h5>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Total Employees</small>
+                        <h5>@Model.TotalEmployees</h5>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Status</small>
+                        <h5><span class="badge bg-info">@Model.Status</span></h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-primary text-white fw-bold">Quick Actions / त्वरित कृती</div>
+                <div class="card-body d-grid gap-2">
+                    @if (Model.Status == "Draft" || Model.Status == "Pending")
+                    {
+                        <a asp-action="ProcessPayroll" asp-route-cycleId="@Model.PayrollCycleId" class="btn btn-warning">
+                            <i class="fas fa-cogs"></i> Process Payroll
+                        </a>
+                    }
+                    <a asp-action="PayrollRegister" asp-route-cycleId="@Model.PayrollCycleId" class="btn btn-outline-primary">
+                        <i class="fas fa-list-alt"></i> View Register
+                    </a>
+                    @if (Model.Status == "Processed")
+                    {
+                        <button type="button" class="btn btn-danger" onclick="lockPayroll(@Model.PayrollCycleId)">
+                            <i class="fas fa-lock"></i> Lock Cycle
+                        </button>
+                    }
+                    @if (Model.Status == "Locked")
+                    {
+                        <button type="button" class="btn btn-success" onclick="approvePayroll(@Model.PayrollCycleId)">
+                            <i class="fas fa-check-circle"></i> Approve Cycle
+                        </button>
+                    }
+                    @if (Model.Status == "Approved")
+                    {
+                        <a asp-controller="SalarySlip" asp-action="GenerateSalarySlips" asp-route-cycleId="@Model.PayrollCycleId" class="btn btn-info text-white">
+                            <i class="fas fa-file-invoice-dollar"></i> Generate Slips
+                        </a>
+                        <a asp-action="Reports" asp-route-cycleId="@Model.PayrollCycleId" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar"></i> Download Reports
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function lockPayroll(id) {
+            if(confirm('Are you sure you want to lock this cycle? (ही सायकल लॉक करायची आहे का?)')) {
+                $.post('@Url.Action("LockPayroll")', { cycleId: id }, function(res) {
+                    alert(res.message);
+                    if(res.success) location.reload();
+                });
+            }
+        }
+
+        function approvePayroll(id) {
+            let remarks = prompt("Enter approval remarks / मंजुरीसाठी शेरा (Optional):");
+            if(remarks !== null) {
+                $.post('@Url.Action("ApprovePayroll")', { cycleId: id, remarks: remarks }, function(res) {
+                    alert(res.message);
+                    if(res.success) location.reload();
+                });
+            }
+        }
+    </script>
+}

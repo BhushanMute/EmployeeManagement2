@@ -1,0 +1,44 @@
+﻿@{
+    ViewData["Title"] = "Create Payroll Cycle | नवीन वेतन सायकल";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Create Payroll Cycle / नवीन वेतन सायकल</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger">@TempData["Error"]</div>
+                    }
+
+                    <form asp-action="CreateCycle" method="post">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Month / महिना निवडा</label>
+                            <select name="month" class="form-select" required>
+                                <option value="">-- Select Month --</option>
+                                @for (int i = 1; i <= 12; i++)
+                                {
+                                    <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Enter Year / वर्ष टाका</label>
+                            <input type="number" name="year" class="form-control" value="@DateTime.Now.Year" required min="2000" />
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Create Cycle / तयार करा
+                            </button>
+                            <a asp-action="Cycles" class="btn btn-outline-secondary">Cancel / रद्द करा</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

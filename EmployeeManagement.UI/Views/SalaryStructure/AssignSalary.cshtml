@@ -1,0 +1,189 @@
+﻿@model EmployeeManagement.UI.Models.AssignSalaryRequest
+@{
+    ViewData["Title"] = "Assign Salary | वेतन नियुक्त करा";
+    var templates = ViewBag.Templates as List<EmployeeManagement.UI.Models.SalaryTemplate>
+                    ?? new List<EmployeeManagement.UI.Models.SalaryTemplate>();
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Assign Salary Structure / वेतन रचना नियुक्त करा
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["Success"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show">
+                            @TempData["Success"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="AssignSalary" method="post">
+
+                        <div class="row g-3">
+
+                            <!-- Employee ID -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Employee ID / कर्मचारी क्रमांक
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="EmployeeId"
+                                       type="number"
+                                       class="form-control"
+                                       min="1"
+                                       required />
+                                <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                                <small class="text-muted">Enter the ID of the employee.</small>
+                            </div>
+
+                            <!-- Salary Template -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Salary Template / वेतन टेम्पलेट
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="TemplateId" class="form-select" required>
+                                    <option value="">-- Select Template / टेम्पलेट निवडा --</option>
+                                    @foreach (var temp in templates)
+                                    {
+                                        <option value="@temp.Id">@temp.TemplateName</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="TemplateId" class="text-danger small"></span>
+                            </div>
+
+                            <!-- CTC -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">
+                                    CTC (₹) / वार्षिक वेतन
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="CTC"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control"
+                                           id="ctcInput"
+                                           required />
+                                </div>
+                                <span asp-validation-for="CTC" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Gross Salary -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">
+                                    Gross Salary (₹) / एकूण वेतन
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="GrossSalary"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control"
+                                           id="grossInput"
+                                           required />
+                                </div>
+                                <span asp-validation-for="GrossSalary" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Net Salary -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">
+                                    Net Salary (₹) / निव्वळ वेतन
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="NetSalary"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           class="form-control"
+                                           id="netInput"
+                                           required />
+                                </div>
+                                <span asp-validation-for="NetSalary" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Effective Date -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    Effective Date / लागू होण्याची तारीख
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="EffectiveDate"
+                                       type="date"
+                                       class="form-control"
+                                       required
+                                       value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                <span asp-validation-for="EffectiveDate" class="text-danger small"></span>
+                            </div>
+
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a asp-controller="Employee"
+                               asp-action="Index"
+                               class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel / रद्द करा
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Assign / नियुक्त करा
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            // Validate: Gross <= CTC and Net <= Gross
+            $('form').on('submit', function (e) {
+                var ctc = parseFloat($('#ctcInput').val()) || 0;
+                var gross = parseFloat($('#grossInput').val()) || 0;
+                var net = parseFloat($('#netInput').val()) || 0;
+
+                if (gross > ctc) {
+                    e.preventDefault();
+                    alert('Gross Salary cannot be greater than CTC!');
+                    return false;
+                }
+
+                if (net > gross) {
+                    e.preventDefault();
+                    alert('Net Salary cannot be greater than Gross Salary!');
+                    return false;
+                }
+            });
+        });
+    </script>
+}

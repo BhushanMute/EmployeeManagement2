@@ -695,64 +695,61 @@ namespace EmployeeManagement.API.Repositories.Ticket
                 await conn.OpenAsync();
                 using var reader = await cmd.ExecuteReaderAsync();
 
-                // First result set: Stats
+                // ✅ First result set: Stats (Direct properties, NO Stats wrapper)
                 if (await reader.ReadAsync())
                 {
-                    dashboard.Stats = new TicketDashboard
-                    {
-                        TotalTickets = reader.GetInt32(reader.GetOrdinal("TotalTickets")),
-                        NewTickets = reader.GetInt32(reader.GetOrdinal("NewTickets")),
-                        AssignedTickets = reader.GetInt32(reader.GetOrdinal("AssignedTickets")),
-                        InProgressTickets = reader.GetInt32(reader.GetOrdinal("InProgressTickets")),
-                        BlockedTickets = reader.GetInt32(reader.GetOrdinal("BlockedTickets")),
-                        ResolvedTickets = reader.GetInt32(reader.GetOrdinal("ResolvedTickets")),
-                        ClosedTickets = reader.GetInt32(reader.GetOrdinal("ClosedTickets")),
-                        ReopenedTickets = reader.GetInt32(reader.GetOrdinal("ReopenedTickets")),
-                        CriticalTickets = reader.GetInt32(reader.GetOrdinal("CriticalTickets")),
-                        HighPriorityTickets = reader.GetInt32(reader.GetOrdinal("HighPriorityTickets")),
-                        OverdueTickets = reader.GetInt32(reader.GetOrdinal("OverdueTickets"))
-                    };
+                    dashboard.TotalTickets = SafeGetInt(reader, "TotalTickets");
+                    dashboard.NewTickets = SafeGetInt(reader, "NewTickets");
+                    dashboard.AssignedTickets = SafeGetInt(reader, "AssignedTickets");
+                    dashboard.InProgressTickets = SafeGetInt(reader, "InProgressTickets");
+                    dashboard.BlockedTickets = SafeGetInt(reader, "BlockedTickets");
+                    dashboard.ResolvedTickets = SafeGetInt(reader, "ResolvedTickets");
+                    dashboard.ClosedTickets = SafeGetInt(reader, "ClosedTickets");
+                    dashboard.ReopenedTickets = SafeGetInt(reader, "ReopenedTickets");
+                    dashboard.CriticalTickets = SafeGetInt(reader, "CriticalTickets");
+                    dashboard.HighPriorityTickets = SafeGetInt(reader, "HighPriorityTickets");
+                    dashboard.OverdueTickets = SafeGetInt(reader, "OverdueTickets");
                 }
 
-                // Second result set: Priority Distribution
+                // ✅ Second: Priority Distribution
                 if (await reader.NextResultAsync())
                 {
                     while (await reader.ReadAsync())
                     {
                         dashboard.PriorityDistribution.Add(new PriorityDistribution
                         {
-                            Priority = reader.GetString(reader.GetOrdinal("Priority")),
-                            Count = reader.GetInt32(reader.GetOrdinal("Count"))
+                            Priority = reader["Priority"]?.ToString() ?? "",
+                            Count = SafeGetInt(reader, "Count")
                         });
                     }
                 }
 
-                // Third result set: Type Distribution
+                // ✅ Third: Type Distribution
                 if (await reader.NextResultAsync())
                 {
                     while (await reader.ReadAsync())
                     {
                         dashboard.TypeDistribution.Add(new TypeDistribution
                         {
-                            TicketType = reader.GetString(reader.GetOrdinal("TicketType")),
-                            Count = reader.GetInt32(reader.GetOrdinal("Count"))
+                            TicketType = reader["TicketType"]?.ToString() ?? "",
+                            Count = SafeGetInt(reader, "Count")
                         });
                     }
                 }
 
-                // Fourth result set: Recent Activities
+                // ✅ Fourth: Recent Activities
                 if (await reader.NextResultAsync())
                 {
                     while (await reader.ReadAsync())
                     {
                         dashboard.RecentActivities.Add(new RecentTicketActivity
                         {
-                            TicketId = reader.GetInt32(reader.GetOrdinal("TicketId")),
-                            TicketNumber = reader.GetString(reader.GetOrdinal("TicketNumber")),
-                            Title = reader.GetString(reader.GetOrdinal("Title")),
-                            Status = reader.GetString(reader.GetOrdinal("Status")),
-                            Priority = reader.GetString(reader.GetOrdinal("Priority")),
-                            UpdatedDate = reader.GetDateTime(reader.GetOrdinal("UpdatedDate")),
+                            TicketId = SafeGetInt(reader, "TicketId"),
+                            TicketNumber = reader["TicketNumber"]?.ToString() ?? "",
+                            Title = reader["Title"]?.ToString() ?? "",
+                            Status = reader["Status"]?.ToString() ?? "",
+                            Priority = reader["Priority"]?.ToString() ?? "",
+                            UpdatedDate = SafeGetDateTime(reader, "UpdatedDate"),
                             CreatedByName = reader["CreatedByName"]?.ToString(),
                             AssignedToName = reader["AssignedToName"]?.ToString()
                         });
@@ -762,12 +759,41 @@ namespace EmployeeManagement.API.Repositories.Ticket
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting dashboard");
-                throw;
+                // Don't throw - return empty dashboard
             }
 
             return dashboard;
         }
 
+        // ✅ Helper methods for safe reading
+        private static int SafeGetInt(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                if (reader.IsDBNull(ordinal)) return 0;
+
+                var value = reader.GetValue(ordinal);
+                return Convert.ToInt32(value);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private static DateTime SafeGetDateTime(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? DateTime.MinValue : reader.GetDateTime(ordinal);
+            }
+            catch
+            {
+                return DateTime.MinValue;
+            }
+        }
         /// <summary>
         /// Get my tickets (based on role)
         /// </summary>
@@ -999,7 +1025,171 @@ namespace EmployeeManagement.API.Repositories.Ticket
                 AttachmentCount = reader.GetInt32(reader.GetOrdinal("AttachmentCount"))
             };
         }
+        #region EMAIL RECIPIENT METHODS
+
+        /// <summary>
+        /// Get recipients for ticket email notifications
+        /// </summary>
+      
+        #region NEW: DYNAMIC USER METHODS
+
+        /// <summary>
+        /// Get users by roles dynamically (comma-separated role names)
+        /// </summary>
+        public async Task<List<UserDropdownItem>> GetUsersByRolesAsync(string roleNames, int? departmentId = null)
+        {
+            var users = new List<UserDropdownItem>();
+
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetTicketUsersByRole", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@RoleNames", (object?)roleNames ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DepartmentId", (object?)departmentId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@IncludeInactive", false);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    users.Add(new UserDropdownItem
+                    {
+                        UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        FullName = reader["FullName"]?.ToString() ?? "",
+                        Email = reader["Email"]?.ToString() ?? "",
+                        Role = reader["Roles"]?.ToString(),
+                        DepartmentName = reader["DepartmentName"]?.ToString(),
+                        DesignationName = reader["DesignationName"]?.ToString(),
+                        EmployeeCode = reader["EmployeeCode"]?.ToString(),
+                        ProfilePicture = reader["ProfilePicture"]?.ToString()
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting users by roles: {Roles}", roleNames);
+            }
+
+            return users;
+        }
+
+        /// <summary>
+        /// Get all roles
+        /// </summary>
+        public async Task<List<RoleItem>> GetAllRolesAsync()
+        {
+            var roles = new List<RoleItem>();
+
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetAllRoles", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    roles.Add(new RoleItem
+                    {
+                        RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                        RoleName = reader["RoleName"]?.ToString() ?? "",
+                        RoleDescription = reader["RoleDescription"]?.ToString()
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting roles");
+            }
+
+            return roles;
+        }
+
+        /// <summary>
+        /// Get all departments
+        /// </summary>
+        public async Task<List<DepartmentItem>> GetAllDepartmentsAsync()
+        {
+            var depts = new List<DepartmentItem>();
+
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetAllDepartments", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    depts.Add(new DepartmentItem
+                    {
+                        DepartmentId = reader.GetInt32(reader.GetOrdinal("DepartmentId")),
+                        DepartmentName = reader["DepartmentName"]?.ToString() ?? "",
+                        DepartmentCode = reader["DepartmentCode"]?.ToString()
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting departments");
+            }
+
+            return depts;
+        }
+
+        #endregion
+
+        #region NEW: EMAIL RECIPIENTS
+
+        /// <summary>
+        /// Get recipients for ticket email notifications
+        /// </summary>
+        public async Task<List<TicketEmailRecipient>> GetEmailRecipientsAsync(int ticketId, string eventType)
+        {
+            var recipients = new List<TicketEmailRecipient>();
+
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetTicketNotificationRecipients", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@TicketId", ticketId);
+                cmd.Parameters.AddWithValue("@EventType", eventType);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    recipients.Add(new TicketEmailRecipient
+                    {
+                        UserId = reader.GetInt32(reader.GetOrdinal("UserId")),
+                        FullName = reader["FullName"]?.ToString() ?? "",
+                        Email = reader["Email"]?.ToString() ?? "",
+                        NotificationType = reader["NotificationType"]?.ToString() ?? ""
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting email recipients for ticket {TicketId}, event {EventType}",
+                    ticketId, eventType);
+            }
+
+            return recipients;
+        }
+
+        #endregion
+
+        #endregion
 
         #endregion
     }
+
 }

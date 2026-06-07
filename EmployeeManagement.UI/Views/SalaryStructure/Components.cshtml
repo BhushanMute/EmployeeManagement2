@@ -1,0 +1,93 @@
+﻿@model IEnumerable<EmployeeManagement.API.Models.Payroll.SalaryComponent>
+@{
+    ViewData["Title"] = "Salary Components | वेतन घटक";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Salary Components <small class="text-muted fs-5">| वेतन घटक</small></h2>
+        <a asp-action="CreateComponent" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Component / नवीन घटक
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body table-responsive">
+            <table class="table table-hover table-bordered align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Name / नाव</th>
+                        <th>Type / प्रकार</th>
+                        <th>Calculation / गणना</th>
+                        <th>Taxable / करपात्र</th>
+                        <th>Status / स्थिती</th>
+                        <th>Actions / कृती</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var comp in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@comp.ComponentName</td>
+                                <td>
+                                    <span class="badge bg-@(comp.ComponentType == "Earning" ? "success" : "danger")">
+                                        @comp.ComponentType
+                                    </span>
+                                </td>
+                                <td>@comp.CalculationType @(comp.CalculationType == "Percentage" ? $"({comp.DefaultPercentage}%)" : "")</td>
+                                <td>@(comp.IsTaxable ? "Yes / होय" : "No / नाही")</td>
+                                <td>
+                                    <span class="badge bg-@(comp.IsActive ? "primary" : "secondary")">
+                                        @(comp.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td>
+                                    <a asp-action="EditComponent" asp-route-componentId="@comp.Id" class="btn btn-sm btn-info text-white" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteComponent(@comp.Id, '@comp.ComponentName')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="6" class="text-center text-muted">No components found.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function deleteComponent(id, name) {
+            if (confirm(`Are you sure you want to delete '${name}'? (तुम्हाला नक्की '${name}' हटवायचे आहे का?)`)) {
+                $.post('@Url.Action("DeleteComponent")', { componentId: id }, function(res) {
+                    alert(res.message);
+                    if(res.success) location.reload();
+                });
+            }
+        }
+    </script>
+}

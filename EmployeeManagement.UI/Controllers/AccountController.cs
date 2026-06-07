@@ -186,8 +186,7 @@ namespace EmployeeManagement.UI.Controllers
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = model.Password,
-                confirmPassword = model.ConfirmPassword,
-                roleId = model.RoleId
+                confirmPassword = model.ConfirmPassword
             };
 
             var result = await _apiService.PostAsync<AuthResponse>("api/auth/register", apiModel);

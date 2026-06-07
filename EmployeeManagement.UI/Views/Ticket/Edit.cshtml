@@ -1,225 +1,385 @@
 ﻿@{
     ViewData["Title"] = "Edit Ticket";
+    var userRole = ViewBag.UserRole as string ?? "Employee";
+    var ticketData = ViewBag.TicketData as string ?? "{}";
+    var dropdownData = ViewBag.DropdownData as string ?? "{}";
 }
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Header -->
-            <div class="mb-4">
-                <h2>
-                    <i class="bi bi-pencil-square text-primary"></i>
-                    Edit Ticket
+@section Styles {
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+
+        .edit-hero {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border: none;
+        }
+
+        .form-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+            .form-section:last-child {
+                border-bottom: none;
+            }
+
+        .form-section-title {
+            font-weight: 700;
+            color: #475569;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            padding: 0.65rem 1rem;
+        }
+
+            .form-control:focus, .form-select:focus {
+                border-color: #fa709a;
+                box-shadow: 0 0 0 3px rgba(250, 112, 154, 0.15);
+            }
+
+        .priority-selector, .type-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .selector-option {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+        }
+
+            .selector-option:hover {
+                transform: translateY(-2px);
+            }
+
+            .selector-option.selected {
+                border-color: #fa709a;
+                background: linear-gradient(135deg, #fef2f2, #fce7f3);
+            }
+
+        .btn-update {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 2rem;
+            font-weight: 700;
+        }
+
+            .btn-update:hover {
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(250, 112, 154, 0.4);
+            }
+
+        .changes-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #fbbf24;
+            color: #78350f;
+            padding: 0.75rem 1.25rem;
+            border-radius: 12px;
+            font-weight: 700;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            display: none;
+            z-index: 1000;
+        }
+
+            .changes-indicator.show {
+                display: block;
+                animation: bounceIn 0.4s;
+            }
+
+        @@keyframes bounceIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+}
+
+<div class="container py-3 pb-5">
+
+    <!-- HERO -->
+    <div class="edit-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Ticket
                 </h2>
-                <p class="text-muted">Update ticket information</p>
+                <p class="mb-0 opacity-90" id="editTicketNumber">Loading...</p>
+            </div>
+            <a href="javascript:history.back()" class="btn btn-light fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Cancel
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Edit" method="post" id="editForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ticketId" id="ticketIdInput" />
+
+        <div class="form-card">
+
+            <!-- BASIC INFO -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-info-circle me-1"></i>Basic Information
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Title</label>
+                    <input type="text" name="title" id="titleInput" class="form-control"
+                           required maxlength="500" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea name="description" id="descInput" class="form-control"
+                              rows="4" required></textarea>
+                </div>
             </div>
 
-            <!-- Form Card -->
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <div id="editFormContainer">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
+            <!-- TYPE & PRIORITY -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-tags me-1"></i>Type & Priority
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Ticket Type</label>
+                        <input type="hidden" name="ticketType" id="ticketTypeInput" />
+                        <div class="type-selector" id="typeSelector">
+                            <div class="selector-option" data-value="Bug" onclick="selectOption(this, 'type', 'Bug')">
+                                <i class="bi bi-bug text-danger"></i><div class="small fw-bold">Bug</div>
+                            </div>
+                            <div class="selector-option" data-value="Feature" onclick="selectOption(this, 'type', 'Feature')">
+                                <i class="bi bi-stars text-warning"></i><div class="small fw-bold">Feature</div>
+                            </div>
+                            <div class="selector-option" data-value="Task" onclick="selectOption(this, 'type', 'Task')">
+                                <i class="bi bi-check2-square text-primary"></i><div class="small fw-bold">Task</div>
+                            </div>
+                            <div class="selector-option" data-value="Improvement" onclick="selectOption(this, 'type', 'Improvement')">
+                                <i class="bi bi-arrow-up-circle text-success"></i><div class="small fw-bold">Improvement</div>
+                            </div>
+                            <div class="selector-option" data-value="Support" onclick="selectOption(this, 'type', 'Support')">
+                                <i class="bi bi-headset text-info"></i><div class="small fw-bold">Support</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Priority</label>
+                        <input type="hidden" name="priority" id="priorityInput" />
+                        <div class="priority-selector" id="prioritySelector">
+                            <div class="selector-option" data-value="Low" onclick="selectOption(this, 'priority', 'Low')">
+                                <i class="bi bi-arrow-down-circle text-success"></i><div class="small fw-bold">Low</div>
+                            </div>
+                            <div class="selector-option" data-value="Medium" onclick="selectOption(this, 'priority', 'Medium')">
+                                <i class="bi bi-dash-circle text-warning"></i><div class="small fw-bold">Medium</div>
+                            </div>
+                            <div class="selector-option" data-value="High" onclick="selectOption(this, 'priority', 'High')">
+                                <i class="bi bi-arrow-up-circle text-orange"></i><div class="small fw-bold">High</div>
+                            </div>
+                            <div class="selector-option" data-value="Critical" onclick="selectOption(this, 'priority', 'Critical')">
+                                <i class="bi bi-exclamation-triangle text-danger"></i><div class="small fw-bold">Critical</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- DUE DATE -->
+            <div class="form-section">
+                <div class="form-section-title">
+                    <i class="bi bi-calendar me-1"></i>Schedule
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Due Date</label>
+                        <input type="date" name="dueDate" id="dueDateInput" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Module</label>
+                        <select name="module" id="moduleInput" class="form-select">
+                            <option value="">Select Module</option>
+                            <option value="HR">HR Management</option>
+                            <option value="Payroll">Payroll</option>
+                            <option value="Leave">Leave</option>
+                            <option value="Attendance">Attendance</option>
+                            <option value="Employee">Employee</option>
+                            <option value="Reports">Reports</option>
+                            <option value="UI">UI</option>
+                            <option value="API">API</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BUG FIELDS -->
+            <div class="form-section" id="bugFieldsSection" style="display:none;">
+                <div class="form-section-title">
+                    <i class="bi bi-bug me-1"></i>Bug Details
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Steps to Reproduce</label>
+                    <textarea name="stepsToReproduce" id="stepsInput" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Expected Result</label>
+                        <textarea name="expectedResult" id="expectedInput" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Actual Result</label>
+                        <textarea name="actualResult" id="actualInput" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label fw-semibold">Environment</label>
+                    <input type="text" name="environment" id="envInput" class="form-control" />
+                </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="form-section">
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-update">
+                        <i class="bi bi-check-circle me-1"></i>Update Ticket
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    </form>
+</div>
+
+<!-- Unsaved changes indicator -->
+<div class="changes-indicator" id="changesIndicator">
+    <i class="bi bi-exclamation-circle me-1"></i>You have unsaved changes
 </div>
 
 @section Scripts {
     <script>
-        let ticketData = @Html.Raw(ViewBag.TicketData ?? "null");
-        let dropdownData = @Html.Raw(ViewBag.DropdownData ?? "null");
+        const ticketData = @Html.Raw(ticketData);
+        let hasChanges = false;
 
-        if (ticketData && ticketData.success && dropdownData && dropdownData.success) {
-            renderEditForm(ticketData.data, dropdownData.data);
-        } else {
-            showError();
+        $(document).ready(function() {
+            if (ticketData?.data) {
+                populateForm(ticketData.data);
+                trackChanges();
+            }
+        });
+
+        function populateForm(t) {
+            $('#editTicketNumber').html(`<i class="bi bi-hash"></i>${t.ticketNumber}`);
+            $('#ticketIdInput').val(t.ticketId);
+            $('#titleInput').val(t.title);
+            $('#descInput').val(t.description);
+            $('#dueDateInput').val(t.dueDate ? t.dueDate.split('T')[0] : '');
+            $('#moduleInput').val(t.module || '');
+            $('#stepsInput').val(t.stepsToReproduce || '');
+            $('#expectedInput').val(t.expectedResult || '');
+            $('#actualInput').val(t.actualResult || '');
+            $('#envInput').val(t.environment || '');
+
+            // Select type & priority
+            $(`.type-selector [data-value="${t.ticketType}"]`).addClass('selected');
+            $('#ticketTypeInput').val(t.ticketType);
+
+            $(`.priority-selector [data-value="${t.priority}"]`).addClass('selected');
+            $('#priorityInput').val(t.priority);
+
+            if (t.ticketType === 'Bug') $('#bugFieldsSection').show();
         }
 
-        function renderEditForm(ticket, dropdowns) {
-            const formHtml = `
-                <form asp-action="Edit" method="post" id="editTicketForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="ticketId" value="${ticket.ticketId}">
+        function selectOption(element, type, value) {
+            const selector = type === 'type' ? '.type-selector' : '.priority-selector';
+            $(`${selector} .selector-option`).removeClass('selected');
+            $(element).addClass('selected');
 
-                    <!-- Ticket Number (Read-only) -->
-                    <div class="mb-3">
-                        <label class="form-label">Ticket Number</label>
-                        <input type="text" class="form-control" value="${ticket.ticketNumber}" readonly>
-                    </div>
+            if (type === 'type') {
+                $('#ticketTypeInput').val(value);
+                if (value === 'Bug') $('#bugFieldsSection').slideDown();
+                else $('#bugFieldsSection').slideUp();
+            } else {
+                $('#priorityInput').val(value);
+            }
 
-                    <!-- Basic Information -->
-                    <div class="mb-4">
-                        <h5 class="border-bottom pb-2">Basic Information</h5>
-
-                        <!-- Title -->
-                        <div class="mb-3">
-                            <label for="title" class="form-label">
-                                Title <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control" id="title" name="title"
-                                   value="${escapeHtml(ticket.title)}"
-                                   required maxlength="200"
-                                   placeholder="Brief description of the issue">
-                            <div class="form-text">Provide a clear, concise title (5-200 characters)</div>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="mb-3">
-                            <label for="description" class="form-label">
-                                Description <span class="text-danger">*</span>
-                            </label>
-                            <textarea class="form-control" id="description" name="description"
-                                      rows="5" required maxlength="5000"
-                                      placeholder="Detailed description of the ticket">${escapeHtml(ticket.description)}</textarea>
-                            <div class="form-text">Explain the issue in detail (10-5000 characters)</div>
-                        </div>
-
-                        <!-- Type & Priority Row -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="ticketType" class="form-label">
-                                    Type <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="ticketType" name="ticketType" required>
-                                    <option value="">-- Select Type --</option>
-                                    ${dropdowns.ticketTypes.map(type =>
-                                        `<option value="${type}" ${ticket.ticketType === type ? 'selected' : ''}>${type}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label for="priority" class="form-label">
-                                    Priority <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="priority" name="priority" required>
-                                    <option value="">-- Select Priority --</option>
-                                    ${dropdowns.priorities.map(priority =>
-                                        `<option value="${priority}" ${ticket.priority === priority ? 'selected' : ''}>${priority}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Due Date -->
-                        <div class="mb-3">
-                            <label for="dueDate" class="form-label">Due Date</label>
-                            <input type="date" class="form-control" id="dueDate" name="dueDate"
-                                   value="${ticket.dueDate ? ticket.dueDate.split('T')[0] : ''}">
-                            <div class="form-text">Optional: Set a deadline</div>
-                        </div>
-                    </div>
-
-                    <!-- Bug Details (Show only if type is Bug) -->
-                    <div id="bugDetails" style="display: ${ticket.ticketType === 'Bug' ? 'block' : 'none'};">
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2">Bug Details</h5>
-
-                            <!-- Steps to Reproduce -->
-                            <div class="mb-3">
-                                <label for="stepsToReproduce" class="form-label">Steps to Reproduce</label>
-                                <textarea class="form-control" id="stepsToReproduce" name="stepsToReproduce"
-                                          rows="4" placeholder="1. Go to...&#10;2. Click on...&#10;3. See error">${escapeHtml(ticket.stepsToReproduce || '')}</textarea>
-                            </div>
-
-                            <!-- Expected vs Actual -->
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="expectedResult" class="form-label">Expected Result</label>
-                                    <textarea class="form-control" id="expectedResult" name="expectedResult"
-                                              rows="3" placeholder="What should happen?">${escapeHtml(ticket.expectedResult || '')}</textarea>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label for="actualResult" class="form-label">Actual Result</label>
-                                    <textarea class="form-control" id="actualResult" name="actualResult"
-                                              rows="3" placeholder="What actually happened?">${escapeHtml(ticket.actualResult || '')}</textarea>
-                                </div>
-                            </div>
-
-                            <!-- Environment -->
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">Environment</label>
-                                <select class="form-select" id="environment" name="environment">
-                                    <option value="">-- Select Environment --</option>
-                                    ${dropdowns.environments.map(env =>
-                                        `<option value="${env}" ${ticket.environment === env ? 'selected' : ''}>${env}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Current Status Display -->
-                    <div class="alert alert-info mb-3">
-                        <strong>Current Status:</strong>
-                        <span class="badge ${getStatusBadge(ticket.status)}">${ticket.status}</span>
-                        ${ticket.assignedToName ? `
-                            <br><strong>Assigned To:</strong> ${ticket.assignedToName}
-                        ` : ''}
-                    </div>
-
-                    <!-- Form Actions -->
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="@Url.Action("Details")/${ticket.ticketId}" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle"></i> Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle"></i> Update Ticket
-                        </button>
-                    </div>
-                </form>
-            `;
-
-            document.getElementById('editFormContainer').innerHTML = formHtml;
-            setupFormHandlers();
+            hasChanges = true;
+            $('#changesIndicator').addClass('show');
         }
 
-        function setupFormHandlers() {
-            // Show/Hide Bug Details based on Ticket Type
-            document.getElementById('ticketType').addEventListener('change', function() {
-                const bugDetails = document.getElementById('bugDetails');
-                if (this.value === 'Bug') {
-                    bugDetails.style.display = 'block';
-                } else {
-                    bugDetails.style.display = 'none';
-                }
+        function trackChanges() {
+            $('input, textarea, select').on('change input', function() {
+                hasChanges = true;
+                $('#changesIndicator').addClass('show');
             });
-
-            // Set minimum date to today for due date
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dueDate').setAttribute('min', today);
         }
 
-        function getStatusBadge(status) {
-            const badges = {
-                'New': 'bg-primary',
-                'Assigned': 'bg-info',
-                'In Progress': 'bg-warning text-dark',
-                'Blocked': 'bg-danger',
-                'Resolved': 'bg-success',
-                'Closed': 'bg-secondary',
-                'Reopened': 'bg-warning'
-            };
-            return badges[status] || 'bg-secondary';
-        }
+        // Warn before leaving
+        window.addEventListener('beforeunload', function(e) {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function showError() {
-            document.getElementById('editFormContainer').innerHTML =
-                '<div class="alert alert-danger">Failed to load ticket data. Please try again.</div>';
-        }
+        // Disable warning on submit
+        $('#editForm').on('submit', function() {
+            hasChanges = false;
+            $(this).find('button[type="submit"]').prop('disabled', true)
+                .html('<i class="bi bi-hourglass-split me-1"></i>Updating...');
+        });
     </script>
 }

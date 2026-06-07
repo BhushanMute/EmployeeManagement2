@@ -1,0 +1,792 @@
+================================================================================
+ERROR ID: e06f78e1-f926-40f7-9a3f-1ebcf5213729
+TIMESTAMP: 2026-06-06 10:02:12 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 598f9f4b-a528-4649-91cf-873a004fc86e
+TIMESTAMP: 2026-06-06 10:02:15 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: bca9ea3a-dda4-4ec5-a9d0-1afdf004b6a0
+TIMESTAMP: 2026-06-06 10:02:17 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: eef0de6f-c153-438c-8f33-bbfffedd5585
+TIMESTAMP: 2026-06-06 10:02:27 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=1
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: aadaffb0-9553-4909-8fec-ff858cd36f9f
+TIMESTAMP: 2026-06-06 10:02:29 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=1
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: b9f56622-d51c-44c1-9664-3f4a84f0e0d7
+TIMESTAMP: 2026-06-06 10:02:32 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=1
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 2efe7be6-4ce3-48f8-9424-698f3f396c8c
+TIMESTAMP: 2026-06-06 10:03:47 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 75f23680-3819-4ba4-9108-1257b31ea8ef
+TIMESTAMP: 2026-06-06 10:03:50 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: bc96604d-36c1-40ee-83a0-f5d815cfb633
+TIMESTAMP: 2026-06-06 10:03:53 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 7535c24f-80d4-402e-925b-0fd13124a1cc
+TIMESTAMP: 2026-06-06 10:03:58 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=2
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 8f294d1a-5fa4-487f-822e-9656a8e0349b
+TIMESTAMP: 2026-06-06 10:04:00 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=2
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: f7204b38-6d77-4c5e-a31b-073ec4b6e355
+TIMESTAMP: 2026-06-06 10:04:03 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025&month=2
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 12
+USERNAME: dsdsdd
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: f8d31187-fc72-4344-8ae2-5d7a7a29b368
+TIMESTAMP: 2026-06-06 10:11:00 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: f50ae604-b20a-4582-94e6-cb423dad0357
+TIMESTAMP: 2026-06-06 10:11:03 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 86f1c8f6-acd2-4818-9720-4fd68ba4471a
+TIMESTAMP: 2026-06-06 10:11:06 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: c3c63ffe-674e-4ef3-bedf-c5e81ed921c0
+TIMESTAMP: 2026-06-06 10:11:12 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026&month=6
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 625e702f-8219-49e6-8f67-0ddba84d6330
+TIMESTAMP: 2026-06-06 10:11:15 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026&month=6
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 71b9f444-a6b7-46e5-b8af-381a7e1f2b58
+TIMESTAMP: 2026-06-06 10:11:18 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026&month=6
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 05b93ed9-5f45-43a8-9289-a18b40f2fb48
+TIMESTAMP: 2026-06-06 10:11:27 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 0d6e353c-b112-44c7-a5bb-26c3b0b028f5
+TIMESTAMP: 2026-06-06 10:11:30 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: b038888b-1b1a-493f-a60c-b03dba428a4d
+TIMESTAMP: 2026-06-06 10:11:33 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2025
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method27(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService) in D:\projects\EmployeeManagement2\EmployeeManagement.API\ExceptionMiddleware.cs:line 24
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 581dbcde-e1fd-4ca8-9790-589b519ce766
+TIMESTAMP: 2026-06-06 12:17:59 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method157(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService)
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 6d0bc2cb-293b-4414-97c3-c9f05a7f8025
+TIMESTAMP: 2026-06-06 12:18:05 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method157(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService)
+--------------------------------------------------------------------------------
+
+================================================================================
+ERROR ID: 915e85fa-53e3-4c86-945f-b9765c8de973
+TIMESTAMP: 2026-06-06 12:18:09 UTC
+ENVIRONMENT: Development
+SERVER: LAPTOP-UJJFQ4H1
+--------------------------------------------------------------------------------
+EXCEPTION TYPE: System.InvalidOperationException
+MESSAGE: Unable to resolve service for type 'EmployeeManagement.API.services.SsrsReportService' while attempting to activate 'EmployeeManagement.API.Controllers.SalarySlipController'.
+SOURCE: Microsoft.Extensions.DependencyInjection.Abstractions
+--------------------------------------------------------------------------------
+REQUEST: GET /api/SalarySlip/my-slips
+QUERY STRING: ?year=2026
+STATUS CODE: 200
+--------------------------------------------------------------------------------
+USER ID: 20
+USERNAME: dsdsdffff
+IP ADDRESS: 0.0.0.1
+--------------------------------------------------------------------------------
+STACK TRACE:
+   at Microsoft.Extensions.DependencyInjection.ActivatorUtilities.ThrowHelperUnableToResolveService(Type type, Type requiredBy)
+   at lambda_method157(Closure, IServiceProvider, Object[])
+   at Microsoft.AspNetCore.Mvc.Controllers.ControllerFactoryProvider.<>c__DisplayClass6_0.<CreateControllerFactory>g__CreateController|0(ControllerContext controllerContext)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next(State& next, Scope& scope, Object& state, Boolean& isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.InvokeInnerFilterAsync()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeFilterPipelineAsync>g__Awaited|20_0(ResourceInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
+   at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
+   at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
+   at EmployeeManagement.API.ExceptionMiddleware.InvokeAsync(HttpContext context, IErrorLogService errorLogService)
+--------------------------------------------------------------------------------
+

@@ -1,0 +1,666 @@
+﻿@model EmployeeManagement.UI.ViewModels.LeaveRequestViewModel
+@{
+    ViewData["Title"] = $"Leave Request #{Model.Id}";
+    var apiBaseUrl = ViewBag.ApiBaseUrl as string ?? "";
+
+    var statusColor = Model.Status?.ToLower() switch
+    {
+        "pending" => "warning",
+        "approved" => "success",
+        "rejected" => "danger",
+        "cancelled" => "secondary",
+        _ => "info"
+    };
+
+    var statusIcon = Model.Status?.ToLower() switch
+    {
+        "pending" => "clock",
+        "approved" => "check-circle",
+        "rejected" => "x-circle",
+        "cancelled" => "ban",
+        _ => "info-circle"
+    };
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+        }
+
+        body {
+            background: #f4f6f9;
+        }
+
+        .leave-hero {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2.5rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .leave-hero::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 400px;
+                height: 400px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .leave-id-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .status-pill-large {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: none;
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .info-card-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1rem 1.25rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+            .info-card-header h6 {
+                margin: 0;
+                font-weight: 700;
+                color: #475569;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+        }
+
+            .detail-row:last-child {
+                border-bottom: none;
+            }
+
+        .detail-label {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #1e293b;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+            .timeline::before {
+                content: '';
+                position: absolute;
+                left: 12px;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: linear-gradient(180deg, #6366f1 0%, #e2e8f0 100%);
+            }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1.5rem;
+        }
+
+            .timeline-item::before {
+                content: '';
+                position: absolute;
+                left: -2rem;
+                top: 0.25rem;
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: white;
+                border: 3px solid #6366f1;
+            }
+
+            .timeline-item.success::before {
+                border-color: #10b981;
+                background: #d1fae5;
+            }
+
+            .timeline-item.danger::before {
+                border-color: #ef4444;
+                background: #fee2e2;
+            }
+
+            .timeline-item.warning::before {
+                border-color: #f59e0b;
+                background: #fef3c7;
+            }
+
+        .timeline-content {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 3px solid #6366f1;
+        }
+
+        .date-range-card {
+            background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+            border-radius: 14px;
+            padding: 1.5rem;
+            border-left: 5px solid #6366f1;
+            text-align: center;
+        }
+
+        .date-block {
+            display: inline-block;
+            padding: 1rem 1.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            min-width: 150px;
+        }
+
+        .date-day {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #4f46e5;
+            line-height: 1;
+        }
+
+        .date-month {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .date-year {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .days-counter {
+            background: var(--primary-gradient);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+            margin: 0 1.5rem;
+        }
+
+        .reason-box {
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+            border-left: 4px solid #f97316;
+            border-radius: 10px;
+            padding: 1.25rem;
+        }
+
+        .attachment-preview {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+            .attachment-preview:hover {
+                border-color: #6366f1;
+                background: #eef2ff;
+            }
+
+        .action-btn-modern {
+            border: none;
+            border-radius: 10px;
+            padding: 0.7rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .action-btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+            }
+
+        .btn-cancel-leave {
+            background: var(--danger-gradient);
+            color: white;
+        }
+
+            .btn-cancel-leave:hover {
+                color: white;
+            }
+
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+            }
+        }
+    </style>
+}
+
+<div class="container py-3 pb-5">
+
+    <!-- ===== HERO HEADER ===== -->
+    <div class="leave-hero">
+        <div class="hero-content">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 70px; height: 70px;">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                    <div>
+                        <span class="leave-id-badge">
+                            <i class="bi bi-hash"></i>Leave #@Model.Id
+                        </span>
+                        <h2 class="fw-bold mb-1 mt-2">@Model.LeaveTypeName</h2>
+                        <p class="mb-0 opacity-90">
+                            <i class="bi bi-person me-1"></i>@Model.EmployeeName
+                            <span class="mx-2">|</span>
+                            <i class="bi bi-building me-1"></i>@(Model.DepartmentName ?? "Department")
+                        </p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <span class="status-pill-large bg-@statusColor text-white">
+                        <i class="bi bi-@statusIcon"></i>@Model.Status
+                    </span>
+                    <div class="mt-2">
+                        <small class="opacity-75">
+                            <i class="bi bi-clock me-1"></i>
+                            Applied: @Model.AppliedDate.ToString("dd MMM yyyy")
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ACTION BAR ===== -->
+    <div class="bg-white rounded-3 shadow-sm p-3 mb-4 no-print">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-outline-info">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+                @if (Model.Status == "Pending")
+                {
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal"
+                            data-bs-target="#cancelModal">
+                        <i class="bi bi-x-circle me-1"></i>Cancel Request
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== DATE RANGE CARD ===== -->
+    <div class="date-range-card mb-4">
+        <h6 class="text-muted fw-bold mb-3">
+            <i class="bi bi-calendar-range me-1"></i>LEAVE PERIOD
+        </h6>
+        <div class="d-flex justify-content-center align-items-center flex-wrap">
+            <div class="date-block">
+                <div class="date-day">@Model.StartDate.Day</div>
+                <div class="date-month">@Model.StartDate.ToString("MMM")</div>
+                <div class="date-year">@Model.StartDate.Year</div>
+                <small class="text-muted d-block mt-1">From</small>
+            </div>
+
+            <div class="text-center">
+                <i class="bi bi-arrow-right fs-2 text-primary mb-2 d-block"></i>
+                <div class="days-counter">
+                    @Model.TotalDays
+                </div>
+                <small class="text-muted d-block mt-2">@(Model.TotalDays == 1 ? "Day" : "Days")</small>
+            </div>
+
+            <div class="date-block">
+                <div class="date-day">@Model.EndDate.Day</div>
+                <div class="date-month">@Model.EndDate.ToString("MMM")</div>
+                <div class="date-year">@Model.EndDate.Year</div>
+                <small class="text-muted d-block mt-1">To</small>
+            </div>
+        </div>
+        @if (Model.IsHalfDay)
+        {
+            <div class="mt-3">
+                <span class="badge bg-warning text-dark fs-6">
+                    <i class="bi bi-hourglass-split me-1"></i>
+                    Half Day - @Model.HalfDayType
+                </span>
+            </div>
+        }
+    </div>
+
+    <!-- ===== DETAILS GRID ===== -->
+    <div class="row g-3">
+
+        <!-- Employee Info -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h6><i class="bi bi-person-badge text-primary me-2"></i>Employee Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-person me-1"></i>Name
+                        </span>
+                        <span class="detail-value">@Model.EmployeeName</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-card-text me-1"></i>Employee Code
+                        </span>
+                        <span class="detail-value">@(Model.EmployeeCode ?? "N/A")</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-envelope me-1"></i>Email
+                        </span>
+                        <span class="detail-value">
+                            <a href="mailto:@Model.EmployeeEmail" class="text-decoration-none">
+                                @Model.EmployeeEmail
+                            </a>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-building me-1"></i>Department
+                        </span>
+                        <span class="detail-value">@(Model.DepartmentName ?? "N/A")</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.EmergencyContact))
+                    {
+                        <div class="detail-row">
+                            <span class="detail-label">
+                                <i class="bi bi-telephone-fill text-danger me-1"></i>Emergency Contact
+                            </span>
+                            <span class="detail-value">@Model.EmergencyContact</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Details -->
+        <div class="col-md-6">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h6><i class="bi bi-info-circle text-info me-2"></i>Leave Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-tag me-1"></i>Leave Type
+                        </span>
+                        <span class="detail-value">
+                            <span class="badge bg-info">@Model.LeaveTypeName</span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-calendar-event me-1"></i>Start Date
+                        </span>
+                        <span class="detail-value">@Model.StartDate.ToString("dd MMM yyyy, dddd")</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-calendar-event-fill me-1"></i>End Date
+                        </span>
+                        <span class="detail-value">@Model.EndDate.ToString("dd MMM yyyy, dddd")</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-hourglass me-1"></i>Total Days
+                        </span>
+                        <span class="detail-value">
+                            <span class="badge bg-primary fs-6">@Model.TotalDays days</span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <i class="bi bi-flag me-1"></i>Status
+                        </span>
+                        <span class="detail-value">
+                            <span class="badge bg-@statusColor">
+                                <i class="bi bi-@statusIcon me-1"></i>@Model.Status
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reason -->
+        <div class="col-12">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h6><i class="bi bi-chat-quote text-warning me-2"></i>Reason for Leave</h6>
+                </div>
+                <div class="card-body">
+                    <div class="reason-box">
+                        <i class="bi bi-quote fs-3 text-warning"></i>
+                        <p class="mb-0 mt-2">@Model.Reason</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attachment -->
+        @if (!string.IsNullOrEmpty(Model.AttachmentPath))
+        {
+            <div class="col-12">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h6><i class="bi bi-paperclip text-secondary me-2"></i>Attached Document</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="attachment-preview">
+                            <i class="bi bi-file-earmark-text fs-1 text-primary mb-3"></i>
+                            <h6 class="mb-3">@Model.AttachmentFileName</h6>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="@Url.Action("PreviewAttachment", new { filePath = Model.AttachmentPath })"
+                                   target="_blank" class="btn btn-info">
+                                    <i class="bi bi-eye me-1"></i>Preview
+                                </a>
+                                <a href="@Url.Action("ViewAttachment", new { filePath = Model.AttachmentPath })"
+                                   class="btn btn-primary">
+                                    <i class="bi bi-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Timeline -->
+        <div class="col-12">
+            <div class="info-card">
+                <div class="info-card-header">
+                    <h6><i class="bi bi-clock-history text-info me-2"></i>Request Timeline</h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <strong class="text-primary">
+                                    <i class="bi bi-pencil-square me-1"></i>Request Submitted
+                                </strong>
+                                <p class="text-muted small mb-0">
+                                    @Model.AppliedDate.ToString("dd MMM yyyy 'at' hh:mm tt")
+                                </p>
+                            </div>
+                        </div>
+
+                        @if (Model.Status == "Approved")
+                        {
+                            <div class="timeline-item success">
+                                <div class="timeline-content" style="border-left-color: #10b981;">
+                                    <strong class="text-success">
+                                        <i class="bi bi-check-circle me-1"></i>Approved
+                                    </strong>
+                                    <p class="text-muted small mb-0">
+                                        @(Model.ApprovedDate?.ToString("dd MMM yyyy 'at' hh:mm tt") ?? "Recently")
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(Model.ApproverRemarks))
+                                    {
+                                        <p class="mt-2 mb-0 small">
+                                            <strong>Remarks:</strong> @Model.ApproverRemarks
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Status == "Rejected")
+                        {
+                            <div class="timeline-item danger">
+                                <div class="timeline-content" style="border-left-color: #ef4444;">
+                                    <strong class="text-danger">
+                                        <i class="bi bi-x-circle me-1"></i>Rejected
+                                    </strong>
+                                    <p class="text-muted small mb-0">
+                                        @(Model.ApprovedDate?.ToString("dd MMM yyyy 'at' hh:mm tt") ?? "Recently")
+                                    </p>
+                                    @if (!string.IsNullOrEmpty(Model.ApproverRemarks))
+                                    {
+                                        <p class="mt-2 mb-0 small">
+                                            <strong>Reason:</strong> @Model.ApproverRemarks
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Status == "Cancelled")
+                        {
+                            <div class="timeline-item warning">
+                                <div class="timeline-content" style="border-left-color: #f59e0b;">
+                                    <strong class="text-warning">
+                                        <i class="bi bi-ban me-1"></i>Cancelled
+                                    </strong>
+                                    <p class="text-muted small mb-0">Cancelled by employee</p>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Status == "Pending")
+                        {
+                            <div class="timeline-item warning">
+                                <div class="timeline-content" style="border-left-color: #f59e0b;">
+                                    <strong class="text-warning">
+                                        <i class="bi bi-hourglass-split me-1"></i>Awaiting Approval
+                                    </strong>
+                                    <p class="text-muted small mb-0">Waiting for manager's response</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CANCEL MODAL ===== -->
+@if (Model.Status == "Pending")
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; border: none;">
+                <div class="modal-header text-white"
+                     style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); border-radius: 16px 16px 0 0;">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-x-circle me-2"></i>Cancel Leave Request
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-action="Cancel" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="leaveRequestId" value="@Model.Id" />
+                    <div class="modal-body p-4">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            Are you sure you want to cancel this leave request? This action cannot be undone.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Reason for Cancellation</label>
+                            <textarea name="cancelReason" class="form-control" rows="3"
+                                  placeholder="Please provide a reason..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle me-1"></i>Yes, Cancel Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

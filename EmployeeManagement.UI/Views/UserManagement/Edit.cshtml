@@ -1,0 +1,810 @@
+﻿@{
+    ViewData["Title"] = "Edit User";
+    var userJson = ViewBag.UserJson as string ?? "{}";
+    var dropdownsJson = ViewBag.DropdownsJson as string ?? "{}";
+}
+
+@section Styles {
+    <style>
+        body {
+            background: #f0f2f5;
+        }
+
+        .edit-hero {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(250, 112, 154, 0.3);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .form-section {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 1.05rem;
+            margin-bottom: 0;
+        }
+
+        .form-control,
+        .form-select {
+            border-radius: 10px;
+            border: 1.5px solid #e2e8f0;
+            padding: 0.65rem 1rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #fa709a;
+            box-shadow: 0 0 0 3px rgba(250, 112, 154, 0.15);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #334155;
+            font-size: 0.9rem;
+        }
+
+        .role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.85rem;
+            background: linear-gradient(135deg, #ede9fe, #ffffff);
+            border: 2px solid #ddd6fe;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 0.25rem;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6b21a8;
+        }
+
+        .role-pill:hover {
+            transform: translateY(-2px);
+        }
+
+        .role-pill.selected {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: transparent;
+            color: white;
+        }
+
+        .user-avatar-large {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 auto;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .status-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-switch .form-check-input {
+            width: 3rem;
+            height: 1.5rem;
+            cursor: pointer;
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.85rem 2rem;
+            font-weight: 700;
+        }
+
+        .btn-update:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(250, 112, 154, 0.4);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed #e2e8f0;
+            gap: 1rem;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+
+        .field-error {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .is-invalid {
+            border-color: #dc2626 !important;
+        }
+
+        @@media (max-width: 768px) {
+            .edit-hero {
+                padding: 1.25rem;
+            }
+
+            .form-section {
+                padding: 1rem;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 0.15rem;
+            }
+
+            .info-value {
+                text-align: left;
+            }
+        }
+    </style>
+}
+
+<div class="container py-3 pb-5">
+
+    <div class="edit-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-pencil-square me-2"></i>Edit User
+                </h2>
+                <p class="mb-0 opacity-90" id="editingFor">Loading...</p>
+            </div>
+
+            <a asp-action="Index" class="btn btn-light fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i>Back to List
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="Edit" method="post" id="editForm" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="userId" id="userIdInput" />
+        <input type="hidden" name="roleIds" id="roleIdsInput" />
+
+        <div class="row g-3">
+
+            <div class="col-lg-4">
+                <div class="form-card mb-3">
+                    <div class="form-section text-center">
+                        <div class="user-avatar-large" id="userAvatar">U</div>
+
+                        <h5 class="fw-bold mt-3 mb-0" id="userFullName">Loading...</h5>
+                        <small class="text-muted" id="userUsername">&#64;username</small>
+                        <div class="mt-3">
+                            <div class="status-toggle justify-content-center">
+                                <span class="text-muted small">Status:</span>
+
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="isActive"
+                                           id="isActiveToggle"
+                                           value="true" />
+
+                                    <label class="form-check-label small fw-bold" for="isActiveToggle">
+                                        <span id="statusLabel">Active</span>
+                                    </label>
+                                </div>
+
+                                <input type="hidden" name="isActive" value="false" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-card">
+                    <div class="form-section">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-info-circle me-1"></i>Account Info
+                        </h6>
+
+                        <div class="info-row">
+                            <span class="info-label">User ID:</span>
+                            <span class="info-value" id="infoUserId">-</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Email Verified:</span>
+                            <span class="info-value" id="infoVerified">-</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Created:</span>
+                            <span class="info-value" id="infoCreated">-</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Last Login:</span>
+                            <span class="info-value" id="infoLastLogin">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="form-card">
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe)">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <h5 class="section-title">Personal Information</h5>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input type="text"
+                                       name="fullName"
+                                       id="fullName"
+                                       class="form-control"
+                                       required />
+                                <div class="field-error" id="fullNameError">Full name is required.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input type="email"
+                                       name="email"
+                                       id="email"
+                                       class="form-control"
+                                       required />
+                                <div class="field-error" id="emailError">Valid email is required.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel"
+                                       name="phoneNumber"
+                                       id="phoneNumber"
+                                       class="form-control" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Employee Code</label>
+                                <input type="text"
+                                       name="employeeCode"
+                                       id="employeeCode"
+                                       class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb)">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <h5 class="section-title">Department & Designation</h5>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Department</label>
+                                <select name="departmentId" id="departmentId" class="form-select">
+                                    <option value="">-- Select Department --</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Designation</label>
+                                <select name="designationId" id="designationId" class="form-select">
+                                    <option value="">-- Select Designation --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-header">
+                            <div class="section-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d)">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+                            <h5 class="section-title">Assigned Roles</h5>
+                        </div>
+
+                        <p class="text-muted small mb-2">Click to toggle role assignment.</p>
+
+                        <div id="rolePills">
+                            <div class="text-center text-muted py-3">
+                                <div class="spinner-border spinner-border-sm"></div> Loading roles...
+                            </div>
+                        </div>
+
+                        <div class="field-error" id="roleError">Please select at least one role.</div>
+
+                        <div id="selectedRolesPreview" class="mt-3 p-3 bg-light rounded" style="display:none;">
+                            <small class="text-muted fw-bold d-block mb-2">Currently Selected:</small>
+                            <div id="selectedRolesBadges"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section bg-light">
+                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                            <a asp-action="Index" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancel
+                            </a>
+
+                            <button type="submit" class="btn btn-update" id="submitBtn">
+                                <i class="bi bi-check-circle me-1"></i>Update User
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const userData = @Html.Raw(userJson);
+        const dropdownData = @Html.Raw(dropdownsJson);
+
+        let allRoles = [];
+        let selectedRoleIds = new Set();
+
+        $(document).ready(function () {
+            loadDropdownData();
+
+            if (userData && userData.data) {
+                populateUserData(userData.data);
+            } else {
+                showLoadError();
+            }
+
+            $('#isActiveToggle').on('change', function () {
+                $('#statusLabel').text(this.checked ? 'Active' : 'Inactive');
+            });
+
+            $('#rolePills').on('click', '.role-pill', function () {
+                const roleId = parseInt($(this).attr('data-id'));
+                toggleRole(roleId);
+            });
+
+            $('#fullName, #email').on('input', function () {
+                $(this).removeClass('is-invalid');
+                $('#' + this.id + 'Error').hide();
+            });
+        });
+
+        function showLoadError() {
+            $('#editingFor').text('User data not found');
+            $('#rolePills').html('<div class="alert alert-danger small mb-0">Failed to load user data.</div>');
+        }
+
+        function loadDropdownData() {
+            if (!dropdownData || !dropdownData.data) {
+                $('#rolePills').html('<div class="alert alert-warning small mb-0">Dropdown data not found.</div>');
+                return;
+            }
+
+            allRoles = dropdownData.data.roles || [];
+
+            populateDepartments(dropdownData.data.departments || []);
+            populateDesignations(dropdownData.data.designations || []);
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getUserId(user) {
+            return user.userId || user.id || user.UserId || user.Id || '';
+        }
+
+        function getFullName(user) {
+            return user.fullName || user.FullName || '';
+        }
+
+        function getUsername(user) {
+            return user.username || user.Username || '';
+        }
+
+        function getEmail(user) {
+            return user.email || user.Email || '';
+        }
+
+        function getPhoneNumber(user) {
+            return user.phoneNumber || user.PhoneNumber || '';
+        }
+
+        function getEmployeeCode(user) {
+            return user.employeeCode || user.EmployeeCode || '';
+        }
+
+        function getDepartmentId(user) {
+            return user.departmentId || user.DepartmentId || '';
+        }
+
+        function getDesignationId(user) {
+            return user.designationId || user.DesignationId || '';
+        }
+
+        function getIsActive(user) {
+            return user.isActive === true || user.isActive === 1 || user.IsActive === true || user.IsActive === 1;
+        }
+
+        function getIsEmailVerified(user) {
+            return user.isEmailVerified === true || user.isEmailVerified === 1 || user.IsEmailVerified === true || user.IsEmailVerified === 1;
+        }
+
+        function getCreatedDate(user) {
+            return user.createdDate || user.CreatedDate || null;
+        }
+
+        function getLastLoginDate(user) {
+            return user.lastLoginDate || user.LastLoginDate || null;
+        }
+
+        function getUserRoles(user) {
+            return user.roles || user.Roles || [];
+        }
+
+        function getRoleId(role) {
+            return role.roleId || role.id || role.RoleId || role.Id;
+        }
+
+        function getRoleName(role) {
+            return role.roleName || role.name || role.RoleName || role.Name || '';
+        }
+
+        function isRoleActive(role) {
+            if (role.isActive === undefined && role.IsActive === undefined) {
+                return true;
+            }
+
+            return role.isActive === true || role.isActive === 1 || role.IsActive === true || role.IsActive === 1;
+        }
+
+        function getItemId(item) {
+            return item.id || item.departmentId || item.designationId || item.Id || item.DepartmentId || item.DesignationId;
+        }
+
+        function getItemName(item) {
+            return item.name || item.departmentName || item.designationName || item.Name || item.DepartmentName || item.DesignationName;
+        }
+
+        function populateUserData(user) {
+            const userId = getUserId(user);
+            const fullName = getFullName(user);
+            const username = getUsername(user);
+            const email = getEmail(user);
+            const phoneNumber = getPhoneNumber(user);
+            const employeeCode = getEmployeeCode(user);
+            const departmentId = getDepartmentId(user);
+            const designationId = getDesignationId(user);
+            const isActive = getIsActive(user);
+            const isVerified = getIsEmailVerified(user);
+
+            $('#editingFor').html('<i class="bi bi-person"></i> Editing: <strong>' + escapeHtml(fullName || username || 'User') + '</strong>');
+
+            const initials = getInitials(fullName || username || 'User');
+
+            $('#userAvatar').text(initials);
+            $('#userFullName').text(fullName || '-');
+            $('#userUsername').text(String.fromCharCode(64) + username);
+
+            $('#userIdInput').val(userId);
+            $('#fullName').val(fullName);
+            $('#email').val(email);
+            $('#phoneNumber').val(phoneNumber);
+            $('#employeeCode').val(employeeCode);
+
+            $('#isActiveToggle').prop('checked', isActive);
+            $('#statusLabel').text(isActive ? 'Active' : 'Inactive');
+
+            if (departmentId) {
+                $('#departmentId').val(departmentId);
+            }
+
+            if (designationId) {
+                $('#designationId').val(designationId);
+            }
+
+            $('#infoUserId').text(userId ? '#' + userId : '-');
+
+            $('#infoVerified').html(isVerified
+                ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> Verified</span>'
+                : '<span class="text-warning"><i class="bi bi-clock-fill"></i> Pending</span>');
+
+            $('#infoCreated').text(formatDate(getCreatedDate(user)));
+            $('#infoLastLogin').text(getLastLoginDate(user) ? formatDate(getLastLoginDate(user)) : 'Never');
+
+            const userRoles = getUserRoles(user);
+
+            userRoles.forEach(function (role) {
+                const roleId = getRoleId(role);
+
+                if (roleId) {
+                    selectedRoleIds.add(parseInt(roleId));
+                }
+            });
+
+            renderRolePills();
+            updateRoleIds();
+        }
+
+        function getInitials(name) {
+            return String(name || 'U')
+                .trim()
+                .split(/\s+/)
+                .map(function (part) {
+                    return part.charAt(0);
+                })
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+        }
+
+        function populateDepartments(departments) {
+            const select = $('#departmentId');
+            select.find('option:not(:first)').remove();
+
+            departments.forEach(function (department) {
+                const id = getItemId(department);
+                const name = getItemName(department);
+
+                if (id && name) {
+                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
+                }
+            });
+        }
+
+        function populateDesignations(designations) {
+            const select = $('#designationId');
+            select.find('option:not(:first)').remove();
+
+            designations.forEach(function (designation) {
+                const id = getItemId(designation);
+                const name = getItemName(designation);
+
+                if (id && name) {
+                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
+                }
+            });
+        }
+
+        function renderRolePills() {
+            const container = $('#rolePills');
+            container.empty();
+
+            if (!allRoles.length) {
+                container.html('<div class="alert alert-warning small mb-0">No roles available.</div>');
+                return;
+            }
+
+            let activeRoleCount = 0;
+
+            allRoles.forEach(function (role) {
+                if (!isRoleActive(role)) {
+                    return;
+                }
+
+                const roleId = getRoleId(role);
+                const roleName = getRoleName(role);
+
+                if (!roleId || !roleName) {
+                    return;
+                }
+
+                activeRoleCount++;
+
+                const numericRoleId = parseInt(roleId);
+                const selectedClass = selectedRoleIds.has(numericRoleId) ? 'selected' : '';
+
+                container.append(
+                    '<span class="role-pill ' + selectedClass + '" data-id="' + escapeHtml(numericRoleId) + '" data-name="' + escapeHtml(roleName) + '">' +
+                    '<i class="bi bi-shield-check"></i>' + escapeHtml(roleName) +
+                    '</span>'
+                );
+            });
+
+            if (activeRoleCount === 0) {
+                container.html('<div class="alert alert-warning small mb-0">No active roles available.</div>');
+            }
+        }
+
+        function toggleRole(roleId) {
+            if (!roleId) {
+                return;
+            }
+
+            const pill = $('.role-pill[data-id="' + roleId + '"]');
+
+            if (selectedRoleIds.has(roleId)) {
+                selectedRoleIds.delete(roleId);
+                pill.removeClass('selected');
+            } else {
+                selectedRoleIds.add(roleId);
+                pill.addClass('selected');
+            }
+
+            $('#roleError').hide();
+            updateRoleIds();
+        }
+
+        function updateRoleIds() {
+            const ids = Array.from(selectedRoleIds);
+
+            $('#roleIdsInput').val(ids.join(','));
+
+            if (ids.length > 0) {
+                const badges = ids.map(function (id) {
+                    const role = allRoles.find(function (r) {
+                        return parseInt(getRoleId(r)) === parseInt(id);
+                    });
+
+                    const roleName = role ? getRoleName(role) : '';
+
+                    return '<span class="badge bg-primary me-1 mb-1">' + escapeHtml(roleName) + '</span>';
+                }).join('');
+
+                $('#selectedRolesBadges').html(badges);
+                $('#selectedRolesPreview').show();
+            } else {
+                $('#selectedRolesBadges').empty();
+                $('#selectedRolesPreview').hide();
+            }
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) {
+                return '-';
+            }
+
+            const date = new Date(dateValue);
+
+            if (isNaN(date.getTime())) {
+                return '-';
+            }
+
+            return date.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s\u0040]+\u0040[^\s\u0040]+\.[^\s\u0040]+$/.test(email);
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            const fullName = $('#fullName').val().trim();
+            const email = $('#email').val().trim();
+
+            if (!fullName) {
+                $('#fullName').addClass('is-invalid');
+                $('#fullNameError').show();
+                isValid = false;
+            }
+
+            if (!isValidEmail(email)) {
+                $('#email').addClass('is-invalid');
+                $('#emailError').show();
+                isValid = false;
+            }
+
+            if (selectedRoleIds.size === 0) {
+                $('#roleError').show();
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        $('#editForm').on('submit', function (event) {
+            if (!validateForm()) {
+                event.preventDefault();
+                return;
+            }
+
+            $('#submitBtn')
+                .prop('disabled', true)
+                .html('<i class="bi bi-hourglass-split me-1"></i>Updating...');
+        });
+    </script>
+}

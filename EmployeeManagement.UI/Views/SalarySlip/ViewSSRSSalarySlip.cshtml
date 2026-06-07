@@ -1,0 +1,36 @@
+﻿@model EmployeeManagement.API.Models.Payroll.PayrollSummaryResponse
+@{
+    ViewData["Title"] = "Generate Slips";
+}
+
+<div class="container py-5">
+    <div class="card mx-auto shadow" style="max-width: 700px;">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">✨ Generate Salary Slips</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-action="GenerateSalarySlips">
+                <input type="hidden" name="PayrollCycleId" value="@ViewBag.CycleId" />
+                @Html.AntiForgeryToken()
+
+                <div class="alert alert-info">
+                    <strong>Cycle:</strong> @Model?.CycleName <br>
+                    <strong>Employees:</strong> @Model?.TotalEmployees
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                        <label class="form-check-label" for="confirmCheck">
+                            I confirm that payroll is approved and data is correct.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success btn-lg">🚀 Generate Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

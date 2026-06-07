@@ -67,6 +67,12 @@
                 animation: pulseGlow 2s infinite;
             }
 
+            .request-card.selected {
+                border-left-color: #6366f1;
+                background: linear-gradient(135deg, #eef2ff 0%, #ffffff 100%);
+                box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15) !important;
+            }
+
         @@keyframes pulseGlow {
             0%, 100% {
                 box-shadow: 0 4px 15px rgba(231, 76, 60, 0.1);
@@ -208,14 +214,75 @@
                 overflow: visible;
             }
 
-        /* ===== Animations ===== */
-        .fade-in {
-            opacity: 1 !important; /* ✅ Force visible */
+        /* ===== Bulk Selection Bar ===== */
+        .bulk-action-bar {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border-radius: 14px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            display: none;
+            animation: slideDown 0.3s ease;
         }
-        @@keyframes fadeIn {
+
+            .bulk-action-bar.show {
+                display: flex;
+            }
+
+        @@keyframes slideDown {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .selection-checkbox {
+            width: 22px !important;
+            height: 22px !important;
+            cursor: pointer;
+            border: 2px solid #cbd5e0;
+            accent-color: #6366f1;
+        }
+
+            .selection-checkbox:checked {
+                background-color: #6366f1;
+                border-color: #6366f1;
+            }
+
+        .select-all-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bulk-floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: none;
+            animation: fadeInUp 0.3s ease;
+        }
+
+            .bulk-floating-btn.show {
+                display: block;
+            }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
 
             to {
@@ -253,7 +320,10 @@
             margin: 0 auto 20px;
         }
 
-        /* ===== Responsive ===== */
+        .fade-in {
+            opacity: 1 !important;
+        }
+
         @@media (max-width: 768px) {
             .approval-hero {
                 padding: 20px;
@@ -304,9 +374,7 @@
                     </div>
                     <div class="col-4">
                         <div class="hero-pill">
-                            <div class="pill-value">
-                                @(pendingRequests.Sum(r => r.TotalDays))
-                            </div>
+                            <div class="pill-value">@(pendingRequests.Sum(r => r.TotalDays))</div>
                             <div class="pill-label">
                                 <i class="fas fa-calendar me-1"></i>Total Days
                             </div>
@@ -324,15 +392,38 @@
     </div>
 
     <!-- ================================================================ -->
-    <!-- ✅ VIEW TOGGLE & FILTERS -->
+    <!-- ✅ BULK ACTION BAR (Shows when items selected) -->
     <!-- ================================================================ -->
     @if (pendingRequests.Any())
     {
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <span class="text-muted">
-                    Showing <strong>@pendingRequests.Count</strong> pending request(s)
-                </span>
+        <div class="bulk-action-bar" id="bulkActionBar">
+            <div class="d-flex align-items-center gap-3 w-100">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-square fa-lg me-2"></i>
+                    <strong><span id="selectedCount">0</span> Selected</strong>
+                </div>
+                <div class="ms-auto d-flex gap-2 flex-wrap">
+                    <button class="btn btn-light btn-sm" onclick="clearSelection()">
+                        <i class="fas fa-times me-1"></i>Clear
+                    </button>
+                    <button class="btn btn-success btn-sm fw-bold" onclick="bulkAction('approve')">
+                        <i class="fas fa-check-double me-1"></i>Bulk Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm fw-bold" onclick="bulkAction('reject')">
+                        <i class="fas fa-times-circle me-1"></i>Bulk Reject
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ SELECT ALL BAR -->
+        <div class="select-all-bar">
+            <div class="d-flex align-items-center">
+                <input type="checkbox" id="selectAll" class="form-check-input selection-checkbox me-2"
+                       onchange="toggleSelectAll(this.checked)" />
+                <label for="selectAll" class="fw-semibold mb-0">
+                    Select All <span class="text-muted">(@pendingRequests.Count requests)</span>
+                </label>
             </div>
             <div class="view-toggle btn-group">
                 <button class="btn btn-outline-primary btn-sm active" onclick="toggleView('card')" id="btnCardView">
@@ -346,7 +437,7 @@
     }
 
     <!-- ================================================================ -->
-    <!-- ✅ CARD VIEW (FIXED) -->
+    <!-- ✅ CARD VIEW -->
     <!-- ================================================================ -->
     <div id="cardView">
         @if (pendingRequests.Any())
@@ -358,12 +449,10 @@
                 var isUrgent = daysUntilLeave <= 3;
                 var daysSinceApplied = (DateTime.Now - request.AppliedDate).Days;
 
-                // Avatar color based on name
                 var avatarColors = new[] { "#4facfe", "#f093fb", "#43e97b", "#fa709a", "#a18cd1", "#fcb69f", "#667eea" };
                 var colorIndex = Math.Abs((request.EmployeeName ?? "A").GetHashCode()) % avatarColors.Length;
                 var avatarColor = avatarColors[colorIndex];
 
-                // Leave type CSS class
                 var leaveClass = (request.LeaveTypeCode ?? "").ToUpper() switch
                 {
                     "CL" => "leave-cl",
@@ -376,7 +465,6 @@
                     _ => "leave-default"
                 };
 
-                // Safe strings for JavaScript (escape quotes)
                 var safeName = (request.EmployeeName ?? "").Replace("'", "\\'").Replace("\"", "\\\"");
                 var safeLeaveType = (request.LeaveTypeName ?? "").Replace("'", "\\'");
                 var safeFromDate = request.StartDate.ToString("dd MMM yyyy");
@@ -384,20 +472,29 @@
                 var safeDays = request.TotalDays.ToString();
 
                 <div class="card request-card shadow-sm mb-3 @(isUrgent ? "urgent" : "")"
+                     id="card_@request.Id"
                      style="opacity: 1; animation: slideIn 0.4s ease @(cardIndex * 0.08)s both;">
                     <div class="card-body p-4">
                         <div class="row align-items-center">
+
+                            <!-- ✅ CHECKBOX -->
+                            <div class="col-auto">
+                                <input type="checkbox"
+                                       class="form-check-input selection-checkbox leave-checkbox"
+                                       data-leave-id="@request.Id"
+                                       data-employee-name="@safeName"
+                                       onchange="updateSelection()" />
+                            </div>
+
                             <!-- Employee Info -->
-                            <div class="col-md-7">
+                            <div class="col-md-6">
                                 <div class="d-flex align-items-start">
-                                    <!-- Avatar -->
                                     <div class="emp-avatar me-3 flex-shrink-0"
                                          style="background: @avatarColor;">
                                         @(request.EmployeeName?.Substring(0, 1).ToUpper() ?? "?")
                                     </div>
 
                                     <div class="flex-grow-1">
-                                        <!-- Name & Department -->
                                         <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
                                             <h5 class="fw-bold mb-0">@request.EmployeeName</h5>
                                             @if (isUrgent)
@@ -413,32 +510,25 @@
                                             <i class="fas fa-envelope me-1"></i>@request.EmployeeEmail
                                         </small>
 
-                                        <!-- Leave Details Row -->
                                         <div class="row g-2 mt-3">
                                             <div class="col-auto">
                                                 <div class="info-badge">
                                                     <div class="badge-label">Leave Type</div>
                                                     <div class="badge-value">
-                                                        <span class="badge @leaveClass text-white">
-                                                            @request.LeaveTypeName
-                                                        </span>
+                                                        <span class="badge @leaveClass text-white">@request.LeaveTypeName</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="col-auto">
                                                 <div class="info-badge">
                                                     <div class="badge-label">From</div>
-                                                    <div class="badge-value text-primary">
-                                                        @request.StartDate.ToString("dd MMM")
-                                                    </div>
+                                                    <div class="badge-value text-primary">@request.StartDate.ToString("dd MMM")</div>
                                                 </div>
                                             </div>
                                             <div class="col-auto">
                                                 <div class="info-badge">
                                                     <div class="badge-label">To</div>
-                                                    <div class="badge-value text-primary">
-                                                        @request.EndDate.ToString("dd MMM")
-                                                    </div>
+                                                    <div class="badge-value text-primary">@request.EndDate.ToString("dd MMM")</div>
                                                 </div>
                                             </div>
                                             <div class="col-auto">
@@ -461,6 +551,7 @@
                                                         @if (daysSinceApplied > 0)
                                                         {
                                                             <br>
+                                                
                                                             <small class="text-muted">@daysSinceApplied day(s) ago</small>
                                                         }
                                                     </div>
@@ -468,7 +559,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- Reason -->
                                         <div class="mt-3 p-3 rounded" style="background: #f8f9fc;">
                                             <small class="text-muted fw-bold">
                                                 <i class="fas fa-comment-alt me-1"></i>Reason:
@@ -476,21 +566,18 @@
                                             <p class="mb-0 mt-1">@request.Reason</p>
                                         </div>
 
-                                        <!-- Attachment -->
                                         @if (!string.IsNullOrEmpty(request.AttachmentPath))
                                         {
                                             var previewUrlTable = Url.Action("PreviewAttachment", "Leave", new { filePath = request.AttachmentPath });
                                             var downloadUrlTable = Url.Action("ViewAttachment", "Leave", new { filePath = request.AttachmentPath });
                                             var docTitleTable = $"{request.EmployeeName} - {request.LeaveTypeName}";
 
-                                            <button class="btn btn-sm btn-outline-info ms-1"
-                                                    onclick="showDocument('@previewUrlTable', '@downloadUrlTable', '@docTitleTable.Replace("'", "\\'")' )"
-                                                    title="View Attachment">
-                                                <i class="fas fa-paperclip me-1"></i> View Attachment
+                                            <button class="btn btn-sm btn-outline-info ms-1 mt-2"
+                                                    onclick="showDocument('@previewUrlTable', '@downloadUrlTable', '@docTitleTable.Replace("'", "\\'")' )">
+                                                <i class="fas fa-paperclip me-1"></i>View Attachment
                                             </button>
                                         }
 
-                                        <!-- Half Day Info -->
                                         @if (request.IsHalfDay)
                                         {
                                             <div class="mt-2">
@@ -507,7 +594,6 @@
                             <!-- Action Buttons -->
                             <div class="col-md-5 mt-3 mt-md-0">
                                 <div class="d-flex flex-column gap-2 action-buttons">
-                                    <!-- Starts In Info -->
                                     <div class="text-center mb-2">
                                         @if (daysUntilLeave > 0)
                                         {
@@ -530,13 +616,11 @@
                                         }
                                     </div>
 
-                                    <!-- ✅ FIXED: Approve Button with safe JS parameters -->
                                     <button class="btn btn-approve w-100"
                                             onclick="showActionModal(@request.Id, 'approve', '@safeName', '@safeLeaveType', '@safeFromDate', '@safeToDate', '@safeDays')">
                                         <i class="fas fa-check-circle me-2"></i>Approve Leave
                                     </button>
 
-                                    <!-- ✅ FIXED: Reject Button with safe JS parameters -->
                                     <button class="btn btn-reject w-100"
                                             onclick="showActionModal(@request.Id, 'reject', '@safeName', '@safeLeaveType', '@safeFromDate', '@safeToDate', '@safeDays')">
                                         <i class="fas fa-times-circle me-2"></i>Reject Leave
@@ -552,7 +636,6 @@
         }
         else
         {
-            <!-- ✅ EMPTY STATE -->
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center py-5">
                     <div class="empty-state-icon">
@@ -560,8 +643,8 @@
                     </div>
                     <h3 class="fw-bold text-dark">All Caught Up! 🎉</h3>
                     <p class="text-muted mb-4">
-                        There are no pending leave requests to review.
-                        <br>All leave requests have been processed.
+                        There are no pending leave requests to review.<br>
+                        All leave requests have been processed.
                     </p>
                     <div class="d-flex justify-content-center gap-3">
                         <a asp-action="Index" class="btn btn-primary" style="border-radius: 20px;">
@@ -577,7 +660,7 @@
     </div>
 
     <!-- ================================================================ -->
-    <!-- ✅ TABLE VIEW (Hidden by default) -->
+    <!-- ✅ TABLE VIEW -->
     <!-- ================================================================ -->
     <div id="tableView" style="display: none;">
         @if (pendingRequests.Any())
@@ -588,7 +671,11 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead style="background: linear-gradient(135deg, #f39c12, #e74c3c); color: white;">
                                 <tr>
-                                    <th class="border-0 ps-4 py-3">#</th>
+                                    <th class="border-0 ps-4 py-3" style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input"
+                                               onchange="toggleSelectAll(this.checked)" />
+                                    </th>
+                                    <th class="border-0 py-3">#</th>
                                     <th class="border-0 py-3">Employee</th>
                                     <th class="border-0 py-3">Department</th>
                                     <th class="border-0 py-3">Leave Type</th>
@@ -607,13 +694,20 @@
                                     var daysUntilLeave = (request.StartDate - DateTime.Today).TotalDays;
                                     var isUrgent = daysUntilLeave <= 3;
                                     var rowClass = isUrgent ? "table-warning" : "";
+                                    var safeName2 = (request.EmployeeName ?? "").Replace("'", "\\'");
 
                                     <tr class="@rowClass">
-                                        <td class="ps-4">@request.Id</td>
+                                        <td class="ps-4">
+                                            <input type="checkbox"
+                                                   class="form-check-input leave-checkbox-table"
+                                                   data-leave-id="@request.Id"
+                                                   data-employee-name="@safeName2"
+                                                   onchange="updateSelection()" />
+                                        </td>
+                                        <td>@request.Id</td>
                                         <td>
                                             <strong>@request.EmployeeName</strong>
-                                            <br>
-                                            <small class="text-muted">@request.EmployeeEmail</small>
+                                            <br><small class="text-muted">@request.EmployeeEmail</small>
                                         </td>
                                         <td>@request.DepartmentName</td>
                                         <td>
@@ -621,6 +715,7 @@
                                             @if (request.IsHalfDay)
                                             {
                                                 <br>
+                                    
                                                 <small class="text-info">Half Day</small>
                                             }
                                         </td>
@@ -632,9 +727,7 @@
                                                 @(request.Reason.Length > 60 ? request.Reason.Substring(0, 60) + "..." : request.Reason)
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            @request.AppliedDate.ToString("dd MMM")
-                                        </td>
+                                        <td class="text-center">@request.AppliedDate.ToString("dd MMM")</td>
                                         <td class="text-center">
                                             @if (daysUntilLeave <= 0)
                                             {
@@ -644,27 +737,21 @@
                                             }
                                             else if (isUrgent)
                                             {
-                                                <span class="badge bg-warning text-dark">
-                                                    @((int)daysUntilLeave)d
-                                                </span>
+                                                <span class="badge bg-warning text-dark">@((int)daysUntilLeave)d</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-info">
-                                                    @((int)daysUntilLeave)d
-                                                </span>
+                                                <span class="badge bg-info">@((int)daysUntilLeave)d</span>
                                             }
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group">
                                                 <button class="btn btn-sm btn-success"
-                                                        onclick="showActionModal(@request.Id, 'approve', '@request.EmployeeName?.Replace("'", "\\'")', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')"
-                                                        title="Approve">
+                                                        onclick="showActionModal(@request.Id, 'approve', '@safeName2', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')">
                                                     <i class="fas fa-check"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-danger"
-                                                        onclick="showActionModal(@request.Id, 'reject', '@request.EmployeeName?.Replace("'", "\\'")', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')"
-                                                        title="Reject">
+                                                        onclick="showActionModal(@request.Id, 'reject', '@safeName2', '@request.LeaveTypeName', '@request.StartDate.ToString("dd MMM yyyy")', '@request.EndDate.ToString("dd MMM yyyy")', '@request.TotalDays')">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </div>
@@ -678,11 +765,27 @@
             </div>
         }
     </div>
-
 </div>
 
 <!-- ================================================================ -->
-<!-- ✅ APPROVE / REJECT ACTION MODAL -->
+<!-- ✅ FLOATING BULK ACTION BUTTON -->
+<!-- ================================================================ -->
+<div class="bulk-floating-btn" id="floatingBulkBtn">
+    <div class="card border-0 shadow-lg" style="border-radius: 50px;">
+        <div class="card-body p-2 d-flex align-items-center gap-2">
+            <span class="badge bg-primary rounded-pill ms-2"><span id="floatingCount">0</span></span>
+            <button class="btn btn-success btn-sm rounded-pill" onclick="bulkAction('approve')">
+                <i class="fas fa-check-double me-1"></i>Approve
+            </button>
+            <button class="btn btn-danger btn-sm rounded-pill" onclick="bulkAction('reject')">
+                <i class="fas fa-times-circle me-1"></i>Reject
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ✅ SINGLE ACTION MODAL (Approve/Reject) -->
 <!-- ================================================================ -->
 <div class="modal fade modal-custom" id="actionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -691,7 +794,6 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="leaveRequestId" id="actionLeaveId" />
 
-                <!-- Header -->
                 <div class="modal-header" id="actionModalHeader">
                     <div>
                         <h5 class="modal-title fw-bold" id="actionModalTitle">
@@ -702,9 +804,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
-                <!-- Body -->
                 <div class="modal-body px-4">
-                    <!-- Leave Summary Card -->
                     <div class="card border-0 mb-4" style="background: #f8f9fc; border-radius: 12px;">
                         <div class="card-body">
                             <div class="row text-center">
@@ -735,11 +835,9 @@
                         </div>
                     </div>
 
-                    <!-- Confirmation Message -->
                     <div class="text-center mb-3">
                         <div id="approveMessage">
-                            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
-                                 style="width: 60px; height: 60px;">
+                            <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
                                 <i class="fas fa-check-circle fa-2x text-success"></i>
                             </div>
                             <p class="text-muted" id="actionConfirmText">
@@ -748,7 +846,6 @@
                         </div>
                     </div>
 
-                    <!-- Remarks -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">
                             <i class="fas fa-comment me-1"></i>
@@ -757,20 +854,15 @@
                         <textarea name="remarks" id="actionRemarks" class="form-control" rows="3"
                                   placeholder="Add any comments or notes..." maxlength="500"
                                   style="border-radius: 10px;"></textarea>
-                        <small class="text-muted">
-                            <span id="remarkCharCount">0</span>/500 characters
-                        </small>
+                        <small class="text-muted"><span id="remarkCharCount">0</span>/500 characters</small>
                     </div>
                 </div>
 
-                <!-- Footer -->
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal"
-                            style="border-radius: 10px;">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
-                    <button type="submit" class="btn px-4" id="actionSubmitBtn"
-                            style="border-radius: 10px;">
+                    <button type="submit" class="btn px-4" id="actionSubmitBtn" style="border-radius: 10px;">
                         <i class="fas fa-check me-1" id="submitBtnIcon"></i>
                         <span id="submitBtnText">Confirm</span>
                     </button>
@@ -779,133 +871,118 @@
         </div>
     </div>
 </div>
+
+<!-- ================================================================ -->
+<!-- ✅ BULK ACTION MODAL -->
+<!-- ================================================================ -->
+<div class="modal fade modal-custom" id="bulkActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" id="bulkModalHeader">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-check-double me-2" id="bulkModalIcon"></i>
+                    <span id="bulkModalTitle">Bulk Approve Leave Requests</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body px-4">
+                <div class="alert" id="bulkAlert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You are about to <strong id="bulkActionText">approve</strong>
+                    <strong id="bulkCountText">0</strong> leave request(s).
+                </div>
+
+                <h6 class="fw-bold mb-3">
+                    <i class="fas fa-list me-2"></i>Selected Employees:
+                </h6>
+                <div class="border rounded p-3" style="max-height: 250px; overflow-y: auto; background: #f8f9fa;">
+                    <ul class="list-group list-group-flush" id="bulkEmployeeList">
+                        <!-- Populated by JS -->
+                    </ul>
+                </div>
+
+                <div class="mb-3 mt-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-comment me-1"></i>
+                        Bulk Remarks <small class="text-muted fw-normal">(Applied to all)</small>
+                    </label>
+                    <textarea id="bulkRemarks" class="form-control" rows="3"
+                              placeholder="Add remarks for all selected requests..."
+                              style="border-radius: 10px;"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal" style="border-radius: 10px;">
+                    Cancel
+                </button>
+                <button type="button" class="btn px-4" id="bulkSubmitBtn" onclick="executeBulkAction()" style="border-radius: 10px;">
+                    <i class="fas fa-check me-1" id="bulkSubmitIcon"></i>
+                    <span id="bulkSubmitText">Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ================================================================ -->
 <!-- ✅ DOCUMENT VIEWER MODAL -->
 <!-- ================================================================ -->
-<div class="modal fade" id="documentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-hidden="true">
+<div class="modal fade" id="documentModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" style="border: none; border-radius: 16px; overflow: hidden;">
-            <!-- Header -->
             <div class="modal-header text-white" style="background: linear-gradient(135deg, #0984e3, #6c5ce7);">
-                <h5 class="modal-title" id="documentModalLabel">
+                <h5 class="modal-title">
                     <i class="fas fa-file-alt me-2"></i>
                     <span id="docModalTitle">Document Preview</span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
-            <!-- Body -->
             <div class="modal-body p-0" style="min-height: 350px; background: #f0f2f5;">
-
-                <!-- Loading -->
                 <div id="docLoading" class="text-center py-5">
-                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
                     <p class="mt-3 text-muted">Loading document...</p>
                 </div>
-
-                <!-- Image Viewer -->
                 <div id="docImageContainer" class="text-center p-3" style="display:none;">
                     <img id="docImage" src="" alt="Document"
                          class="img-fluid rounded shadow"
                          style="max-height: 70vh; object-fit: contain; cursor: zoom-in; transition: transform 0.3s;"
                          onclick="toggleImageZoom(this)">
                 </div>
-
-                <!-- PDF Viewer -->
                 <div id="docPdfContainer" style="display:none;">
-                    <iframe id="docPdf" src=""
-                            style="width: 100%; height: 75vh; border: none; background: #525659;">
-                    </iframe>
+                    <iframe id="docPdf" src="" style="width: 100%; height: 75vh; border: none; background: #525659;"></iframe>
                 </div>
-
-                <!-- Unsupported File -->
                 <div id="docUnsupported" class="text-center py-5" style="display:none;">
-                    <div class="mb-3">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
-                             style="width: 80px; height: 80px; background: #fff3cd;">
-                            <i class="fas fa-file-alt fa-2x text-warning"></i>
-                        </div>
-                    </div>
+                    <i class="fas fa-file-alt fa-2x text-warning mb-3"></i>
                     <h5 class="fw-bold">Preview Not Available</h5>
-                    <p class="text-muted">This file type cannot be previewed in the browser.</p>
-                    <a id="docDownloadLinkAlt" href="" class="btn btn-primary" style="border-radius: 20px;">
+                    <a id="docDownloadLinkAlt" href="" class="btn btn-primary">
                         <i class="fas fa-download me-1"></i>Download File
                     </a>
                 </div>
-
-                <!-- Error -->
-                <div id="docError" class="text-center py-5" style="display:none;">
-                    <div class="mb-3">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
-                             style="width: 80px; height: 80px; background: #f8d7da;">
-                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
-                        </div>
-                    </div>
-                    <h5 class="fw-bold">Failed to Load Document</h5>
-                    <p class="text-muted">The file may have been moved or deleted.</p>
-                    <a id="docRetryLink" href="" target="_blank" class="btn btn-outline-primary" style="border-radius: 20px;">
-                        <i class="fas fa-external-link-alt me-1"></i>Try Opening in New Tab
-                    </a>
-                </div>
             </div>
-
-            <!-- Footer -->
             <div class="modal-footer d-flex justify-content-between" style="background: #f8f9fa;">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-file me-2 text-muted"></i>
-                    <small class="text-muted" id="docFileName">document.pdf</small>
-                    <span class="mx-2 text-muted">|</span>
-                    <small class="text-muted" id="docFileType">PDF</small>
-                </div>
+                <small class="text-muted" id="docFileName">document.pdf</small>
                 <div class="d-flex gap-2">
-                    <a id="docOpenNewTab" href="" target="_blank"
-                       class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">
-                        <i class="fas fa-external-link-alt me-1"></i>New Tab
-                    </a>
-                    <a id="docDownloadBtn" href="" download
-                       class="btn btn-success btn-sm" style="border-radius: 20px;">
+                    <a id="docDownloadBtn" href="" download class="btn btn-success btn-sm">
                         <i class="fas fa-download me-1"></i>Download
                     </a>
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"
-                            style="border-radius: 20px;">
-                        <i class="fas fa-times me-1"></i>Close
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
-<!-- ================================================================ -->
-<!-- ✅ BULK ACTION MODAL -->
-<!-- ================================================================ -->
-@if (pendingRequests.Count > 1)
-{
-    <div class="fixed-bottom p-3" style="pointer-events: none;">
-        <div class="container">
-            <div class="card border-0 shadow-lg" style="border-radius: 16px; pointer-events: auto; max-width: 400px; margin-left: auto;">
-                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                    <small class="text-muted">
-                        <strong>@pendingRequests.Count</strong> pending requests
-                    </small>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-success" style="border-radius: 20px;"
-                                onclick="confirmBulkAction('approve')"
-                                title="Approve all visible requests">
-                            <i class="fas fa-check-double me-1"></i>Approve All
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+
+@Html.AntiForgeryToken()
 
 @section Scripts {
     <script>
+        // ✅ Global state for bulk selection
+        let selectedLeaves = new Map();
+        let currentBulkAction = '';
+
         // =============================================
-        // ✅ TOGGLE CARD/TABLE VIEW
+        // ✅ TOGGLE VIEW
         // =============================================
         function toggleView(view) {
             if (view === 'card') {
@@ -922,184 +999,222 @@
         }
 
         // =============================================
-        // ✅ SHOW ACTION MODAL (Approve/Reject)
+        // ✅ BULK SELECTION LOGIC
         // =============================================
-        function showActionModal(id, action, employeeName, leaveType, fromDate, toDate, days) {
-
-            // Set hidden values
-            document.getElementById('actionLeaveId').value = id;
-            document.getElementById('actionRemarks').value = '';
-            document.getElementById('remarkCharCount').textContent = '0';
-
-            // Set leave summary
-            document.getElementById('modalEmployeeName').textContent = employeeName;
-            document.getElementById('modalLeaveType').textContent = leaveType;
-            document.getElementById('modalFromDate').textContent = fromDate;
-            document.getElementById('modalToDate').textContent = toDate;
-            document.getElementById('modalDays').textContent = days;
-
-            var form = document.getElementById('actionForm');
-            var header = document.getElementById('actionModalHeader');
-            var titleText = document.getElementById('actionModalTitleText');
-            var icon = document.getElementById('actionModalIcon');
-            var confirmText = document.getElementById('actionConfirmText');
-            var submitBtn = document.getElementById('actionSubmitBtn');
-            var submitBtnIcon = document.getElementById('submitBtnIcon');
-            var submitBtnText = document.getElementById('submitBtnText');
-            var approveMsg = document.getElementById('approveMessage');
-
-            if (action === 'approve') {
-                // ✅ Approve styling
-                form.action = '@Url.Action("Approve", "Leave")';
-                header.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
-                header.style.color = 'white';
-                titleText.textContent = 'Approve Leave';
-                icon.className = 'fas fa-check-circle me-2';
-
-                approveMsg.innerHTML = `
-                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
-                         style="width: 60px; height: 60px;">
-                        <i class="fas fa-check-circle fa-2x text-success"></i>
-                    </div>
-                    <p class="text-muted">
-                        Are you sure you want to <strong class="text-success">APPROVE</strong> leave for
-                        <strong>${employeeName}</strong>?
-                    </p>`;
-
-                submitBtn.className = 'btn btn-success px-4';
-                submitBtn.style.borderRadius = '10px';
-                submitBtnIcon.className = 'fas fa-check-circle me-1';
-                submitBtnText.textContent = 'Approve Leave';
-
-            } else {
-                // ❌ Reject styling
-                form.action = '@Url.Action("Reject", "Leave")';
-                header.style.background = 'linear-gradient(135deg, #dc3545, #c0392b)';
-                header.style.color = 'white';
-                titleText.textContent = 'Reject Leave';
-                icon.className = 'fas fa-times-circle me-2';
-
-                approveMsg.innerHTML = `
-                    <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2"
-                         style="width: 60px; height: 60px;">
-                        <i class="fas fa-times-circle fa-2x text-danger"></i>
-                    </div>
-                    <p class="text-muted">
-                        Are you sure you want to <strong class="text-danger">REJECT</strong> leave for
-                        <strong>${employeeName}</strong>?
-                        <br><small>Please provide a reason in the remarks below.</small>
-                    </p>`;
-
-                submitBtn.className = 'btn btn-danger px-4';
-                submitBtn.style.borderRadius = '10px';
-                submitBtnIcon.className = 'fas fa-times-circle me-1';
-                submitBtnText.textContent = 'Reject Leave';
-            }
-
-            // Show modal
-            new bootstrap.Modal(document.getElementById('actionModal')).show();
-        }
-
-        // =============================================
-        // ✅ REMARKS CHARACTER COUNT
-        // =============================================
-        document.getElementById('actionRemarks').addEventListener('input', function () {
-            document.getElementById('remarkCharCount').textContent = this.value.length;
-        });
-
-        // =============================================
-        // ✅ FORM SUBMIT - Disable button to prevent double click
-        // =============================================
-        document.getElementById('actionForm').addEventListener('submit', function () {
-            var btn = document.getElementById('actionSubmitBtn');
-            btn.disabled = true;
-            document.getElementById('submitBtnText').textContent = 'Processing...';
-            document.getElementById('submitBtnIcon').className = 'fas fa-spinner fa-spin me-1';
-        });
-
-        // =============================================
-        // ✅ BULK APPROVE (Optional)
-        // =============================================
-        function confirmBulkAction(action) {
-            Swal.fire({
-                title: 'Approve All Pending Requests?',
-                text: 'This will approve all currently visible pending leave requests.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Approve All!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // You can implement bulk approve API call here
-                    Swal.fire(
-                        'Info',
-                        'Bulk approve feature coming soon! Please approve individually for now.',
-                        'info'
-                    );
+        function toggleSelectAll(checked) {
+            // Update all checkboxes in both views
+            document.querySelectorAll('.leave-checkbox, .leave-checkbox-table').forEach(cb => {
+                cb.checked = checked;
+                const card = document.getElementById('card_' + cb.dataset.leaveId);
+                if (card) {
+                    if (checked) card.classList.add('selected');
+                    else card.classList.remove('selected');
                 }
             });
+
+            // Update selectAll checkbox
+            const selectAllCb = document.getElementById('selectAll');
+            if (selectAllCb) selectAllCb.checked = checked;
+
+            updateSelection();
         }
 
-        // =============================================
-        // ✅ AUTO-REFRESH every 60 seconds
-        // =============================================
-        setTimeout(function () {
-            // Uncomment to enable auto-refresh
-            // location.reload();
-        }, 60000);
+        function updateSelection() {
+            selectedLeaves.clear();
 
-        // =============================================
-        // ✅ KEYBOARD SHORTCUTS
-        // =============================================
-        document.addEventListener('keydown', function (e) {
-            // Press 'T' to toggle view
-            if (e.key === 't' || e.key === 'T') {
-                var cardView = document.getElementById('cardView');
-                if (cardView && cardView.style.display !== 'none') {
-                    toggleView('table');
-                } else {
-                    toggleView('card');
-                }
-            }
-        });
-         function toggleView(view) {
-            if (view === 'card') {
-                document.getElementById('cardView').style.display = 'block';
-                document.getElementById('tableView').style.display = 'none';
-                document.getElementById('btnCardView').classList.add('active');
-                document.getElementById('btnTableView').classList.remove('active');
+            // Collect from all checked checkboxes
+            document.querySelectorAll('.leave-checkbox:checked, .leave-checkbox-table:checked').forEach(cb => {
+                selectedLeaves.set(cb.dataset.leaveId, cb.dataset.employeeName);
+
+                // Highlight card
+                const card = document.getElementById('card_' + cb.dataset.leaveId);
+                if (card) card.classList.add('selected');
+            });
+
+            // Remove highlight from unchecked
+            document.querySelectorAll('.leave-checkbox:not(:checked), .leave-checkbox-table:not(:checked)').forEach(cb => {
+                const card = document.getElementById('card_' + cb.dataset.leaveId);
+                if (card) card.classList.remove('selected');
+            });
+
+            // Sync checkboxes between views (for same ID)
+            const checkedIds = Array.from(selectedLeaves.keys());
+            document.querySelectorAll('.leave-checkbox, .leave-checkbox-table').forEach(cb => {
+                cb.checked = checkedIds.includes(cb.dataset.leaveId);
+            });
+
+            // Update UI
+            const count = selectedLeaves.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('floatingCount').textContent = count;
+
+            const bar = document.getElementById('bulkActionBar');
+            const floatBtn = document.getElementById('floatingBulkBtn');
+
+            if (count > 0) {
+                bar.classList.add('show');
+                floatBtn.classList.add('show');
             } else {
-                document.getElementById('cardView').style.display = 'none';
-                document.getElementById('tableView').style.display = 'block';
-                document.getElementById('btnCardView').classList.remove('active');
-                document.getElementById('btnTableView').classList.add('active');
+                bar.classList.remove('show');
+                floatBtn.classList.remove('show');
+            }
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.leave-checkbox, .leave-checkbox-table').forEach(cb => cb.checked = false);
+            const selectAllCb = document.getElementById('selectAll');
+            if (selectAllCb) selectAllCb.checked = false;
+            updateSelection();
+        }
+
+        // =============================================
+        // ✅ BULK ACTION - Show Modal
+        // =============================================
+        function bulkAction(action) {
+            if (selectedLeaves.size === 0) {
+                Swal.fire('No Selection', 'Please select at least one leave request.', 'warning');
+                return;
+            }
+
+            currentBulkAction = action;
+            const count = selectedLeaves.size;
+            const isApprove = action === 'approve';
+
+            // Populate modal
+            document.getElementById('bulkActionText').textContent = action;
+            document.getElementById('bulkCountText').textContent = count;
+            document.getElementById('bulkRemarks').value = '';
+
+            // Header styling
+            const header = document.getElementById('bulkModalHeader');
+            const title = document.getElementById('bulkModalTitle');
+            const icon = document.getElementById('bulkModalIcon');
+            const alert = document.getElementById('bulkAlert');
+            const submitBtn = document.getElementById('bulkSubmitBtn');
+            const submitIcon = document.getElementById('bulkSubmitIcon');
+            const submitText = document.getElementById('bulkSubmitText');
+
+            if (isApprove) {
+                header.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                header.style.color = 'white';
+                title.textContent = `Bulk Approve ${count} Leave Requests`;
+                icon.className = 'fas fa-check-double me-2';
+                alert.className = 'alert alert-success';
+                submitBtn.className = 'btn btn-success px-4';
+                submitIcon.className = 'fas fa-check-double me-1';
+                submitText.textContent = `Approve All (${count})`;
+            } else {
+                header.style.background = 'linear-gradient(135deg, #dc3545, #c0392b)';
+                header.style.color = 'white';
+                title.textContent = `Bulk Reject ${count} Leave Requests`;
+                icon.className = 'fas fa-times-circle me-2';
+                alert.className = 'alert alert-danger';
+                submitBtn.className = 'btn btn-danger px-4';
+                submitIcon.className = 'fas fa-times-circle me-1';
+                submitText.textContent = `Reject All (${count})`;
+            }
+
+            // Populate list
+            const list = document.getElementById('bulkEmployeeList');
+            list.innerHTML = '';
+            let idx = 1;
+            selectedLeaves.forEach((name, id) => {
+                list.innerHTML += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                        <span>
+                            <span class="badge bg-secondary me-2">${idx}</span>
+                            <strong>${name}</strong>
+                            <small class="text-muted ms-2">ID: ${id}</small>
+                        </span>
+                        <i class="fas fa-${isApprove ? 'check text-success' : 'times text-danger'}"></i>
+                    </li>`;
+                idx++;
+            });
+
+            new bootstrap.Modal(document.getElementById('bulkActionModal')).show();
+        }
+
+        // =============================================
+        // ✅ EXECUTE BULK ACTION (AJAX)
+        // =============================================
+        async function executeBulkAction() {
+            const btn = document.getElementById('bulkSubmitBtn');
+            const originalText = document.getElementById('bulkSubmitText').textContent;
+
+            btn.disabled = true;
+            document.getElementById('bulkSubmitText').textContent = 'Processing...';
+            document.getElementById('bulkSubmitIcon').className = 'fas fa-spinner fa-spin me-1';
+
+            const leaveIds = Array.from(selectedLeaves.keys()).map(id => parseInt(id));
+            const remarks = document.getElementById('bulkRemarks').value;
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            try {
+                const formData = new FormData();
+                leaveIds.forEach(id => formData.append('leaveIds', id));
+                if (remarks) formData.append('remarks', remarks);
+                formData.append('__RequestVerificationToken', token);
+
+                const url = currentBulkAction === 'approve'
+                    ? '@Url.Action("BulkApprove", "Leave")'
+                    : '@Url.Action("BulkReject", "Leave")';
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+
+                bootstrap.Modal.getInstance(document.getElementById('bulkActionModal')).hide();
+
+                if (result.success) {
+                    Swal.fire({
+                        title: 'Bulk Action Complete!',
+                        html: `
+                            <div class="text-start">
+                                <p><strong>${result.message}</strong></p>
+                                ${result.successCount ? `<p class="text-success"><i class="fas fa-check"></i> Success: ${result.successCount}</p>` : ''}
+                                ${result.failCount ? `<p class="text-danger"><i class="fas fa-times"></i> Failed: ${result.failCount}</p>` : ''}
+                            </div>`,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire('Error', result.message || 'Bulk action failed', 'error');
+                    btn.disabled = false;
+                    document.getElementById('bulkSubmitText').textContent = originalText;
+                    document.getElementById('bulkSubmitIcon').className = 'fas fa-check me-1';
+                }
+            } catch (err) {
+                Swal.fire('Error', 'Server error: ' + err.message, 'error');
+                btn.disabled = false;
+                document.getElementById('bulkSubmitText').textContent = originalText;
             }
         }
 
         // =============================================
-        // ✅ SHOW ACTION MODAL (Approve/Reject)
+        // ✅ SHOW ACTION MODAL (Single)
         // =============================================
         function showActionModal(id, action, employeeName, leaveType, fromDate, toDate, days) {
             document.getElementById('actionLeaveId').value = id;
             document.getElementById('actionRemarks').value = '';
             document.getElementById('remarkCharCount').textContent = '0';
-
             document.getElementById('modalEmployeeName').textContent = employeeName;
             document.getElementById('modalLeaveType').textContent = leaveType;
             document.getElementById('modalFromDate').textContent = fromDate;
             document.getElementById('modalToDate').textContent = toDate;
             document.getElementById('modalDays').textContent = days;
 
-            var form = document.getElementById('actionForm');
-            var header = document.getElementById('actionModalHeader');
-            var titleText = document.getElementById('actionModalTitleText');
-            var icon = document.getElementById('actionModalIcon');
-            var submitBtn = document.getElementById('actionSubmitBtn');
-            var submitBtnIcon = document.getElementById('submitBtnIcon');
-            var submitBtnText = document.getElementById('submitBtnText');
-            var approveMsg = document.getElementById('approveMessage');
+            const form = document.getElementById('actionForm');
+            const header = document.getElementById('actionModalHeader');
+            const titleText = document.getElementById('actionModalTitleText');
+            const icon = document.getElementById('actionModalIcon');
+            const submitBtn = document.getElementById('actionSubmitBtn');
+            const submitBtnIcon = document.getElementById('submitBtnIcon');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const approveMsg = document.getElementById('approveMessage');
 
             if (action === 'approve') {
                 form.action = '@Url.Action("Approve", "Leave")';
@@ -1111,9 +1226,8 @@
                     <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:60px;height:60px;">
                         <i class="fas fa-check-circle fa-2x text-success"></i>
                     </div>
-                    <p class="text-muted">Are you sure you want to <strong class="text-success">APPROVE</strong> leave for <strong>${employeeName}</strong>?</p>`;
+                    <p class="text-muted">Approve leave for <strong>${employeeName}</strong>?</p>`;
                 submitBtn.className = 'btn btn-success px-4';
-                submitBtn.style.borderRadius = '10px';
                 submitBtnIcon.className = 'fas fa-check-circle me-1';
                 submitBtnText.textContent = 'Approve Leave';
             } else {
@@ -1126,9 +1240,8 @@
                     <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-2" style="width:60px;height:60px;">
                         <i class="fas fa-times-circle fa-2x text-danger"></i>
                     </div>
-                    <p class="text-muted">Are you sure you want to <strong class="text-danger">REJECT</strong> leave for <strong>${employeeName}</strong>?<br><small>Please provide a reason in the remarks below.</small></p>`;
+                    <p class="text-muted">Reject leave for <strong>${employeeName}</strong>?<br><small>Please provide reason below.</small></p>`;
                 submitBtn.className = 'btn btn-danger px-4';
-                submitBtn.style.borderRadius = '10px';
                 submitBtnIcon.className = 'fas fa-times-circle me-1';
                 submitBtnText.textContent = 'Reject Leave';
             }
@@ -1136,107 +1249,49 @@
             new bootstrap.Modal(document.getElementById('actionModal')).show();
         }
 
-        // =============================================
-        // ✅ REMARKS CHARACTER COUNT
-        // =============================================
         document.getElementById('actionRemarks').addEventListener('input', function () {
             document.getElementById('remarkCharCount').textContent = this.value.length;
         });
 
-        // =============================================
-        // ✅ FORM SUBMIT - Prevent double click
-        // =============================================
         document.getElementById('actionForm').addEventListener('submit', function () {
-            var btn = document.getElementById('actionSubmitBtn');
+            const btn = document.getElementById('actionSubmitBtn');
             btn.disabled = true;
             document.getElementById('submitBtnText').textContent = 'Processing...';
             document.getElementById('submitBtnIcon').className = 'fas fa-spinner fa-spin me-1';
         });
 
         // =============================================
-        // ✅ BULK APPROVE
-        // =============================================
-        function confirmBulkAction(action) {
-            Swal.fire({
-                title: 'Approve All Pending Requests?',
-                text: 'This will approve all currently visible pending leave requests.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Yes, Approve All!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire('Info', 'Bulk approve feature coming soon!', 'info');
-                }
-            });
-        }
-
-        // =============================================
         // ✅ DOCUMENT VIEWER
         // =============================================
         function showDocument(previewUrl, downloadUrl, title) {
-            console.log('Opening document:', previewUrl);
-
             document.getElementById('docLoading').style.display = 'block';
             document.getElementById('docImageContainer').style.display = 'none';
             document.getElementById('docPdfContainer').style.display = 'none';
             document.getElementById('docUnsupported').style.display = 'none';
-            document.getElementById('docError').style.display = 'none';
-
             document.getElementById('docModalTitle').textContent = title || 'Document Preview';
-            document.getElementById('docOpenNewTab').href = previewUrl;
             document.getElementById('docDownloadBtn').href = downloadUrl;
-            document.getElementById('docRetryLink').href = previewUrl;
             document.getElementById('docDownloadLinkAlt').href = downloadUrl;
 
-            var urlParts = previewUrl.split('filePath=');
-            var filePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : previewUrl;
-            var fileName = filePath.split('/').pop();
-            var fileExt = fileName.split('.').pop().toLowerCase();
-
+            const urlParts = previewUrl.split('filePath=');
+            const filePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : previewUrl;
+            const fileName = filePath.split('/').pop();
+            const fileExt = fileName.split('.').pop().toLowerCase();
             document.getElementById('docFileName').textContent = fileName;
-            document.getElementById('docFileType').textContent = fileExt.toUpperCase();
 
-            var modal = new bootstrap.Modal(document.getElementById('documentModal'));
-            modal.show();
+            new bootstrap.Modal(document.getElementById('documentModal')).show();
 
-            setTimeout(function () {
+            setTimeout(() => {
                 document.getElementById('docLoading').style.display = 'none';
-
-                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExt)) {
-                    loadImagePreview(previewUrl);
+                if (['jpg','jpeg','png','gif','bmp','webp'].includes(fileExt)) {
+                    document.getElementById('docImage').src = previewUrl;
+                    document.getElementById('docImageContainer').style.display = 'block';
                 } else if (fileExt === 'pdf') {
-                    loadPdfPreview(previewUrl);
+                    document.getElementById('docPdf').src = previewUrl;
+                    document.getElementById('docPdfContainer').style.display = 'block';
                 } else {
-                    showUnsupportedFile(downloadUrl);
+                    document.getElementById('docUnsupported').style.display = 'block';
                 }
             }, 500);
-        }
-
-        function loadImagePreview(url) {
-            var container = document.getElementById('docImageContainer');
-            var img = document.getElementById('docImage');
-            img.onload = function () { container.style.display = 'block'; };
-            img.onerror = function () { container.style.display = 'none'; showDocError(); };
-            img.src = url;
-            img.style.transform = 'scale(1)';
-            img.style.cursor = 'zoom-in';
-        }
-
-        function loadPdfPreview(url) {
-            document.getElementById('docPdf').src = url;
-            document.getElementById('docPdfContainer').style.display = 'block';
-        }
-
-        function showUnsupportedFile(downloadUrl) {
-            document.getElementById('docUnsupported').style.display = 'block';
-            document.getElementById('docDownloadLinkAlt').href = downloadUrl;
-        }
-
-        function showDocError() {
-            document.getElementById('docError').style.display = 'block';
         }
 
         function toggleImageZoom(img) {
@@ -1249,38 +1304,11 @@
             }
         }
 
-        // Cleanup on modal close
-        document.getElementById('documentModal').addEventListener('hidden.bs.modal', function () {
-            document.getElementById('docPdf').src = '';
-            var img = document.getElementById('docImage');
-            img.src = '';
-            img.style.transform = 'scale(1)';
-        });
-
-        // Keyboard: + zoom in, - zoom out
-        document.addEventListener('keydown', function (e) {
-            var modal = document.getElementById('documentModal');
-            if (!modal.classList.contains('show')) return;
-            var img = document.getElementById('docImage');
-            if (!img.src || img.src === window.location.href) return;
-
-            if (e.key === '+' || e.key === '=') {
-                img.style.transform = 'scale(1.5)';
-                img.style.cursor = 'zoom-out';
-            }
-            if (e.key === '-') {
-                img.style.transform = 'scale(1)';
-                img.style.cursor = 'zoom-in';
-            }
-        });
-
-        // =============================================
-        // ✅ KEYBOARD: T to toggle view
-        // =============================================
+        // Keyboard: T to toggle view
         document.addEventListener('keydown', function (e) {
             if (e.target.closest('input, textarea, select')) return;
             if (e.key === 't' || e.key === 'T') {
-                var cardView = document.getElementById('cardView');
+                const cardView = document.getElementById('cardView');
                 toggleView(cardView.style.display !== 'none' ? 'table' : 'card');
             }
         });

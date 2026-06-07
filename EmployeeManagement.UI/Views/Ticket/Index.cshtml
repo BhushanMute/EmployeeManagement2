@@ -2,80 +2,474 @@
     ViewData["Title"] = "Ticket Dashboard";
     var userRole = ViewBag.UserRole as string ?? "Employee";
     var userName = ViewBag.UserName as string ?? "User";
+    var dashboardJson = ViewBag.DashboardJson as string ?? "{}";
 }
 
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2 class="mb-1">
-                <i class="bi bi-speedometer2 text-primary"></i>
-                Ticket Management Dashboard
-            </h2>
-            <p class="text-muted">Welcome back, <strong>@userName</strong> (@userRole)</p>
-        </div>
-        <div class="col-md-4 text-end">
-            <a href="@Url.Action("Create", "Ticket")" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Create New Ticket
-            </a>
-            <a href="@Url.Action("MyTickets", "Ticket")" class="btn btn-outline-primary">
-                <i class="bi bi-list-check"></i> My Tickets
-            </a>
-        </div>
-    </div>
+@section Styles {
+    <style>
+        body {
+            background: #f0f2f5;
+        }
 
-    <!-- Dashboard Stats -->
-    <div id="dashboardStats" class="row mb-4">
-        <!-- Will be populated by JavaScript -->
-    </div>
+        .hero-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
 
-    <!-- Charts Row -->
-    <div class="row mb-4">
-        <!-- Priority Distribution -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-pie-chart"></i> Priority Distribution
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="priorityChart" height="250"></canvas>
+            .hero-banner::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 400px;
+                height: 400px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+            }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 5px;
+                height: 100%;
+            }
+
+            .stat-card.blue::before {
+                background: linear-gradient(180deg, #4facfe, #00f2fe);
+            }
+
+            .stat-card.orange::before {
+                background: linear-gradient(180deg, #f7971e, #ffd200);
+            }
+
+            .stat-card.purple::before {
+                background: linear-gradient(180deg, #a18cd1, #fbc2eb);
+            }
+
+            .stat-card.green::before {
+                background: linear-gradient(180deg, #11998e, #38ef7d);
+            }
+
+            .stat-card.red::before {
+                background: linear-gradient(180deg, #eb3349, #f45c43);
+            }
+
+            .stat-card.teal::before {
+                background: linear-gradient(180deg, #2193b0, #6dd5ed);
+            }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+            margin: 0;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748b;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .quick-action {
+            background: white;
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            display: block;
+        }
+
+            .quick-action:hover {
+                transform: translateY(-3px);
+                border-color: #667eea;
+                color: inherit;
+                text-decoration: none;
+            }
+
+        .quick-action-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .activity-feed {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .activity-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+            .activity-item:hover {
+                background: linear-gradient(90deg, #f8fafc 0%, transparent 100%);
+                color: inherit;
+                text-decoration: none;
+            }
+
+            .activity-item:last-child {
+                border-bottom: none;
+            }
+
+        .activity-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+        }
+
+        .priority-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .priority-critical {
+            background: #dc3545;
+        }
+
+        .priority-high {
+            background: #fd7e14;
+        }
+
+        .priority-medium {
+            background: #ffc107;
+        }
+
+        .priority-low {
+            background: #28a745;
+        }
+
+        .role-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 0.3rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+    </style>
+}
+
+<div class="container-fluid py-3 pb-5">
+
+    <!-- ===== HERO ===== -->
+    <div class="hero-banner fade-in">
+        <div class="row align-items-center position-relative">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-1">
+                    <i class="bi bi-ticket-detailed me-2"></i>Ticket Dashboard
+                </h2>
+                <p class="opacity-90 mb-3">
+                    Welcome back, <strong>@userName</strong>!
+                    <span class="role-badge ms-2">
+                        <i class="bi bi-shield-check me-1"></i>@userRole
+                    </span>
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a asp-action="Create" class="btn btn-light fw-bold">
+                        <i class="bi bi-plus-circle m New Tickete-1"></i>Create Ticket
+                    </a>
+                    <a asp-action="MyTickets" class="btn btn-outline-light fw-semibold">
+                        <i class="bi bi-person-badge me-1"></i>My Tickets
+                    </a>
+                    <a asp-action="List" class="btn btn-outline-light fw-semibold">
+                        <i class="bi bi-list-ul me-1"></i>All Tickets
+                    </a>
                 </div>
             </div>
-        </div>
-
-        <!-- Type Distribution -->
-        <div class="col-md-6">
-            <div class="card shadow-sm">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-bar-chart"></i> Type Distribution
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="typeChart" height="250"></canvas>
-                </div>
+            <div class="col-md-4 text-end d-none d-md-block">
+                <i class="bi bi-clipboard-data" style="font-size: 6rem; opacity: 0.15;"></i>
             </div>
         </div>
     </div>
 
-    <!-- Recent Activities -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-clock-history"></i> Recent Activities
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="recentActivities">
-                        <div class="text-center py-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- ===== STAT CARDS ===== -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-2 col-sm-4 col-6">
+            <a href="@Url.Action("List")" class="text-decoration-none">
+                <div class="stat-card blue fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="totalCount">0</h3>
+                            <div class="stat-label">Total</div>
                         </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                            <i class="bi bi-ticket"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <a href="@Url.Action("List", new { status = "New" })" class="text-decoration-none">
+                <div class="stat-card orange fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="newCount">0</h3>
+                            <div class="stat-label">New</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f7971e, #ffd200);">
+                            <i class="bi bi-plus-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <a href="@Url.Action("List", new { status = "InProgress" })" class="text-decoration-none">
+                <div class="stat-card purple fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="progressCount">0</h3>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <a href="@Url.Action("List", new { status = "Resolved" })" class="text-decoration-none">
+                <div class="stat-card green fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="resolvedCount">0</h3>
+                            <div class="stat-label">Resolved</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <a href="@Url.Action("List", new { priority = "Critical" })" class="text-decoration-none">
+                <div class="stat-card red fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="criticalCount">0</h3>
+                            <div class="stat-label">Critical</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #eb3349, #f45c43);">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-2 col-sm-4 col-6">
+            <div class="stat-card teal fade-in">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="stat-value" id="overdueCount">0</h3>
+                        <div class="stat-label">Overdue</div>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== QUICK ACTIONS ===== -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <a asp-action="Create" class="quick-action">
+                <div class="quick-action-icon" style="background: linear-gradient(135deg, #11998e, #38ef7d);">
+                    <i class="bi bi-plus-lg"></i>
+                </div>
+                <h6 class="fw-bold mb-0">Create Ticket</h6>
+                <small class="text-muted">Report a new issue</small>
+            </a>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <a asp-action="MyTickets" class="quick-action">
+                <div class="quick-action-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <h6 class="fw-bold mb-0">My Tickets</h6>
+                <small class="text-muted">Tickets I created</small>
+            </a>
+        </div>
+        @if (userRole != "Employee")
+        {
+            <div class="col-md-3 col-sm-6">
+                <a asp-action="List" asp-route-status="New" class="quick-action">
+                    <div class="quick-action-icon" style="background: linear-gradient(135deg, #f7971e, #ffd200);">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <h6 class="fw-bold mb-0">Pending Queue</h6>
+                    <small class="text-muted">Awaiting action</small>
+                </a>
+            </div>
+        }
+        <div class="col-md-3 col-sm-6">
+            <a asp-action="List" class="quick-action">
+                <div class="quick-action-icon" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">
+                    <i class="bi bi-list-ul"></i>
+                </div>
+                <h6 class="fw-bold mb-0">All Tickets</h6>
+                <small class="text-muted">Browse everything</small>
+            </a>
+        </div>
+    </div>
+
+    <!-- ===== CHARTS & ACTIVITY ===== -->
+    <div class="row g-3">
+        <!-- Priority Chart -->
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-pie-chart-fill text-primary me-2"></i>
+                    Priority Distribution
+                </h6>
+                <canvas id="priorityChart" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Type Chart -->
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <h6 class="fw-bold mb-3">
+                    <i class="bi bi-bar-chart-fill text-success me-2"></i>
+                    Ticket Types
+                </h6>
+                <canvas id="typeChart" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-lg-4">
+            <div class="activity-feed">
+                <div class="p-3 border-bottom">
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-activity text-info me-2"></i>
+                        Recent Activity
+                    </h6>
+                </div>
+                <div id="recentActivities" style="max-height: 320px; overflow-y: auto;">
+                    <div class="text-center py-4 text-muted">
+                        <div class="spinner-border spinner-border-sm"></div>
+                        <p class="small mt-2 mb-0">Loading...</p>
                     </div>
                 </div>
             </div>
@@ -83,306 +477,188 @@
     </div>
 </div>
 
+ 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Parse data from ViewBag safely
-            let dashboardData = @Html.Raw(ViewBag.DashboardData ?? "null");
+        let dashboardData = {};
+        try {
+            dashboardData = @Html.Raw(dashboardJson);
+            console.log('Dashboard data:', dashboardData);  // Debug
+        } catch (e) {
+            console.error('Failed to parse dashboard data:', e);
+        }
 
-            if (dashboardData && dashboardData.success && dashboardData.data) {
-                const data = dashboardData.data;
-
-                // Render UI Components
-                renderStatsCards(data.stats);
-                renderPriorityChart(data.priorityDistribution);
-                renderTypeChart(data.typeDistribution);
-                renderRecentActivities(data.recentActivities);
-            } else {
-                showError();
+        $(document).ready(function() {
+            try {
+                if (dashboardData && dashboardData.data) {
+                    renderDashboard(dashboardData.data);
+                } else if (dashboardData && dashboardData.status === false) {
+                    console.warn('API returned error:', dashboardData.message);
+                    showEmptyState(dashboardData.message);
+                } else {
+                    showEmptyState('No data available');
+                }
+            } catch (err) {
+                console.error('Dashboard render error:', err);
+                showEmptyState('Failed to render dashboard');
             }
         });
 
-        function renderStatsCards(stats) {
-            if (!stats) return;
+        function renderDashboard(data) {
+            // ✅ FIX: Data is directly on object, not nested under 'stats'
+            const stats = data;  // ← Changed from data.stats || data
 
-            const statsHtml = `
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Total Tickets</h6>
-                                    <h2 class="mb-0 fw-bold text-dark">${stats.totalTickets || 0}</h2>
-                                </div>
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                    <i class="bi bi-ticket-perforated fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-door-open me-1"></i>Open: ${(stats.totalTickets || 0) - (stats.closedTickets || 0)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            console.log('Stats:', stats);  // Debug
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">In Progress</h6>
-                                    <h2 class="mb-0 fw-bold text-dark">${stats.inProgressTickets || 0}</h2>
-                                </div>
-                                <div class="bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                    <i class="bi bi-hourglass-split fs-4 text-dark"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-activity me-1"></i>Active Work</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            animate('#totalCount', stats?.totalTickets || 0);
+            animate('#newCount', stats?.newTickets || 0);
+            animate('#progressCount', stats?.inProgressTickets || 0);
+            animate('#resolvedCount', stats?.resolvedTickets || 0);
+            animate('#criticalCount', stats?.criticalTickets || 0);
+            animate('#overdueCount', stats?.overdueTickets || 0);
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Critical</h6>
-                                    <h2 class="mb-0 fw-bold text-danger">${stats.criticalTickets || 0}</h2>
-                                </div>
-                                <div class="bg-danger bg-opacity-10 text-danger rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                    <i class="bi bi-exclamation-triangle fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1"><i class="bi bi-clock-history me-1"></i>Overdue: ${stats.overdueTickets || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="text-muted fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">Resolved</h6>
-                                    <h2 class="mb-0 fw-bold text-success">${stats.resolvedTickets || 0}</h2>
-                                </div>
-                                <div class="bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                                    <i class="bi bi-check-circle fs-4"></i>
-                                </div>
-                            </div>
-                            <div class="mt-3">
-                                <span class="badge bg-light text-secondary border px-2 py-1"><i class="bi bi-lock me-1"></i>Closed: ${stats.closedTickets || 0}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const container = document.getElementById('dashboardStats');
-            if(container) container.innerHTML = statsHtml;
+            // Charts
+            if (data.priorityDistribution?.length > 0) {
+                renderPriorityChart(data.priorityDistribution);
+            }
+            if (data.typeDistribution?.length > 0) {
+                renderTypeChart(data.typeDistribution);
+            }
+            renderActivities(data.recentActivities || []);
         }
 
-        // Keep track of chart instances to destroy them before re-rendering
-        let priorityChartInstance = null;
-        let typeChartInstance = null;
+        function showEmptyState(message = 'No data') {
+            $('.stat-value').text('0');
+            $('#recentActivities').html(`
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox d-block fs-2 mb-2 opacity-50"></i>
+                    <small>${message}</small>
+                    <br>
+                    <a href="/Ticket/Create" class="btn btn-sm btn-primary mt-2">
+                        <i class="bi bi-plus-circle"></i> Create First Ticket
+                    </a>
+                </div>
+            `);
+        }
 
-        function renderPriorityChart(priorityData) {
-            const ctx = document.getElementById('priorityChart');
-            if (!ctx) return;
-
-            const safeData = priorityData || [];
-            const labels = safeData.map(p => p.priority);
-            const data = safeData.map(p => p.count);
-            const colors = labels.map(label => {
-                switch(label) {
-                    case 'Critical': return '#ef4444'; // Red
-                    case 'High': return '#f59e0b';     // Orange/Yellow
-                    case 'Medium': return '#3b82f6';   // Blue
-                    case 'Low': return '#9ca3af';      // Gray
-                    default: return '#6c757d';
-                }
-            });
-
-            // Destroy existing chart if it exists
-            if (priorityChartInstance) {
-                priorityChartInstance.destroy();
-            }
-
-            priorityChartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        tooltip: { padding: 10, cornerRadius: 8 }
-                    },
-                    cutout: '70%' // Makes the doughnut thinner and more modern
-                }
+        function animate(selector, target) {
+            const $el = $(selector);
+            if (!$el.length) return;
+            const current = parseInt($el.text()) || 0;
+            $({ value: current }).animate({ value: target }, {
+                duration: 800,
+                step: function() { $el.text(Math.round(this.value)); },
+                complete: function() { $el.text(target); }
             });
         }
 
-        function renderTypeChart(typeData) {
-            const ctx = document.getElementById('typeChart');
-            if (!ctx) return;
+        function renderPriorityChart(data) {
+            try {
+                const ctx = document.getElementById('priorityChart');
+                if (!ctx) return;
 
-            const safeData = typeData || [];
-            const labels = safeData.map(t => t.ticketType);
-            const data = safeData.map(t => t.count);
-
-            // Destroy existing chart if it exists
-            if (typeChartInstance) {
-                typeChartInstance.destroy();
-            }
-
-            typeChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Tickets',
-                        data: data,
-                        backgroundColor: '#6366f1', // Indigo
-                        borderRadius: 6, // Rounded bar corners
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(d => d.priority || 'Unknown'),
+                        datasets: [{
+                            data: data.map(d => d.count || 0),
+                            backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#28a745'],
+                            borderWidth: 0
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { borderDash: [4, 4], display: true },
-                            ticks: { stepSize: 1 }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
                     }
-                }
-            });
+                });
+            } catch (e) { console.warn('Priority chart error:', e); }
         }
 
-        function renderRecentActivities(activities) {
-            const container = document.getElementById('recentActivities');
-            if (!container) return;
+        function renderTypeChart(data) {
+            try {
+                const ctx = document.getElementById('typeChart');
+                if (!ctx) return;
 
-            if (!activities || activities.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
-                        <p class="text-muted mt-2">No recent activities found</p>
-                    </div>`;
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.ticketType || 'Unknown'),
+                        datasets: [{
+                            label: 'Count',
+                            data: data.map(d => d.count || 0),
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+            } catch (e) { console.warn('Type chart error:', e); }
+        }
+
+        function renderActivities(activities) {
+            const container = $('#recentActivities');
+            container.empty();
+
+            if (!activities?.length) {
+                container.html(`
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inbox d-block fs-2 mb-2 opacity-50"></i>
+                        <small>No recent activity</small>
+                    </div>
+                `);
                 return;
             }
 
-            let html = '<div class="table-responsive"><table class="table table-hover align-middle mb-0">';
-            html += '<thead class="table-light"><tr>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Ticket ID</th>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Title</th>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Status</th>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Priority</th>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Assigned To</th>';
-            html += '<th class="text-secondary small fw-bold text-uppercase py-3">Last Updated</th>';
-            html += '</tr></thead><tbody class="border-top-0">';
+            const colors = ['#667eea', '#f5576c', '#11998e', '#fa709a', '#a18cd1'];
 
-            activities.forEach(activity => {
-                html += `<tr onclick="window.location='/Ticket/Details/${activity.ticketId}'" style="cursor:pointer" class="transition-all">`;
-                html += `<td><span class="fw-semibold text-muted">#${activity.ticketNumber}</span></td>`;
-                html += `<td class="fw-bold text-dark">${activity.title}</td>`;
-                html += `<td><span class="badge rounded-pill px-3 ${getStatusBadge(activity.status)}">${activity.status}</span></td>`;
-                html += `<td><span class="badge rounded-pill px-3 ${getPriorityBadge(activity.priority)}">${activity.priority}</span></td>`;
+            activities.forEach((a, i) => {
+                const initials = (a.createdByName || 'U').charAt(0).toUpperCase();
+                const color = colors[i % colors.length];
+                const priorityClass = `priority-${(a.priority || 'low').toLowerCase()}`;
 
-                // Add tiny avatar UI for AssignedTo
-                html += `<td>
-                            <div class="d-flex align-items-center">
-                                ${activity.assignedToName
-                                    ? `<div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">${activity.assignedToName.charAt(0)}</div> <span class="text-dark small fw-medium">${activity.assignedToName}</span>`
-                                    : '<span class="text-muted small fst-italic">Unassigned</span>'}
+                container.append(`
+                    <a href="/Ticket/Details/${a.ticketId}" class="activity-item">
+                        <div class="activity-avatar" style="background: ${color};">${initials}</div>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong class="small text-truncate">${escapeHtml(a.title)}</strong>
+                                <span class="badge bg-light text-dark small flex-shrink-0">${a.status}</span>
                             </div>
-                        </td>`;
-                html += `<td class="text-muted small">${activity.timeAgo}</td>`;
-                html += '</tr>';
-            });
-
-            html += '</tbody></table></div>';
-            container.innerHTML = html;
-        }
-
-        function getStatusBadge(status) {
-            const badges = {
-                'New': 'bg-info text-dark',
-                'Assigned': 'bg-primary',
-                'In Progress': 'bg-warning text-dark',
-                'Blocked': 'bg-danger',
-                'Resolved': 'bg-success',
-                'Closed': 'bg-secondary',
-                'Reopened': 'bg-warning text-dark'
-            };
-            return badges[status] || 'bg-light text-dark border';
-        }
-
-        function getPriorityBadge(priority) {
-            const badges = {
-                'Critical': 'bg-danger',
-                'High': 'bg-orange text-white',
-                'Medium': 'bg-primary bg-opacity-75',
-                'Low': 'bg-secondary bg-opacity-75'
-            };
-
-            // Inline style fallback for custom orange if Bootstrap class isn't defined
-            if(priority === 'High') return 'bg-warning text-dark';
-
-            return badges[priority] || 'bg-secondary';
-        }
-
-        function showError() {
-            const container = document.getElementById('dashboardStats');
-            if (container) {
-                container.innerHTML = `
-                    <div class="col-12">
-                        <div class="alert alert-danger shadow-sm rounded-4 d-flex align-items-center">
-                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
-                            <div>
-                                <h6 class="alert-heading mb-1 fw-bold">Dashboard Error</h6>
-                                <p class="mb-0 small">Failed to load dashboard data. Please try refreshing the page.</p>
-                            </div>
+                            <small class="text-muted">
+                                <span class="priority-dot ${priorityClass}"></span>
+                                ${a.ticketNumber || ''} • ${formatDate(a.updatedDate)}
+                            </small>
                         </div>
-                    </div>`;
-            }
+                    </a>
+                `);
+            });
+        }
+
+        function formatDate(d) {
+            if (!d || d === '0001-01-01T00:00:00') return '';
+            try {
+                const date = new Date(d);
+                const diff = (new Date() - date) / 1000;
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+                return date.toLocaleDateString();
+            } catch { return ''; }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
     </script>
-
-    <style>
-        /* Add slight hover effect for table rows */
-        .table-hover tbody tr.transition-all {
-            transition: all 0.2s ease-in-out;
-        }
-
-            .table-hover tbody tr.transition-all:hover {
-                background-color: #f8f9fa;
-                transform: translateY(-1px);
-            }
-    </style>
 }

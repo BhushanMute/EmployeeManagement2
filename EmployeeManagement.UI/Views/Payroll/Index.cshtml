@@ -1,0 +1,166 @@
+﻿@model EmployeeManagement.UI.Models.PayrollDashboardResponse
+@{
+    ViewData["Title"] = "Payroll Dashboard | वेतन डॅशबोर्ड";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-tachometer-alt"></i>
+            Payroll Dashboard <small class="text-muted fs-5">| वेतन डॅशबोर्ड</small>
+        </h2>
+        <div class="d-flex gap-2">
+            <a asp-action="CreateCycle" class="btn btn-success">
+                <i class="fas fa-plus"></i> New Cycle
+            </a>
+            <a asp-action="Cycles" class="btn btn-outline-primary">
+                <i class="fas fa-list"></i> View All Cycles / सर्व सायकल्स पहा
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Active Cycle / चालू सायकल</h6>
+                            <h3 class="mb-0">@(Model?.ActiveCycleName ?? "None / नाही")</h3>
+                        </div>
+                        <i class="fas fa-sync-alt fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Total Payout / एकूण वेतन</h6>
+                            <h3 class="mb-0">₹ @(Model?.TotalPayout?.ToString("N2") ?? "0.00")</h3>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Employees / कर्मचारी</h6>
+                            <h3 class="mb-0">@(Model?.TotalEmployeesProcessed ?? 0)</h3>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">Pending Approvals / प्रलंबित</h6>
+                            <h3 class="mb-0">@(Model?.PendingApprovals ?? 0)</h3>
+                        </div>
+                        <i class="fas fa-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Gross Salary / एकूण मिळकत</h6>
+                    <h4 class="text-success fw-bold">
+                        ₹ @(Model?.TotalGrossSalary?.ToString("N2") ?? "0.00")
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Deductions / एकूण कपात</h6>
+                    <h4 class="text-danger fw-bold">
+                        ₹ @(Model?.TotalDeductions?.ToString("N2") ?? "0.00")
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Net Salary / निव्वळ वेतन</h6>
+                    <h4 class="text-primary fw-bold">
+                        ₹ @(Model?.TotalNetSalary?.ToString("N2") ?? "0.00")
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">
+            <i class="fas fa-bolt"></i> Quick Actions / जलद कृती
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <a asp-action="CreateCycle" class="btn btn-outline-success w-100 py-3">
+                        <i class="fas fa-plus-circle fa-2x d-block mb-2"></i>
+                        Create Payroll Cycle
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a asp-action="Cycles" class="btn btn-outline-primary w-100 py-3">
+                        <i class="fas fa-list-alt fa-2x d-block mb-2"></i>
+                        View All Cycles
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a asp-controller="SalaryStructure"
+                       asp-action="Templates"
+                       class="btn btn-outline-info w-100 py-3">
+                        <i class="fas fa-file-invoice-dollar fa-2x d-block mb-2"></i>
+                        Salary Templates
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a asp-controller="SalaryStructure"
+                       asp-action="Components"
+                       class="btn btn-outline-warning w-100 py-3">
+                        <i class="fas fa-cogs fa-2x d-block mb-2"></i>
+                        Salary Components
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

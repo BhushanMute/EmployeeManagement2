@@ -1,0 +1,97 @@
+﻿@model IEnumerable<EmployeeManagement.UI.Models.SalarySlipResponse>
+@{
+    ViewData["Title"] = "My Salary Slips";
+    int selectedYear = ViewBag.SelectedYear ?? DateTime.Now.Year;
+    int? selectedMonth = ViewBag.SelectedMonth;
+    var years = ViewBag.AvailableYears as List<int> ?? new List<int> { DateTime.Now.Year, DateTime.Now.Year - 1, DateTime.Now.Year - 2 };
+}
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📂 माझ्या वेतन पावत्या (My Salary Slips)</h5>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="get" class="row g-3 mb-4 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Financial Year</label>
+                    <select name="year" class="form-select">
+                        @foreach (var y in years)
+                        {
+                            <option value="@y" selected="@(y == selectedYear)">@y - @(y + 1)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Month</label>
+                    <select name="month" class="form-select">
+                        <option value="">All Months</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == selectedMonth)">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">🔍 Filter</button>
+                </div>
+            </form>
+
+            <!-- Slips Grid -->
+            @if (Model != null && Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Slip No.</th>
+                                <th>Month / Year</th>
+                                <th>Gross Salary</th>
+                                <th>Net Pay</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slip in Model)
+                            {
+                                <tr>
+                                    <td><strong>@slip.SlipNumber</strong></td>
+                                    <td>@slip.MonthName @slip.Year</td>
+                                    <td>₹ @(string.Format("{0:N2}", slip.GrossSalary))</td>
+                                    <td class="text-success fw-bold">₹ @(string.Format("{0:N2}", slip.NetSalary))</td>
+                                    <td>
+                                        @if (slip.Status == "Generated")
+                                        {
+                                            <span class="badge bg-success">Generated</span>
+                                        }
+                                        else if (slip.Status == "Sent")
+                                        {
+
+                                            <span class="badge bg-info">Emailed</span>
+                                        }
+                                        else
+                                        {
+
+
+                                            <span class="badge bg-secondary">@slip.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="ViewSalarySlip" asp-route-slipId="@slip.SlipId" class="btn btn-sm btn-outline-primary">👁️ View</a>
+                                        <a asp-action="DownloadSalarySlip" asp-route-slipId="@slip.SlipId" class="btn btn-sm btn-outline-danger">📥 PDF</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">No salary slips found for selected criteria.</div>
+            }
+        </div>
+    </div>
+</div>

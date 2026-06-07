@@ -169,30 +169,81 @@ namespace EmployeeManagement.API.Controllers
         /// <summary>
         /// Apply for leave
         /// </summary>
+        //[HttpPost("apply")]
+        //public async Task<ActionResult<ApiResponse<LeaveRequest>>> ApplyLeave([FromBody] ApplyLeaveRequest request)
+        //{
+        //    try
+        //    {
+        //        if (!ModelState.IsValid)
+        //        {
+        //            var errors = ModelState.Values
+        //                .SelectMany(v => v.Errors)
+        //                .Select(e => e.ErrorMessage).ToList();
+        //            return BadRequest(ApiResponse<LeaveRequest>.Fail("Validation failed", errors));
+        //        }
+
+        //        var currentUserId = GetCurrentUserId();
+
+        //        if (request.StartDate > request.EndDate)
+        //            return BadRequest(ApiResponse<LeaveRequest>.Fail("Start date cannot be after end date"));
+
+        //        if (request.StartDate < DateTime.Today)
+        //            return BadRequest(ApiResponse<LeaveRequest>.Fail("Cannot apply leave for past dates"));
+
+        //        decimal totalDays = request.IsHalfDay ? 0.5m :
+        //            CalculateBusinessDays(request.StartDate, request.EndDate);
+
+        //        var leaveRequest = new LeaveRequest
+        //        {
+        //            EmployeeId = request.EmployeeId > 0 ? request.EmployeeId : currentUserId,
+        //            LeaveTypeId = request.LeaveTypeId,
+        //            StartDate = request.StartDate,
+        //            EndDate = request.EndDate,
+        //            TotalDays = totalDays,
+        //            Reason = request.Reason,
+        //            IsHalfDay = request.IsHalfDay,
+        //            HalfDayType = request.HalfDayType,
+        //            EmergencyContact = request.EmergencyContact,
+        //            CreatedBy = currentUserId
+        //        };
+
+        //        var newId = await _leaveRepo.ApplyLeave(leaveRequest);
+        //        leaveRequest.Id = newId;
+
+        //        // ✅ Clear cache after applying
+        //        ClearLeaveCache(leaveRequest.EmployeeId);
+
+        //        // ✅ Audit (non-blocking)
+        //        _ = _auditService.LogAsync(currentUserId, "Leave Applied", "LeaveRequests", newId);
+
+        //        _logger.LogInformation("Leave applied: Employee {EmpId}, Request {ReqId}",
+        //            leaveRequest.EmployeeId, newId);
+
+        //        return CreatedAtAction(nameof(GetLeaveRequestById), new { id = newId },
+        //            ApiResponse<LeaveRequest>.Success(leaveRequest, "Leave applied successfully"));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error applying leave");
+        //        return StatusCode(500, ApiResponse<LeaveRequest>.Fail(ex.Message));
+        //    }
+        //}
         [HttpPost("apply")]
         public async Task<ActionResult<ApiResponse<LeaveRequest>>> ApplyLeave([FromBody] ApplyLeaveRequest request)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    var errors = ModelState.Values
-                        .SelectMany(v => v.Errors)
-                        .Select(e => e.ErrorMessage).ToList();
-                    return BadRequest(ApiResponse<LeaveRequest>.Fail("Validation failed", errors));
-                }
+                // 1. Validation
+                if (!ModelState.IsValid) return BadRequest(ApiResponse<LeaveRequest>.Fail("Invalid Data"));
 
-                var currentUserId = GetCurrentUserId();
-
+                var currentUserId = GetCurrentUserId(); // Helper method from your base/controller
                 if (request.StartDate > request.EndDate)
                     return BadRequest(ApiResponse<LeaveRequest>.Fail("Start date cannot be after end date"));
 
-                if (request.StartDate < DateTime.Today)
-                    return BadRequest(ApiResponse<LeaveRequest>.Fail("Cannot apply leave for past dates"));
+                // 2. Calculate Days
+                decimal totalDays = request.IsHalfDay ? 0.5m : CalculateBusinessDays(request.StartDate, request.EndDate);
 
-                decimal totalDays = request.IsHalfDay ? 0.5m :
-                    CalculateBusinessDays(request.StartDate, request.EndDate);
-
+                // 3. Prepare Entity
                 var leaveRequest = new LeaveRequest
                 {
                     EmployeeId = request.EmployeeId > 0 ? request.EmployeeId : currentUserId,
@@ -204,30 +255,74 @@ namespace EmployeeManagement.API.Controllers
                     IsHalfDay = request.IsHalfDay,
                     HalfDayType = request.HalfDayType,
                     EmergencyContact = request.EmergencyContact,
+                    Status = "Pending", // Default status
                     CreatedBy = currentUserId
                 };
 
-                var newId = await _leaveRepo.ApplyLeave(leaveRequest);
-                leaveRequest.Id = newId;
+                // 4. Call SP (Database Save)
+                int newRequestId = await _leaveRepo.CreateLeaveRequestAsync(leaveRequest, currentUserId);
+                leaveRequest.Id = newRequestId; // Update local object
 
-                // ✅ Clear cache after applying
+                // 5. Fire & Forget Email (Non-blocking)
+                // Isse user ko response jaldi milega, email background mein jayega.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        // Get Leave Type Name (You might need a quick lookup here or pass from request)
+                        string leaveTypeName = "General"; // Ideally fetch from DB cache
+
+                        // Send to Admin & HR (You should fetch these from DB or Config)
+                        var adminHrEmails = await GetAdminAndHrEmailsAsync();
+
+                        if (adminHrEmails.Any())
+                        {
+                            await _emailService.SendLeaveAppliedNotificationAsync(
+                                recipientEmails: adminHrEmails,
+                                employeeName: leaveRequest.EmployeeName ?? "Employee", // Ideally fetch from DB
+                                leaveType: leaveTypeName,
+                                startDate: leaveRequest.StartDate,
+                                endDate: leaveRequest.EndDate,
+                                totalDays: leaveRequest.TotalDays,
+                                reason: leaveRequest.Reason,
+                                requestId: newRequestId
+                            );
+                            _logger.LogInformation("Leave notification email sent for Request #{Id}", newRequestId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send leave notification email in background.");
+                    }
+                });
+
+                // 6. Clear Cache & Audit
                 ClearLeaveCache(leaveRequest.EmployeeId);
+                _ = _auditService.LogAsync(currentUserId, "Leave Applied", "LeaveRequests", newRequestId);
 
-                // ✅ Audit (non-blocking)
-                _ = _auditService.LogAsync(currentUserId, "Leave Applied", "LeaveRequests", newId);
-
-                _logger.LogInformation("Leave applied: Employee {EmpId}, Request {ReqId}",
-                    leaveRequest.EmployeeId, newId);
-
-                return CreatedAtAction(nameof(GetLeaveRequestById), new { id = newId },
-                    ApiResponse<LeaveRequest>.Success(leaveRequest, "Leave applied successfully"));
+                return CreatedAtAction(nameof(GetLeaveRequestById), new { id = newRequestId },
+                    ApiResponse<LeaveRequest>.Success(leaveRequest, "Leave applied successfully. Notification sent to HR."));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error applying leave");
-                return StatusCode(500, ApiResponse<LeaveRequest>.Fail(ex.Message));
+                _logger.LogError(ex, "Error in ApplyLeave");
+                return StatusCode(500, ApiResponse<LeaveRequest>.Fail("Server error while applying leave."));
             }
         }
+
+        // Helper to get Admin/HR emails (Mock implementation)
+        private async Task<List<string>> GetAdminAndHrEmailsAsync()
+        {
+             
+            return new List<string> { "jane@examples.com", "hr@company.com" };
+        }
+        // Helper to get Admin/HR emails (Mock implementation)
+        //private async Task<List<string>> GetAdminAndHrEmailsAsync()
+        //{
+        //    // In production: Query Users table WHERE Role = 'Admin' OR Role = 'HR'
+        //    // For now, returning hardcoded/config emails
+        //    return new List<string> { "admin@company.com", "hr@company.com" };
+        //}
 
         /// <summary>
         /// Apply leave with file attachment

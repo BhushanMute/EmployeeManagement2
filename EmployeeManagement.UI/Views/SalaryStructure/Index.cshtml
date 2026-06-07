@@ -1,0 +1,71 @@
+﻿@{
+    ViewData["Title"] = "Salary Structure | वेतन रचना";
+}
+
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Salary Structure <small class="text-muted fs-5">| वेतन रचना</small></h2>
+
+    <div class="row g-4">
+
+        <!-- Components Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-primary">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-puzzle-piece fa-4x text-primary mb-3"></i>
+                    <h4 class="card-title">Salary Components</h4>
+                    <p class="card-text text-muted">
+                        Manage earnings and deduction components like Basic, HRA, PF, TDS etc.
+                        / मिळकत व कपात घटक व्यवस्थापित करा.
+                    </p>
+                    <a asp-action="Components" class="btn btn-primary w-100 mt-2">
+                        <i class="fas fa-list"></i> View Components / घटक पहा
+                    </a>
+                    <a asp-action="CreateComponent" class="btn btn-outline-primary w-100 mt-2">
+                        <i class="fas fa-plus"></i> Add Component / घटक जोडा
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Templates Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-success">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-layer-group fa-4x text-success mb-3"></i>
+                    <h4 class="card-title">Salary Templates</h4>
+                    <p class="card-text text-muted">
+                        Group components into reusable templates for different grades.
+                        / विविध ग्रेडसाठी पुनर्वापरयोग्य टेम्पलेट तयार करा.
+                    </p>
+                    <a asp-action="Templates" class="btn btn-success w-100 mt-2">
+                        <i class="fas fa-list"></i> View Templates / टेम्पलेट पहा
+                    </a>
+                    <a asp-action="CreateTemplate" class="btn btn-outline-success w-100 mt-2">
+                        <i class="fas fa-plus"></i> Add Template / टेम्पलेट जोडा
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assign Salary Card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100 border-warning">
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-user-tag fa-4x text-warning mb-3"></i>
+                    <h4 class="card-title">Assign Salary</h4>
+                    <p class="card-text text-muted">
+                        Assign salary structures to individual or multiple employees.
+                        / एक किंवा अनेक कर्मचाऱ्यांना वेतन रचना नियुक्त करा.
+                    </p>
+                    <a asp-action="AssignSalary" class="btn btn-warning text-dark w-100 mt-2">
+                        <i class="fas fa-user-check"></i> Assign Single / एकाला नियुक्त
+                    </a>
+                    <a asp-action="BulkAssignSalary" class="btn btn-outline-warning w-100 mt-2">
+                        <i class="fas fa-users"></i> Bulk Assign / एकत्रित नियुक्त
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

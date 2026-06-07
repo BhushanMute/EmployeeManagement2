@@ -27,6 +27,6 @@ namespace EmployeeManagement.UI.Models
         [Compare("Password")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
-        public int RoleId { get; set; } = 4;
+        public int? RoleId { get; set; }
     }
 }

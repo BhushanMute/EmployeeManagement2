@@ -1,0 +1,134 @@
+﻿@model EmployeeManagement.UI.Models.BulkSalaryAssignRequest
+@{
+    ViewData["Title"] = "Bulk Assign Salary | एकत्रित वेतन नियुक्त करा";
+
+    var templates = ViewBag.Templates as List<SalaryTemplateResponse> ?? new();
+    var employees = ViewBag.Employees as List<EmployeeListResponse> ?? new();
+}
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Bulk Assign Salary | एकत्रित वेतन नियुक्त करा</h2>
+    </div>
+
+    <form asp-action="BulkAssignSalary" method="post" id="bulkAssignForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row">
+
+            <!-- LEFT -->
+            <div class="col-md-4">
+
+                <div class="mb-3">
+                    <label>Salary Template</label>
+                    <select asp-for="TemplateId" class="form-select" required>
+                        <option value="">Select Template</option>
+                        @foreach (var t in templates)
+                        {
+                            <option value="@t.Id">@t.TemplateName</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label>Effective Date</label>
+                    <input asp-for="EffectiveDate" type="date" class="form-control" />
+                </div>
+
+                <div class="alert alert-info">
+                    Selected: <span id="selectedCount">0</span>
+                </div>
+
+                <button type="submit" class="btn btn-success" id="assignBtn" disabled>
+                    Assign Salary
+                </button>
+            </div>
+
+            <!-- RIGHT -->
+            <div class="col-md-8">
+
+                <input type="text" id="empSearch" class="form-control mb-2" placeholder="Search..." />
+
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="masterCheck" />
+                            </th>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Dept</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var emp in employees)
+                        {
+                            <tr class="emp-row"
+                                data-name="@emp.FullName?.ToLower()"
+                                data-code="@emp.EmployeeCode?.ToLower()">
+
+                                <td>
+                                    <input type="checkbox"
+                                           class="emp-checkbox"
+                                           name="EmployeeIds"
+                                           value="@emp.Id" />
+                                </td>
+
+                                <td>@emp.EmployeeCode</td>
+                                <td>@emp.FullName</td>
+                                <td>@emp.DepartmentName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    $(document).ready(function () {
+
+        function updateCount() {
+            let count = $('.emp-checkbox:checked').length;
+            $('#selectedCount').text(count);
+            $('#assignBtn').prop('disabled', count === 0);
+        }
+
+        $('#masterCheck').change(function () {
+            $('.emp-checkbox').prop('checked', $(this).is(':checked'));
+            updateCount();
+        });
+
+        $(document).on('change', '.emp-checkbox', function () {
+            updateCount();
+        });
+
+        $('#empSearch').on('keyup', function () {
+            let val = $(this).val().toLowerCase();
+
+            $('.emp-row').each(function () {
+                let name = $(this).data('name');
+                let code = $(this).data('code');
+
+                $(this).toggle(name.includes(val) || code.includes(val));
+            });
+        });
+
+        $('#bulkAssignForm').submit(function () {
+            let count = $('.emp-checkbox:checked').length;
+
+            if (count === 0) {
+                alert("Select at least one employee");
+                return false;
+            }
+
+            return confirm("Assign salary to " + count + " employees?");
+        });
+
+    });
+</script>

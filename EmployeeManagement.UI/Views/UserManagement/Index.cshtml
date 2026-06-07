@@ -1,439 +1,297 @@
-﻿@model EmployeeManagement.UI.ViewModels.UserApprovalPageViewModel
-@using EmployeeManagement.UI.Models
-@using Microsoft.AspNetCore.Mvc.Rendering
-@{
-    ViewData["Title"] = "User Management & Role Assignment";
+﻿@{
+    ViewData["Title"] = "User Management";
+    var usersJson = ViewBag.UsersJson as string ?? "{}";
+    var rolesJson = ViewBag.RolesJson as string ?? "{}";
 }
 
 @section Styles {
     <style>
-        .mgmt-hero {
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            border-radius: 16px;
-            padding: 30px;
+        body {
+            background: #f0f2f5;
+        }
+
+        .hero-bar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-        }
-
-        .stat-glass {
-            background: rgba(255,255,255,0.15);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-        }
-
-            .stat-glass .stat-value {
-                font-size: 2rem;
-                font-weight: 800;
-            }
-
-            .stat-glass .stat-label {
-                font-size: 0.7rem;
-                text-transform: uppercase;
-                opacity: 0.8;
-            }
-
-        .user-card {
-            border: none;
+            padding: 1.75rem 2rem;
             border-radius: 14px;
-            border-left: 5px solid #f39c12;
-            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            margin-bottom: 1.5rem;
         }
 
-            .user-card:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
-            }
+        .data-card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
 
-            .user-card.approved {
-                border-left-color: #28a745;
-            }
+        .filter-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1rem;
+        }
 
-            .user-card.rejected {
-                border-left-color: #dc3545;
-            }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
 
-        .role-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
+        .role-tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            background: #e0e7ff;
+            color: #4338ca;
+            border-radius: 12px;
+            font-size: 0.7rem;
             font-weight: 600;
+            margin: 2px;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 0.25rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.25rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
         }
     </style>
 }
 
-<div class="container-fluid">
-
-    <!-- HERO -->
-    <div class="mgmt-hero shadow-lg mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h2 class="fw-bold mb-1">
-                    <i class="fas fa-users-cog me-2"></i>User Management
-                </h2>
-                <p class="opacity-75">Approve registrations & assign roles to users</p>
+<div class="container-fluid py-3 pb-5">
+    <div class="hero-bar">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="bi bi-people-fill me-2"></i>User Management</h3>
+                <p class="mb-0 opacity-90">Manage users, roles & permissions</p>
             </div>
-            <div class="col-md-6">
-                <div class="row g-2">
-                    <div class="col-4">
-                        <div class="stat-glass" style="border-left: 3px solid #f39c12;">
-                            <div class="stat-value" style="color: #f39c12;">@Model.TotalPending</div>
-                            <div class="stat-label"><i class="fas fa-clock me-1"></i>Pending</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="stat-glass" style="border-left: 3px solid #28a745;">
-                            <div class="stat-value" style="color: #51cf66;">@Model.TotalApproved</div>
-                            <div class="stat-label"><i class="fas fa-check me-1"></i>Approved</div>
-                        </div>
-                    </div>
-                    <div class="col-4">
-                        <div class="stat-glass" style="border-left: 3px solid #dc3545;">
-                            <div class="stat-value" style="color: #ff6b6b;">@Model.TotalRejected</div>
-                            <div class="stat-label"><i class="fas fa-times me-1"></i>Rejected</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="d-flex gap-2">
+                <a asp-action="Create" class="btn btn-light fw-bold">
+                    <i class="bi bi-person-plus me-1"></i>Create User
+                </a>
+                <a asp-action="Roles" class="btn btn-outline-light">
+                    <i class="bi bi-shield-check me-1"></i>Manage Roles
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- PENDING USERS -->
-    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-        <div class="card-header bg-warning text-dark border-0 py-3" style="border-radius: 16px 16px 0 0;">
-            <h5 class="mb-0 fw-bold">
-                <i class="fas fa-user-clock me-2"></i>Pending Approvals
-                <span class="badge bg-dark ms-2">@Model.PendingUsers.Count</span>
-            </h5>
-        </div>
-        <div class="card-body">
-            @if (Model.PendingUsers.Any())
-            {
-                @foreach (var user in Model.PendingUsers)
-                {
-                    var displayName = user.FullName ?? user.Username;
-                    var safeName = displayName.Replace("'", "\\'");
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button class="btn-close" data-bs-dismiss="alert"></button></div>
+    }
 
-                    <div class="card user-card shadow-sm mb-3">
-                        <div class="card-body p-4">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-                                             style="width: 50px; height: 50px; font-size: 1.2rem; font-weight: 700;">
-                                            @(user.FullName?.Substring(0, 1).ToUpper() ?? "?")
-                                        </div>
-                                        <div>
-                                            <h5 class="fw-bold mb-0">@displayName</h5>
-                                            <small class="text-muted">
-                                                <i class="fas fa-envelope me-1"></i>@user.Email
-                                            </small>
-                                            <br>
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar me-1"></i>Registered: @user.CreatedDate.ToString("dd MMM yyyy, hh:mm tt")
-                                            </small>
-                                            @if (!string.IsNullOrEmpty(user.PhoneNumber))
-                                            {
-                                                <br>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-phone me-1"></i>@user.PhoneNumber
-                                                </small>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mt-3 mt-md-0">
-                                    <form method="post"
-                                          action="/UserManagement/ApproveUser"
-                                          class="row g-2 align-items-end"
-                                          id="approveForm-@user.Id">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="userId" value="@user.Id" />
-
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold small">Role *</label>
-                                            <select name="roleId" id="roleSelect-@user.Id"
-                                                    class="form-select form-select-sm">
-                                                <option value="">Select Role</option>
-                                                @foreach (var role in Model.Roles)
-                                                {
-                                                    <option value="@role.Id">@role.Name</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label fw-bold small">Department</label>
-                                            <select name="departmentId"
-                                                    class="form-select form-select-sm">
-                                                <option value="">Select Department</option>
-                                                @foreach (var dept in Model.Departments)
-                                                {
-                                                    <option value="@dept.Id">@dept.Name</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="d-flex gap-1">
-                                                <button type="button"
-                                                        class="btn btn-success btn-sm flex-grow-1 btn-approve"
-                                                        style="border-radius: 8px;"
-                                                        data-userid="@user.Id">
-                                                    <i class="fas fa-check me-1"></i>Approve
-                                                </button>
-                                                <button type="button"
-                                                        class="btn btn-danger btn-sm btn-reject"
-                                                        style="border-radius: 8px;"
-                                                        data-userid="@user.Id"
-                                                        data-username="@safeName">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                    <h5>No Pending Users</h5>
-                    <p>All registrations have been processed.</p>
-                </div>
-            }
-        </div>
+    <div class="filter-card">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <input type="text" name="search" value="@ViewBag.SearchTerm" class="form-control" placeholder="🔍 Search by name, email..." />
+            </div>
+            <div class="col-md-3">
+                <select name="role" class="form-select" id="roleFilter">
+                    <option value="">All Roles</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="Active" selected="@(ViewBag.SelectedStatus == "Active")">Active</option>
+                    <option value="Inactive" selected="@(ViewBag.SelectedStatus == "Inactive")">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search"></i></button>
+                <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i></a>
+            </div>
+        </form>
     </div>
 
-    <!-- ALL USERS TABLE -->
-    <div class="card border-0 shadow-sm" style="border-radius: 16px;">
-        <div class="card-header bg-white border-0 py-3">
-            <h5 class="mb-0 fw-bold">
-                <i class="fas fa-users me-2 text-primary"></i>All Users
-                <span class="badge bg-primary ms-2">@Model.AllUsers.Count</span>
-            </h5>
+    <div class="data-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background: #f8fafc;">
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Last Login</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                </tbody>
+            </table>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">User</th>
-                            <th>Email</th>
-                            <th>Department</th>
-                            <th class="text-center">Role</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Registered</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var user in Model.AllUsers)
-                        {
-                            var statusClass = user.RegistrationStatus switch
-                            {
-                                "Approved" => "bg-success",
-                                "Rejected" => "bg-danger",
-                                _ => "bg-warning text-dark"
-                            };
+    </div>
+</div>
 
-                            <tr>
-                                <td class="ps-4">
-                                    <strong>@(user.FullName ?? user.Username)</strong>
-                                    <br>
-                                    <small class="text-muted">@@@user.Username</small>
-                                </td>
-                                <td>@user.Email</td>
-                                <td>@(user.DepartmentName ?? "—")</td>
-                                <td class="text-center">
-                                    @if (!string.IsNullOrEmpty(user.AssignedRoles))
-                                    {
-                                        @foreach (var role in user.AssignedRoles.Split(','))
-                                        {
-                                            var roleColor = role.Trim() switch
-                                            {
-                                                "Admin" => "bg-danger",
-                                                "HR" => "bg-info",
-                                                "Manager" => "bg-warning text-dark",
-                                                _ => "bg-primary"
-                                            };
-                                            <span class="badge @roleColor role-badge">@role.Trim()</span>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">No Role</span>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge @statusClass">@user.RegistrationStatus</span>
-                                </td>
-                                <td class="text-center">
-                                    <small class="text-muted">@user.CreatedDate.ToString("dd MMM yyyy")</small>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">🔑 Reset Password</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resetUserId" />
+                <p>Enter new password for user: <strong id="resetUserName"></strong></p>
+                <input type="password" id="newPassword" class="form-control" placeholder="New password (min 6 chars)" minlength="6" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-warning" onclick="confirmResetPassword()">Reset</button>
             </div>
         </div>
     </div>
-
 </div>
 
 @section Scripts {
     <script>
-        // APPROVE - Using event delegation
-        document.addEventListener('click', function (e) {
-            var btn = e.target.closest('.btn-approve');
-            if (!btn) return;
+        const usersData = @Html.Raw(usersJson);
+        const rolesData = @Html.Raw(rolesJson);
 
-            var userId = btn.getAttribute('data-userid');
-            var roleSelect = document.getElementById('roleSelect-' + userId);
-
-            if (!roleSelect.value || roleSelect.value === '') {
-                roleSelect.classList.add('is-invalid');
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Role Required!',
-                    text: 'Please select a Role before approving.',
-                    confirmButtonColor: '#f39c12',
-                    customClass: { popup: 'rounded-4' }
+        $(document).ready(function() {
+            // Populate role filter
+            if (rolesData?.data) {
+                const sel = $('#roleFilter');
+                rolesData.data.forEach(r => {
+                    sel.append(`<option value="${r.roleName}">${r.roleName}</option>`);
                 });
-                roleSelect.focus();
+            }
+
+            // Render users
+            if (usersData?.data?.users) {
+                renderUsers(usersData.data.users);
+            } else {
+                $('#userTableBody').html('<tr><td colspan="7" class="text-center py-4 text-muted">No users found</td></tr>');
+            }
+        });
+
+        function renderUsers(users) {
+            const tbody = $('#userTableBody');
+            tbody.empty();
+
+            if (!users.length) {
+                tbody.html('<tr><td colspan="7" class="text-center py-4 text-muted">No users found</td></tr>');
                 return;
             }
 
-            roleSelect.classList.remove('is-invalid');
-            var roleName = roleSelect.options[roleSelect.selectedIndex].text;
+            users.forEach(u => {
+                const initials = (u.fullName || 'U').split(' ').map(n => n.charAt(0)).join('').substring(0,2).toUpperCase();
+                const statusClass = u.isActive ? 'status-active' : 'status-inactive';
+                const statusText = u.isActive ? 'Active' : 'Inactive';
+                const roles = u.roles ? u.roles.split(',').map(r => `<span class="role-tag">${r.trim()}</span>`).join(' ') : '<span class="text-muted small">No roles</span>';
 
-            Swal.fire({
-                title: 'Approve User?',
-                html: '<p>Assign role <strong>' + roleName + '</strong> to this user?</p>',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-check me-1"></i> Yes, Approve!',
-                cancelButtonText: '<i class="fas fa-times me-1"></i> Cancel',
-                reverseButtons: true,
-                customClass: { popup: 'rounded-4' }
-            }).then(function (result) {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Approving...',
-                        html: '<p class="text-muted">Please wait...</p>',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: function () { Swal.showLoading(); }
-                    });
-                    document.getElementById('approveForm-' + userId).submit();
-                }
+                tbody.append(`
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="user-avatar">${initials}</div>
+                                <div>
+                                    <strong>${u.fullName}</strong>
+                                    <div class="small text-muted">${u.username}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${u.email}</td>
+                        <td>${roles}</td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                        <td><small>${formatDate(u.createdDate)}</small></td>
+                        <td><small>${u.lastLoginDate ? formatDate(u.lastLoginDate) : 'Never'}</small></td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="/UserManagement/Edit/${u.userId}" class="btn btn-outline-primary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn btn-outline-warning" onclick="resetPassword(${u.userId}, '${u.fullName}')" title="Reset Password">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                <button class="btn btn-outline-${u.isActive ? 'secondary' : 'success'}" onclick="toggleStatus(${u.userId}, ${!u.isActive})" title="${u.isActive ? 'Deactivate' : 'Activate'}">
+                                    <i class="bi bi-${u.isActive ? 'pause-circle' : 'play-circle'}"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteUser(${u.userId}, '${u.fullName}')" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
             });
-        });
+        }
 
-        // REJECT - Using event delegation
-        document.addEventListener('click', function (e) {
-            var btn = e.target.closest('.btn-reject');
-            if (!btn) return;
+        function resetPassword(id, name) {
+            $('#resetUserId').val(id);
+            $('#resetUserName').text(name);
+            $('#newPassword').val('');
+            new bootstrap.Modal('#resetPasswordModal').show();
+        }
 
-            var userId = btn.getAttribute('data-userid');
-            var userName = btn.getAttribute('data-username');
+        async function confirmResetPassword() {
+            const id = $('#resetUserId').val();
+            const pwd = $('#newPassword').val();
+            if (pwd.length < 6) { alert('Min 6 characters'); return; }
 
-            Swal.fire({
-                title: 'Reject User?',
-                html:
-                    '<div style="text-align:left; padding:10px;">' +
-                        '<p>Reject registration for <strong>' + userName + '</strong>?</p>' +
-                        '<div class="alert alert-danger py-2 mb-3">' +
-                            '<i class="fas fa-exclamation-triangle me-1"></i>' +
-                              
-                        '</div>' +
-                        '<label class="form-label fw-bold small">' +
-                            '<i class="fas fa-comment me-1"></i>Reason (Optional)' +
-                        '</label>' +
-                        '<textarea id="swalRejectReason" class="form-control" rows="3" ' +
-                            'placeholder="Enter reason for rejection..." style="border-radius:8px;"></textarea>' +
-                    '</div>',
-                icon: 'warning',
-                iconColor: '#dc3545',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fas fa-user-times me-1"></i> Yes, Reject!',
-                cancelButtonText: '<i class="fas fa-arrow-left me-1"></i> Cancel',
-                reverseButtons: true,
-                customClass: { popup: 'rounded-4' },
-                preConfirm: function () {
-                    return document.getElementById('swalRejectReason').value;
-                }
-            }).then(function (result) {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Rejecting...',
-                        html: '<p class="text-muted">Please wait...</p>',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: function () { Swal.showLoading(); }
-                    });
-                    submitRejectForm(userId, result.value || '');
-                }
-            });
-        });
+            const fd = new FormData();
+            fd.append('id', id);
+            fd.append('newPassword', pwd);
 
-        // DYNAMIC REJECT FORM
-        function submitRejectForm(userId, reason) {
-            var form = document.createElement('form');
+            const res = await fetch('/UserManagement/ResetPassword', { method: 'POST', body: fd });
+            const result = await res.json();
+            alert(result.success ? '✅ Password reset!' : '❌ Failed');
+            if (result.success) bootstrap.Modal.getInstance('#resetPasswordModal').hide();
+        }
+
+        async function toggleStatus(id, newStatus) {
+            if (!confirm(`${newStatus ? 'Activate' : 'Deactivate'} this user?`)) return;
+
+            const fd = new FormData();
+            fd.append('id', id);
+            fd.append('isActive', newStatus);
+
+            const res = await fetch('/UserManagement/ToggleStatus', { method: 'POST', body: fd });
+            const result = await res.json();
+            if (result.success) location.reload();
+            else alert('Failed');
+        }
+
+        async function deleteUser(id, name) {
+            if (!confirm(`Delete user "${name}"? This cannot be undone.`)) return;
+
+            const form = document.createElement('form');
             form.method = 'POST';
-        form.action = '/UserManagement/RejectUser';
-
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-            addHidden(form, '__RequestVerificationToken', token);
-            addHidden(form, 'userId', userId);
-            addHidden(form, 'rejectionReason', reason);
-
+            form.action = '/UserManagement/Delete/' + id;
             document.body.appendChild(form);
             form.submit();
         }
 
-        function addHidden(form, name, value) {
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            form.appendChild(input);
+        function formatDate(d) {
+            if (!d) return '';
+            return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
         }
-
-        // SUCCESS/ERROR FROM TEMPDATA
-        document.addEventListener('DOMContentLoaded', function () {
-            @if (TempData["SuccessMessage"] != null)
-            {
-                    <text>
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: '@TempData["SuccessMessage"]',
-                        confirmButtonColor: '#28a745',
-                        timer: 3000,
-                        timerProgressBar: true,
-                        customClass: { popup: 'rounded-4' }
-                    });
-                    </text>
-            }
-
-            @if (TempData["Error"] != null)
-            {
-                    <text>
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Something Went Wrong!',
-                        text: '@TempData["Error"]',
-                        confirmButtonColor: '#dc3545',
-                        customClass: { popup: 'rounded-4' }
-                    });
-                    </text>
-            }
-        });
     </script>
 }

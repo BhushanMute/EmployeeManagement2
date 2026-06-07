@@ -1,0 +1,1227 @@
+﻿@model EmployeeManagement.UI.Models.SalarySlipResponse
+@{
+    ViewData["Title"] = $"Salary Slip - {Model.MonthName} {Model.Year}";
+    var statusColor = Model.Status?.ToLower() switch
+    {
+        "draft" => "secondary",
+        "generated" => "info",
+        "published" => "success",
+        "sent" => "primary",
+        _ => "secondary"
+    };
+}
+
+@section Styles {
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            --danger-gradient: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            --info-gradient: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+            --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+        }
+
+        body {
+            background: #f0f2f5;
+        }
+
+        /* ===== Action Bar ===== */
+        .action-bar {
+            background: white;
+            border-radius: 14px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 1.5rem;
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+        }
+
+        .action-btn-modern {
+            border: none;
+            border-radius: 10px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .action-btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+            }
+
+        .btn-back {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+            .btn-back:hover {
+                background: #e2e8f0;
+                color: #1e293b;
+            }
+
+        .btn-print {
+            background: var(--info-gradient);
+            color: white;
+        }
+
+            .btn-print:hover {
+                color: white;
+            }
+
+        .btn-pdf {
+            background: var(--danger-gradient);
+            color: white;
+        }
+
+            .btn-pdf:hover {
+                color: white;
+            }
+
+        .btn-excel {
+            background: var(--success-gradient);
+            color: white;
+        }
+
+            .btn-excel:hover {
+                color: white;
+            }
+
+        .btn-email {
+            background: var(--warning-gradient);
+            color: white;
+        }
+
+            .btn-email:hover {
+                color: white;
+            }
+
+        .btn-share {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+            .btn-share:hover {
+                color: white;
+            }
+
+        /* ===== Slip Container ===== */
+        .slip-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+            /* Watermark */
+            .slip-container::before {
+                content: 'SALARY SLIP';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-45deg);
+                font-size: 8rem;
+                font-weight: 900;
+                color: rgba(102, 126, 234, 0.03);
+                pointer-events: none;
+                white-space: nowrap;
+                z-index: 1;
+            }
+
+        .slip-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===== Header Section ===== */
+        .slip-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #4338ca 100%);
+            color: white;
+            padding: 2.5rem 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .slip-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 400px;
+                height: 400px;
+                background: rgba(255,255,255,0.05);
+                border-radius: 50%;
+            }
+
+            .slip-header::after {
+                content: '';
+                position: absolute;
+                bottom: -30%;
+                left: -5%;
+                width: 250px;
+                height: 250px;
+                background: rgba(255,255,255,0.03);
+                border-radius: 50%;
+            }
+
+        .company-logo {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            backdrop-filter: blur(10px);
+        }
+
+        .company-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .company-address {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin: 0.25rem 0 0 0;
+        }
+
+        .slip-title-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .slip-period {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .slip-number {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            background: rgba(255,255,255,0.25);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ===== Employee Info ===== */
+        .employee-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-left: 4px solid #6366f1;
+            height: 100%;
+        }
+
+            .employee-card h6 {
+                color: #6366f1;
+                font-size: 0.75rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+            .info-item .label {
+                font-size: 0.72rem;
+                color: #94a3b8;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 600;
+                margin-bottom: 0.15rem;
+            }
+
+            .info-item .value {
+                font-size: 0.95rem;
+                color: #1e293b;
+                font-weight: 600;
+            }
+
+        /* ===== Attendance Card ===== */
+        .attendance-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+
+        .attendance-item {
+            text-align: center;
+            padding: 0.75rem 0.5rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+            .attendance-item .num {
+                font-size: 1.4rem;
+                font-weight: 800;
+                color: #1e293b;
+                line-height: 1;
+                margin-bottom: 0.25rem;
+            }
+
+            .attendance-item .lbl {
+                font-size: 0.7rem;
+                color: #64748b;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+
+            .attendance-item.present {
+                border-color: #10b981;
+            }
+
+                .attendance-item.present .num {
+                    color: #059669;
+                }
+
+            .attendance-item.absent {
+                border-color: #ef4444;
+            }
+
+                .attendance-item.absent .num {
+                    color: #dc2626;
+                }
+
+            .attendance-item.leave {
+                border-color: #f59e0b;
+            }
+
+                .attendance-item.leave .num {
+                    color: #d97706;
+                }
+
+            .attendance-item.total {
+                border-color: #6366f1;
+            }
+
+                .attendance-item.total .num {
+                    color: #4f46e5;
+                }
+
+        /* ===== Salary Table ===== */
+        .salary-section {
+            padding: 2rem;
+        }
+
+            .salary-section h5 {
+                font-weight: 700;
+                color: #1e293b;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+        .salary-table-wrapper {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .salary-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+        }
+
+            .salary-table thead {
+                background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+                color: white;
+            }
+
+                .salary-table thead th {
+                    padding: 1rem 1.25rem;
+                    font-size: 0.8rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    border: none;
+                }
+
+            .salary-table tbody td {
+                padding: 0.85rem 1.25rem;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 0.92rem;
+                vertical-align: middle;
+            }
+
+            .salary-table tbody tr:hover {
+                background: #f8fafc;
+            }
+
+            .salary-table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+        .component-name {
+            font-weight: 600;
+            color: #334155;
+        }
+
+            .component-name .sub {
+                display: block;
+                font-size: 0.75rem;
+                color: #94a3b8;
+                font-weight: 400;
+                font-style: italic;
+            }
+
+        .amount-positive {
+            color: #059669;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        .amount-negative {
+            color: #dc2626;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        .total-row {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+            font-weight: 800;
+        }
+
+            .total-row td {
+                padding: 1rem 1.25rem !important;
+                font-size: 1rem;
+                color: #1e293b;
+            }
+
+        /* ===== Net Pay Box ===== */
+        .net-pay-box {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin: 2rem;
+            margin-top: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(17, 153, 142, 0.3);
+        }
+
+            .net-pay-box::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -10%;
+                width: 300px;
+                height: 300px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 50%;
+            }
+
+        .net-pay-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .net-pay-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .net-pay-amount {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .net-pay-words {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            border-left: 4px solid white;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        /* ===== Bank Details ===== */
+        .bank-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border-left: 4px solid #f59e0b;
+            margin: 0 2rem 2rem 2rem;
+        }
+
+            .bank-section h6 {
+                color: #92400e;
+                font-weight: 700;
+                margin-bottom: 0.75rem;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+        .bank-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        /* ===== Footer ===== */
+        .slip-footer {
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            font-size: 0.82rem;
+        }
+
+            .slip-footer strong {
+                color: white;
+            }
+
+        .signature-line {
+            display: inline-block;
+            width: 200px;
+            border-top: 2px solid #475569;
+            margin-top: 3rem;
+            padding-top: 0.5rem;
+        }
+
+        /* ===== Print Styles ===== */
+        @@media print {
+            body {
+                background: white;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .action-bar {
+                display: none !important;
+            }
+
+            .slip-container {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-inside: avoid;
+            }
+
+            .container {
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            @@page {
+                margin: 1cm;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .net-pay-amount {
+                font-size: 2rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .attendance-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .bank-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== Modal ===== */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+        }
+
+        /* ===== Loading ===== */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+
+            .loader-overlay.show {
+                display: flex;
+            }
+
+        .loader-box {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 14px;
+            text-align: center;
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slip-container {
+            animation: fadeInUp 0.5s ease;
+        }
+    </style>
+}
+
+<div class="container py-3 pb-5">
+
+    <!-- ===== ACTION BAR ===== -->
+    <div class="action-bar no-print">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <a href="javascript:history.back()" class="action-btn-modern btn-back">
+                    <i class="fas fa-arrow-left"></i>Back
+                </a>
+                <span class="badge bg-@statusColor px-3 py-2">
+                    <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                    @Model.Status
+                </span>
+                @if (Model.EmailSent == true)
+                {
+                    <span class="badge bg-success px-3 py-2">
+                        <i class="fas fa-check me-1"></i>Email Sent
+                    </span>
+                }
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button onclick="window.print()" class="action-btn-modern btn-print">
+                    <i class="fas fa-print"></i>Print
+                </button>
+                <a href="@Url.Action("DownloadSalarySlip", new { slipId = Model.SlipId })"
+                   class="action-btn-modern btn-pdf"
+                   onclick="showLoader('Generating PDF...')">
+                    <i class="fas fa-file-pdf"></i>PDF
+                </a>
+                <a href="@Url.Action("DownloadSalarySlipExcel", new { slipId = Model.SlipId })"
+                   class="action-btn-modern btn-excel"
+                   onclick="showLoader('Generating Excel...')">
+                    <i class="fas fa-file-excel"></i>Excel
+                </a>
+                @if (Model.EmailSent != true)
+                {
+                    <button onclick="sendEmail()" class="action-btn-modern btn-email">
+                        <i class="fas fa-paper-plane"></i>Email
+                    </button>
+                }
+                <button onclick="shareSlip()" class="action-btn-modern btn-share">
+                    <i class="fas fa-share-alt"></i>Share
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SLIP CONTAINER ===== -->
+    <div class="slip-container" id="printArea">
+        <div class="slip-content">
+
+            <!-- ===== HEADER ===== -->
+            <div class="slip-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="company-logo">
+                                @{
+                                    var companyInitial = !string.IsNullOrEmpty(Model.CompanyDetails?.CompanyName)
+                                    ? Model.CompanyDetails.CompanyName.Substring(0, 1).ToUpper()
+                                    : "C";
+                                }
+                                @companyInitial
+                            </div>
+                            <div>
+                                <h1 class="company-name">@(Model.CompanyDetails?.CompanyName ?? "Company Name")</h1>
+                                <p class="company-address">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    @(Model.CompanyDetails?.Address ?? "Company Address")
+                                </p>
+                                @if (!string.IsNullOrEmpty(Model.CompanyDetails?.Email))
+                                {
+                                    <p class="company-address">
+                                        <i class="fas fa-envelope me-1"></i>@Model.CompanyDetails.Email
+                                        @if (!string.IsNullOrEmpty(Model.CompanyDetails?.Phone))
+                                        {
+                                            <span class="mx-2">|</span>
+                                            <i class="fas fa-phone me-1"></i>
+
+                                            @Model.CompanyDetails.Phone
+                                        }
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="slip-title-section text-center text-md-end">
+                            <p class="slip-period">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                @Model.MonthName @Model.Year
+                            </p>
+                            <p class="slip-number mb-2">
+                                <i class="fas fa-hashtag"></i>@Model.SlipNumber
+                            </p>
+                            <span class="status-pill">
+                                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                                @Model.Status
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== EMPLOYEE INFO ===== -->
+            <div class="employee-section">
+                <div class="row g-3">
+                    <!-- Employee Card -->
+                    <div class="col-md-6">
+                        <div class="employee-card">
+                            <h6><i class="fas fa-user-tie"></i>Employee Information</h6>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="label">Name</span>
+                                    <span class="value">@Model.EmployeeName</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Employee Code</span>
+                                    <span class="value">@Model.EmployeeCode</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Designation</span>
+                                    <span class="value">@Model.Designation</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Department</span>
+                                    <span class="value">@Model.Department</span>
+                                </div>
+                                @if (Model.JoiningDate.HasValue)
+                                {
+                                    <div class="info-item">
+                                        <span class="label">Date of Joining</span>
+                                        <span class="value">@Model.JoiningDate.Value.ToString("dd MMM yyyy")</span>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.PanNumber))
+                                {
+                                    <div class="info-item">
+                                        <span class="label">PAN Number</span>
+                                        <span class="value">@Model.PanNumber</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Card -->
+                    <div class="col-md-6">
+                        <div class="employee-card">
+                            <h6><i class="fas fa-calendar-check"></i>Attendance Summary</h6>
+                            <div class="attendance-row">
+                                <div class="attendance-item total">
+                                    <div class="num">@(Model.TotalDays ?? 30)</div>
+                                    <div class="lbl">Total</div>
+                                </div>
+                                <div class="attendance-item present">
+                                    <div class="num">@(Model.PresentDays ?? 0)</div>
+                                    <div class="lbl">Present</div>
+                                </div>
+                                <div class="attendance-item leave">
+                                    <div class="num">@(Model.LeaveDays ?? 0)</div>
+                                    <div class="lbl">Leave</div>
+                                </div>
+                                <div class="attendance-item absent">
+                                    <div class="num">@(Model.AbsentDays ?? 0)</div>
+                                    <div class="lbl">Absent</div>
+                                </div>
+                            </div>
+                            <div class="mt-3 p-2 rounded" style="background: #f0f9ff; border-left: 3px solid #0ea5e9;">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle text-info me-1"></i>
+                                    <strong>Paid Days:</strong> @(Model.PaidDays ?? Model.PresentDays ?? 0)
+                                    @if (Model.LopDays.HasValue && Model.LopDays > 0)
+                                    {
+                                        <span class="mx-2">|</span>
+                                        <strong>LOP:</strong>
+
+                                        <span class="text-danger">@Model.LopDays days</span>
+                                    }
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== SALARY DETAILS ===== -->
+            <div class="salary-section">
+                <h5>
+                    <i class="fas fa-receipt text-primary"></i>
+                    Salary Breakdown / वेतन तपशील
+                </h5>
+
+                <div class="salary-table-wrapper">
+                    <table class="salary-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%;">
+                                    <i class="fas fa-plus-circle me-1"></i>EARNINGS
+                                </th>
+                                <th class="text-end" style="width: 15%;">AMOUNT (₹)</th>
+                                <th style="width: 35%;">
+                                    <i class="fas fa-minus-circle me-1"></i>DEDUCTIONS
+                                </th>
+                                <th class="text-end" style="width: 15%;">AMOUNT (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var maxRows = Math.Max(Model.Earnings?.Count ?? 0, Model.Deductions?.Count ?? 0);
+                            }
+                            @for (int i = 0; i < maxRows; i++)
+                            {
+                                var earning = Model.Earnings?.ElementAtOrDefault(i);
+                                var deduction = Model.Deductions?.ElementAtOrDefault(i);
+                                <tr>
+                                    <td>
+                                        @if (earning != null)
+                                        {
+                                            <div class="component-name">
+                                                @earning.ComponentName
+                                                @if (!string.IsNullOrEmpty(earning.ComponentCode))
+                                                {
+                                                    <span class="sub">@earning.ComponentCode</span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (earning != null)
+                                        {
+                                            <span class="amount-positive">@earning.Amount.ToString("N2")</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (deduction != null)
+                                        {
+                                            <div class="component-name">
+                                                @deduction.ComponentName
+                                                @if (!string.IsNullOrEmpty(deduction.ComponentCode))
+                                                {
+                                                    <span class="sub">@deduction.ComponentCode</span>
+                                                }
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (deduction != null)
+                                        {
+                                            <span class="amount-negative">@deduction.Amount.ToString("N2")</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            <tr class="total-row">
+                                <td>
+                                    <i class="fas fa-arrow-up text-success me-1"></i>
+                                    <strong>GROSS EARNINGS</strong>
+                                </td>
+                                <td class="text-end">
+                                    <span class="amount-positive" style="font-size: 1.05rem;">
+                                        ₹ @(Model.GrossSalary?.ToString("N2") ?? "0.00")
+                                    </span>
+                                </td>
+                                <td>
+                                    <i class="fas fa-arrow-down text-danger me-1"></i>
+                                    <strong>TOTAL DEDUCTIONS</strong>
+                                </td>
+                                <td class="text-end">
+                                    <span class="amount-negative" style="font-size: 1.05rem;">
+                                        ₹ @(Model.TotalDeductions?.ToString("N2") ?? "0.00")
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ===== NET PAY BOX ===== -->
+            <div class="net-pay-box">
+                <div class="net-pay-content">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="net-pay-label">
+                                <i class="fas fa-wallet me-1"></i>NET PAY / निव्वळ वेतन
+                            </div>
+                            <h1 class="net-pay-amount">
+                                ₹ @(Model.NetSalary?.ToString("N2") ?? "0.00")
+                            </h1>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="d-inline-block p-3 rounded"
+                                 style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                                <i class="fas fa-check-circle fa-3x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.NetSalaryInWords))
+                    {
+                        <div class="net-pay-words">
+                            <i class="fas fa-quote-left me-2"></i>
+                            <strong>In Words:</strong> @Model.NetSalaryInWords
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ===== BANK DETAILS ===== -->
+            @if (!string.IsNullOrEmpty(Model.BankName) ||
+                        !string.IsNullOrEmpty(Model.BankAccountNumber))
+            {
+                <div class="bank-section">
+                    <h6>
+                        <i class="fas fa-university me-2"></i>Bank Transfer Details
+                    </h6>
+                    <div class="bank-info">
+                        <div class="info-item">
+                            <span class="label">Bank Name</span>
+                            <span class="value">@(Model.BankName ?? "N/A")</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Account Number</span>
+                            <span class="value">
+                                @if (!string.IsNullOrEmpty(Model.BankAccountNumber))
+                                {
+                                    var masked = "XXXX" + Model.BankAccountNumber.Substring(
+                                    Math.Max(0, Model.BankAccountNumber.Length - 4));
+                                    @masked
+                                }
+                                else
+                                {
+                                    <span>N/A</span>
+                                }
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">IFSC Code</span>
+                            <span class="value">@Model.IfscCode</span>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- ===== FOOTER ===== -->
+            <div class="slip-footer">
+                <div class="row">
+                    <div class="col-md-4 text-md-start text-center">
+                        <small>
+                            <i class="fas fa-calendar me-1"></i>
+                            Generated: <strong>@(Model.GeneratedDate?.ToString("dd MMM yyyy") ?? DateTime.Now.ToString("dd MMM yyyy"))</strong>
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <small>
+                            <i class="fas fa-shield-alt me-1"></i>
+                            This is a <strong>computer-generated</strong> document.
+                            <br>No signature required.
+                        </small>
+                    </div>
+                    <div class="col-md-4 text-md-end text-center">
+                        <small>
+                            <i class="fas fa-fingerprint me-1"></i>
+                            Slip ID: <strong>@Model.SlipId</strong>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADDITIONAL INFO CARDS (Hidden on print) ===== -->
+    <div class="no-print">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-eye fa-2x text-primary mb-2"></i>
+                        <h5 class="mb-1">@Model.ViewCount</h5>
+                        <small class="text-muted">Total Views</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-download fa-2x text-success mb-2"></i>
+                        <h5 class="mb-1">@Model.DownloadCount</h5>
+                        <small class="text-muted">Downloads</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-envelope fa-2x text-warning mb-2"></i>
+                        <h6 class="mb-1">
+                            @if (Model.EmailSent == true)
+                            {
+                                <span class="text-success">Sent</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Not Sent</span>
+                            }
+                        </h6>
+                        <small class="text-muted">
+                            @(Model.EmailSentDate?.ToString("dd MMM yyyy") ?? "Email Status")
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SHARE MODAL ===== -->
+<div class="modal fade no-print" id="shareModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"
+                 style="background: var(--primary-gradient); color: white; border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-share-alt me-2"></i>Share Salary Slip
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">Copy the link below to share this salary slip:</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="shareLink" readonly />
+                    <button class="btn btn-primary" onclick="copyLink()">
+                        <i class="fas fa-copy me-1"></i>Copy
+                    </button>
+                </div>
+                <div class="d-flex gap-2 justify-content-center mt-4">
+                    <a href="#" id="whatsappShare" target="_blank" class="btn btn-success">
+                        <i class="fab fa-whatsapp me-1"></i>WhatsApp
+                    </a>
+                    <a href="#" id="emailShare" class="btn btn-info text-white">
+                        <i class="fas fa-envelope me-1"></i>Email
+                    </a>
+                    <button onclick="window.print()" class="btn btn-secondary">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOADER ===== -->
+<div class="loader-overlay no-print" id="loader">
+    <div class="loader-box">
+        <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+        <h6 class="mb-0 fw-bold" id="loaderText">Processing...</h6>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // ===== Loader =====
+        function showLoader(text = 'Processing...') {
+            $('#loaderText').text(text);
+            $('#loader').addClass('show');
+            setTimeout(() => $('#loader').removeClass('show'), 4000);
+        }
+
+        function hideLoader() {
+            $('#loader').removeClass('show');
+        }
+
+        // ===== Send Email =====
+        // UI: POST /SalarySlip/SendSalarySlipsEmail
+        // API: POST api/SalarySlip/send-bulk-email
+        function sendEmail() {
+            if (!confirm('Send this salary slip via email?')) return;
+
+            showLoader('Sending email...');
+
+            const token = $('input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '@Url.Action("SendSalarySlipsEmail", "SalarySlip")',
+                type: 'POST',
+                data: {
+                    cycleId: @Model.PayrollCycleId,
+                    slipIds: [@Model.SlipId],
+                    __RequestVerificationToken: token
+                },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                traditional: true,
+                success: function(res) {
+                    hideLoader();
+                    if (res.success) {
+                        showToast('success', res.message || 'Email sent successfully!');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        showToast('error', res.message || 'Failed to send email');
+                    }
+                },
+                error: function() {
+                    hideLoader();
+                    showToast('error', 'Error sending email');
+                }
+            });
+        }
+
+        // ===== Share =====
+        function shareSlip() {
+            const url = window.location.href;
+            $('#shareLink').val(url);
+
+            // WhatsApp
+            const waText = encodeURIComponent(
+                `Salary Slip - ${'@Model.MonthName @Model.Year'}\n${url}`
+            );
+            $('#whatsappShare').attr('href', `https://wa.me/?text=${waText}`);
+
+            // Email
+            const subject = encodeURIComponent('Salary Slip - @Model.MonthName @Model.Year');
+            const body = encodeURIComponent(`Please find the salary slip details:\n\n${url}`);
+            $('#emailShare').attr('href', `mailto:?subject=${subject}&body=${body}`);
+
+            new bootstrap.Modal(document.getElementById('shareModal')).show();
+        }
+
+        async function copyLink() {
+            const input = document.getElementById('shareLink');
+            const text = input.value;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('success', 'Link copied to clipboard!');
+            } catch (err) {
+                // Fallback for browsers where Clipboard API is blocked
+                window.prompt('Copy this link:', text);
+            }
+        }
+
+        // ===== Toast =====
+        function showToast(type, message) {
+            const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? 'check-circle' : 'times-circle';
+
+            const toast = $(`
+                <div class="toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3 show"
+                     role="alert" style="z-index: 10000;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${icon} me-2"></i>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `);
+            $('body').append(toast);
+            setTimeout(() => toast.fadeOut(() => toast.remove()), 3500);
+        }
+
+        // ===== Track View (silent) =====
+        $(document).ready(function() {
+            // View is already tracked by controller on page load
+            console.log('Salary Slip ID: @Model.SlipId loaded');
+        });
+
+        // ===== Keyboard Shortcuts =====
+        $(document).on('keydown', function(e) {
+            // Ctrl+P = Print
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+            // Ctrl+D = Download PDF
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                window.location.href = '@Url.Action("DownloadSalarySlip", new { slipId = Model.SlipId })';
+            }
+            // Esc = Back
+            if (e.key === 'Escape') {
+                history.back();
+            }
+        });
+    </script>
+}
