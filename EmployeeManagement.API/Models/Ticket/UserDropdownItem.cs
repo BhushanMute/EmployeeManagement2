@@ -10,5 +10,9 @@
         public string? DesignationName { get; set; }
         public string? EmployeeCode { get; set; }
         public string? ProfilePicture { get; set; }
+
+        public List<RoleWithCountResponse> Roles { get; set; } = new();
+        public List<DropdownItem> Departments { get; set; } = new();
+        public List<DropdownItem> Designations { get; set; } = new();
     }
 }

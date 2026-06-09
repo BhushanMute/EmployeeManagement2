@@ -33,10 +33,12 @@ namespace EmployeeManagement.UI.Controllers
         private void SetAuth()
         {
             var token = HttpContext.Session.GetString("AccessToken");
+
             if (!string.IsNullOrEmpty(token))
             {
                 _client.DefaultRequestHeaders.Authorization =
                     new AuthenticationHeaderValue("Bearer", token);
+
                 _logger.LogDebug("Auth token set");
             }
             else
@@ -46,46 +48,71 @@ namespace EmployeeManagement.UI.Controllers
             }
         }
 
-        private async Task<string> CallApiGetAsync(string url)
+        private async Task<(bool success, string content, System.Net.HttpStatusCode status)>
+            CallApiGetAsync(string url)
         {
             SetAuth();
+
             _logger.LogInformation("📤 GET: {Url}", url);
+
             var response = await _client.GetAsync(url);
-            var content = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("📥 GET {Url} - Status: {Status}", url, response.StatusCode);
-            return content;
+            var result = await response.Content.ReadAsStringAsync();
+
+            _logger.LogInformation(
+                "📥 GET {Url} - Status: {Status}, Response: {Response}",
+                url,
+                response.StatusCode,
+                result
+            );
+
+            return (response.IsSuccessStatusCode, result, response.StatusCode);
         }
 
         private async Task<(bool success, string content, System.Net.HttpStatusCode status)>
             CallApiPostAsync(string url, object data)
         {
             SetAuth();
+
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             _logger.LogInformation("📤 POST: {Url}, Body: {Body}", url, json);
+
             var response = await _client.PostAsync(url, content);
             var result = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("📥 POST {Url} - Status: {Status}, Response: {Resp}",
-                url, response.StatusCode, result);
+
+            _logger.LogInformation(
+                "📥 POST {Url} - Status: {Status}, Response: {Response}",
+                url,
+                response.StatusCode,
+                result
+            );
 
             return (response.IsSuccessStatusCode, result, response.StatusCode);
         }
 
-        private async Task<(bool success, string content)> CallApiPutAsync(string url, object data)
+        private async Task<(bool success, string content, System.Net.HttpStatusCode status)>
+            CallApiPutAsync(string url, object data)
         {
             SetAuth();
+
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             _logger.LogInformation("📤 PUT: {Url}, Body: {Body}", url, json);
+
             var response = await _client.PutAsync(url, content);
             var result = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("📥 PUT {Url} - Status: {Status}", url, response.StatusCode);
 
-            return (response.IsSuccessStatusCode, result);
+            _logger.LogInformation(
+                "📥 PUT {Url} - Status: {Status}, Response: {Response}",
+                url,
+                response.StatusCode,
+                result
+            );
+
+            return (response.IsSuccessStatusCode, result, response.StatusCode);
         }
-
         // ============================================================
         // 📋 USER LIST
         // ============================================================
@@ -135,17 +162,33 @@ namespace EmployeeManagement.UI.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
+            var fallbackJson = "{\"status\":true,\"message\":\"Fallback\",\"data\":{\"roles\":[],\"departments\":[],\"designations\":[]}}";
+
             try
             {
-                var content = await CallApiGetAsync("api/UserManagement/dropdowns");
+                SetAuth();
+
+                var response = await _client.GetAsync("api/UserManagement/dropdowns");
+                var content = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("DROPDOWN API STATUS: {Status}", response.StatusCode);
+                _logger.LogInformation("DROPDOWN API CONTENT: {Content}", content);
+
+                if (!response.IsSuccessStatusCode || string.IsNullOrWhiteSpace(content))
+                {
+                    TempData["Error"] = $"Dropdown API failed. Status: {response.StatusCode}";
+                    ViewBag.DropdownsJson = fallbackJson;
+                    return View();
+                }
+
                 ViewBag.DropdownsJson = content;
                 return View();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading create form");
-                TempData["Error"] = $"Error: {ex.Message}";
-                ViewBag.DropdownsJson = "{}";
+                _logger.LogError(ex, "Error loading create form dropdowns");
+                TempData["Error"] = $"Dropdown load error: {ex.Message}";
+                ViewBag.DropdownsJson = fallbackJson;
                 return View();
             }
         }
@@ -236,25 +279,61 @@ namespace EmployeeManagement.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int userId, string fullName, string email,
-            string? phoneNumber, bool isActive, string roleIds,
-            int? departmentId, int? designationId, string? employeeCode)
+        public async Task<IActionResult> Edit(
+    int userId,
+    string fullName,
+    string email,
+    string? phoneNumber,
+    bool isActive,
+    string roleIds,
+    int? departmentId,
+    int? designationId,
+    string? employeeCode)
         {
             try
             {
+                if (userId <= 0)
+                {
+                    TempData["Error"] = "❌ Invalid user id";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    TempData["Error"] = "❌ Full name is required";
+                    return RedirectToAction(nameof(Edit), new { id = userId });
+                }
+
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    TempData["Error"] = "❌ Email is required";
+                    return RedirectToAction(nameof(Edit), new { id = userId });
+                }
+
                 var data = new
                 {
-                    fullName,
-                    email,
-                    phoneNumber,
+                    fullName = fullName.Trim(),
+                    email = email.Trim(),
+                    phoneNumber = phoneNumber?.Trim(),
                     isActive,
                     roleIds,
                     departmentId,
                     designationId,
-                    employeeCode
+                    employeeCode = employeeCode?.Trim()
                 };
 
-                var (success, content) = await CallApiPutAsync($"api/UserManagement/users/{userId}", data);
+                var (success, content, status) = await CallApiPutAsync(
+                    $"api/UserManagement/users/{userId}",
+                    data
+                );
+
+                _logger.LogInformation(
+                    "Edit user API response. UserId: {UserId}, Status: {Status}, Success: {Success}, Response: {Response}",
+                    userId,
+                    status,
+                    success,
+                    content
+                );
 
                 if (success)
                 {
@@ -262,22 +341,14 @@ namespace EmployeeManagement.UI.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                string errorMessage = "Failed to update user";
-                try
-                {
-                    var errorResp = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
-                    if (errorResp.TryGetProperty("message", out var msg))
-                        errorMessage = msg.GetString() ?? errorMessage;
-                }
-                catch { }
-
-                TempData["Error"] = $"❌ {errorMessage}";
+                TempData["Error"] = "❌ " + GetApiErrorMessage(content, "Failed to update user");
                 return RedirectToAction(nameof(Edit), new { id = userId });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating user {Id}", userId);
-                TempData["Error"] = ex.Message;
+
+                TempData["Error"] = "❌ Something went wrong while updating user";
                 return RedirectToAction(nameof(Edit), new { id = userId });
             }
         }
@@ -285,57 +356,120 @@ namespace EmployeeManagement.UI.Controllers
         // ============================================================
         // 🔄 TOGGLE STATUS (AJAX)
         // ============================================================
-
         [HttpPost]
         public async Task<IActionResult> ToggleStatus(int id, bool isActive)
         {
             try
             {
-                var data = new { isActive };
-                var (success, content) = await CallApiPutAsync($"api/UserManagement/users/{id}/toggle-status", data);
+                if (id <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Invalid user id"
+                    });
+                }
+
+                var data = new
+                {
+                    isActive
+                };
+
+                var (success, content, status) = await CallApiPutAsync(
+                    $"api/UserManagement/users/{id}/toggle-status",
+                    data
+                );
+
+                _logger.LogInformation(
+                    "Toggle status API response. UserId: {UserId}, Status: {Status}, Success: {Success}, Response: {Response}",
+                    id,
+                    status,
+                    success,
+                    content
+                );
 
                 return Json(new
                 {
-                    success,
-                    message = success ? "Status updated" : "Failed to update status"
+                    success = success,
+                    status = (int)status,
+                    message = success
+                        ? "Status updated"
+                        : GetApiErrorMessage(content, "Failed to update status")
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error toggling status for user {Id}", id);
-                return Json(new { success = false, message = ex.Message });
+
+                return Json(new
+                {
+                    success = false,
+                    message = "Something went wrong while updating status"
+                });
             }
         }
-
-        // ============================================================
-        // 🔑 RESET PASSWORD (AJAX)
-        // ============================================================
 
         [HttpPost]
         public async Task<IActionResult> ResetPassword(int id, string newPassword)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(newPassword))
-                    return Json(new { success = false, message = "Password is required" });
+                if (id <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Invalid user id"
+                    });
+                }
 
-                var data = new { newPassword };
-                var (success, content) = await CallApiPutAsync(
-                    $"api/UserManagement/users/{id}/reset-password", data);
+                if (string.IsNullOrWhiteSpace(newPassword))
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Password is required"
+                    });
+                }
+
+                var data = new
+                {
+                    newPassword = newPassword
+                };
+
+                var (success, content, status) = await CallApiPutAsync(
+                    $"api/UserManagement/users/{id}/reset-password",
+                    data
+                );
+
+                _logger.LogInformation(
+                    "Reset password API response. UserId: {UserId}, Status: {Status}, Success: {Success}, Response: {Response}",
+                    id,
+                    status,
+                    success,
+                    content
+                );
 
                 return Json(new
                 {
-                    success,
-                    message = success ? "Password reset successfully" : "Failed to reset password"
+                    success = success,
+                    status = (int)status,
+                    message = success
+                        ? "Password reset successfully"
+                        : GetApiErrorMessage(content, "Failed to reset password")
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error resetting password for user {Id}", id);
-                return Json(new { success = false, message = ex.Message });
+
+                return Json(new
+                {
+                    success = false,
+                    message = "Something went wrong while resetting password"
+                });
             }
         }
-
         // ============================================================
         // 🗑️ DELETE USER
         // ============================================================
@@ -374,19 +508,39 @@ namespace EmployeeManagement.UI.Controllers
         {
             try
             {
-                var content = await CallApiGetAsync("api/UserManagement/roles");
-                ViewBag.RolesJson = content;
+                var (success, content, status) = await CallApiGetAsync("api/UserManagement/roles");
+
+                _logger.LogInformation(
+                    "Roles API Response. Status: {Status}, Success: {Success}, Response: {Response}",
+                    status,
+                    success,
+                    content
+                );
+
+                if (!success)
+                {
+                    TempData["Error"] = status == System.Net.HttpStatusCode.Forbidden
+                        ? "❌ You do not have permission to view roles. Please login as Admin."
+                        : GetApiErrorMessage(content, "Failed to load roles");
+
+                    ViewBag.RolesJson = "{\"data\":[]}";
+                    return View();
+                }
+
+                ViewBag.RolesJson = string.IsNullOrWhiteSpace(content)
+                    ? "{\"data\":[]}"
+                    : content;
+
                 return View();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading roles");
-                TempData["Error"] = ex.Message;
-                ViewBag.RolesJson = "{}";
+                TempData["Error"] = "Something went wrong while loading roles";
+                ViewBag.RolesJson = "{\"data\":[]}";
                 return View();
             }
         }
-
         /// <summary>
         /// ✅ FIXED: Matches API endpoint /roles (lowercase)
         /// </summary>
@@ -402,29 +556,33 @@ namespace EmployeeManagement.UI.Controllers
                     return RedirectToAction(nameof(Roles));
                 }
 
-                var data = new { roleName, roleDescription };
+                var data = new
+                {
+                    roleName,
+                    roleDescription
+                };
 
-                // ✅ FIXED: Use lowercase "roles" endpoint
-                var (success, content, statusCode) = await CallApiPostAsync("api/UserManagement/roles", data);
+                var (success, content, statusCode) =
+                    await CallApiPostAsync("api/UserManagement/roles", data);
 
                 if (success)
                 {
                     TempData["Success"] = "✅ Role created successfully!";
+                    return RedirectToAction(nameof(Roles));
                 }
-                else
+
+                string errorMessage = "Failed to create role";
+
+                try
                 {
-                    string errorMessage = "Failed to create role";
-                    try
-                    {
-                        var errorResp = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
-                        if (errorResp.TryGetProperty("message", out var msg))
-                            errorMessage = msg.GetString() ?? errorMessage;
-                    }
-                    catch { }
+                    var errorResp = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
 
-                    TempData["Error"] = $"❌ {errorMessage} (Status: {statusCode})";
+                    if (errorResp.TryGetProperty("message", out var msg))
+                        errorMessage = msg.GetString() ?? errorMessage;
                 }
+                catch { }
 
+                TempData["Error"] = $"❌ {errorMessage} (Status: {statusCode})";
                 return RedirectToAction(nameof(Roles));
             }
             catch (Exception ex)
@@ -434,31 +592,61 @@ namespace EmployeeManagement.UI.Controllers
                 return RedirectToAction(nameof(Roles));
             }
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditRole(int roleId, string roleName,
-            string? roleDescription, bool isActive)
+        public async Task<IActionResult> EditRole(
+     int roleId,
+     string roleName,
+     string? roleDescription,
+     bool isActive)
         {
             try
             {
-                var data = new { roleName, roleDescription, isActive };
-                var (success, content) = await CallApiPutAsync(
-                    $"api/UserManagement/roles/{roleId}", data);
+                if (roleId <= 0)
+                {
+                    TempData["Error"] = "Invalid role id";
+                    return RedirectToAction(nameof(Roles));
+                }
 
-                TempData[success ? "Success" : "Error"] =
-                    success ? "✅ Role updated!" : "Failed to update role";
+                if (string.IsNullOrWhiteSpace(roleName))
+                {
+                    TempData["Error"] = "Role name is required";
+                    return RedirectToAction(nameof(Roles));
+                }
+
+                var data = new
+                {
+                    roleName = roleName.Trim(),
+                    roleDescription = roleDescription?.Trim(),
+                    isActive
+                };
+
+                var (success, content, status) = await CallApiPutAsync(
+                    $"api/UserManagement/roles/{roleId}",
+                    data
+                );
+
+                _logger.LogInformation(
+                    "Edit role API response. RoleId: {RoleId}, Status: {Status}, Success: {Success}, Response: {Response}",
+                    roleId,
+                    status,
+                    success,
+                    content
+                );
+
+                TempData[success ? "Success" : "Error"] = success
+                    ? "✅ Role updated!"
+                    : GetApiErrorMessage(content, "Failed to update role");
 
                 return RedirectToAction(nameof(Roles));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating role {Id}", roleId);
-                TempData["Error"] = ex.Message;
+                TempData["Error"] = "Something went wrong while updating role";
                 return RedirectToAction(nameof(Roles));
             }
         }
-
         [HttpPost]
         public async Task<IActionResult> DeleteRole(int id)
         {
@@ -494,6 +682,31 @@ namespace EmployeeManagement.UI.Controllers
         // ============================================================
         // 🐛 DEBUG ENDPOINT (Temporary - Remove in production)
         // ============================================================
+        private string GetApiErrorMessage(string content, string defaultMessage)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+                return defaultMessage;
+
+            try
+            {
+                using var doc = JsonDocument.Parse(content);
+
+                if (doc.RootElement.TryGetProperty("message", out var message))
+                    return message.GetString() ?? defaultMessage;
+
+                if (doc.RootElement.TryGetProperty("error", out var error))
+                    return error.GetString() ?? defaultMessage;
+
+                if (doc.RootElement.TryGetProperty("title", out var title))
+                    return title.GetString() ?? defaultMessage;
+            }
+            catch
+            {
+                // content is not valid JSON
+            }
+
+            return defaultMessage;
+        }
 
         [HttpGet]
         public IActionResult Debug()

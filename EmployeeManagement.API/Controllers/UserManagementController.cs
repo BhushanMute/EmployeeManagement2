@@ -10,7 +10,7 @@ namespace EmployeeManagement.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    
     public class UserManagementController : ControllerBase
     {
         private readonly IUserManagementRepository _userRepo;
@@ -26,21 +26,12 @@ namespace EmployeeManagement.API.Controllers
 
         private int CurrentUserId =>
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
-
-        // ============================================================
-        // 👥 USER MANAGEMENT ENDPOINTS
-        // ============================================================
-
+ 
         /// <summary>
         /// GET: api/UserManagement/users
         /// </summary>
         [HttpGet("users")]
-        public async Task<IActionResult> GetAllUsers(
-            [FromQuery] string? search = null,
-            [FromQuery] string? role = null,
-            [FromQuery] string? status = null,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetAllUsers( [FromQuery] string? search = null, [FromQuery] string? role = null, [FromQuery] string? status = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
         {
             try
             {
