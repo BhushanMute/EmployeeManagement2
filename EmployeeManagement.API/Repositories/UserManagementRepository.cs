@@ -281,31 +281,39 @@ namespace EmployeeManagement.API.Repositories
             cmd.Parameters.AddWithValue("@Email", request.Email);
             cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
+            cmd.Parameters.AddWithValue("@PasswordSalt", "BCryptEmbeddedSalt");
             cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
             cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
 
-            var newIdParam = new SqlParameter("@NewUserId", SqlDbType.Int) { Direction = ParameterDirection.Output };
+            var newIdParam = new SqlParameter("@NewUserId", SqlDbType.Int)
+            {
+                Direction = ParameterDirection.Output
+            };
             cmd.Parameters.Add(newIdParam);
 
             await conn.OpenAsync();
+
             using var reader = await cmd.ExecuteReaderAsync();
 
             if (await reader.ReadAsync())
             {
                 return new UserOperationResult
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1),
-                    NewId = newIdParam.Value as int?
+                    Success = Convert.ToInt32(reader["Success"]) == 1,
+                    Message = reader["Message"]?.ToString() ?? "",
+                    NewId = reader["UserId"] == DBNull.Value ? null : Convert.ToInt32(reader["UserId"])
                 };
             }
 
-            return new UserOperationResult { Success = false, Message = "No response" };
+            return new UserOperationResult
+            {
+                Success = false,
+                Message = "No response from database"
+            };
         }
-
         public async Task<UserOperationResult> UpdateUserAsync(UpdateUserRequest request, int updatedBy)
         {
             using var conn = GetConnection();
@@ -420,12 +428,16 @@ namespace EmployeeManagement.API.Repositories
             {
                 roles.Add(new RoleWithCountResponse
                 {
-                    RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                    RoleId = Convert.ToInt32(reader["RoleId"]),
                     RoleName = reader["RoleName"]?.ToString() ?? "",
-                    RoleDescription = reader["RoleDescription"]?.ToString(),
-                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                    CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                    UserCount = reader.GetInt32(reader.GetOrdinal("UserCount"))
+                    RoleDescription = reader["RoleDescription"] == DBNull.Value
+                        ? null
+                        : reader["RoleDescription"]?.ToString(),
+                    IsActive = Convert.ToBoolean(reader["IsActive"]),
+                    CreatedDate = reader["CreatedDate"] == DBNull.Value
+                        ? DateTime.Now
+                        : Convert.ToDateTime(reader["CreatedDate"]),
+                    UserCount = Convert.ToInt32(reader["UserCount"])
                 });
             }
 
@@ -509,41 +521,53 @@ namespace EmployeeManagement.API.Repositories
         {
             var data = new UserDropdownData();
 
-            // Get roles
-            data.Roles = await GetAllRolesAsync();
+            using var conn = GetConnection();
+            using var cmd = new SqlCommand("sp_GetUserManagementDropdowns", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
 
-            // Get departments
-            using (var conn = GetConnection())
+            await conn.OpenAsync();
+
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            // 1. Roles result set
+            while (await reader.ReadAsync())
             {
-                using var cmd = new SqlCommand(
-                    "SELECT DepartmentId, DepartmentName FROM Departments WHERE IsActive = 1 ORDER BY DepartmentName",
-                    conn);
-                await conn.OpenAsync();
-                using var reader = await cmd.ExecuteReaderAsync();
+                data.Roles.Add(new RoleWithCountResponse
+                {
+                    RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                    RoleName = reader["RoleName"]?.ToString() ?? "",
+                    RoleDescription = reader["RoleDescription"]?.ToString(),
+                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                    CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                    UserCount = reader.GetInt32(reader.GetOrdinal("UserCount"))
+                });
+            }
+
+            // 2. Departments result set
+            if (await reader.NextResultAsync())
+            {
                 while (await reader.ReadAsync())
                 {
                     data.Departments.Add(new DropdownItem
                     {
-                        Id = reader.GetInt32(0),
-                        Name = reader.GetString(1)
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        Name = reader["Name"]?.ToString() ?? ""
                     });
                 }
             }
 
-            // Get designations
-            using (var conn = GetConnection())
+            // 3. Designations result set
+            if (await reader.NextResultAsync())
             {
-                using var cmd = new SqlCommand(
-                    "SELECT DesignationId, DesignationName FROM Designations WHERE IsActive = 1 ORDER BY DesignationName",
-                    conn);
-                await conn.OpenAsync();
-                using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     data.Designations.Add(new DropdownItem
                     {
-                        Id = reader.GetInt32(0),
-                        Name = reader.GetString(1)
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        Name = reader["Name"]?.ToString() ?? "",
+                        DepartmentId = reader.IsDBNull(reader.GetOrdinal("DepartmentId"))
+                            ? null
+                            : reader.GetInt32(reader.GetOrdinal("DepartmentId"))
                     });
                 }
             }
