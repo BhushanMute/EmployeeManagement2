@@ -26,5 +26,16 @@ namespace EmployeeManagement.API.Models.Ticket
         public string? ExpectedResult { get; set; }
         public string? ActualResult { get; set; }
         public string? Environment { get; set; }
+        public int? TicketTypeId { get; set; }
+        public int? PriorityId { get; set; }
+        public int? CategoryId { get; set; }
+        public int? ModuleId { get; set; }
+        public int? SeverityId { get; set; }
+
+        
+
+        public string? Category { get; set; }
+        public string? Module { get; set; }
+        public string? Severity { get; set; }
     }
 }

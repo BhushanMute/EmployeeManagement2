@@ -41,11 +41,17 @@ namespace EmployeeManagement.API.Repositories.Ticket
                 using var cmd = new SqlCommand("sp_CreateTicket", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                // Input parameters
                 cmd.Parameters.AddWithValue("@Title", request.Title);
                 cmd.Parameters.AddWithValue("@Description", request.Description);
-                cmd.Parameters.AddWithValue("@TicketType", request.TicketType);
-                cmd.Parameters.AddWithValue("@Priority", request.Priority);
+                cmd.Parameters.AddWithValue("@TicketType", (object?)request.TicketType ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@Priority", (object?)request.Priority ?? DBNull.Value);
+
+                cmd.Parameters.AddWithValue("@TicketTypeId", (object?)request.TicketTypeId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@PriorityId", (object?)request.PriorityId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@CategoryId", (object?)request.CategoryId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@ModuleId", (object?)request.ModuleId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@SeverityId", (object?)request.SeverityId ?? DBNull.Value);
+
                 cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
                 cmd.Parameters.AddWithValue("@AssignedTo", (object?)request.AssignedTo ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@DueDate", (object?)request.DueDate ?? DBNull.Value);
@@ -53,8 +59,6 @@ namespace EmployeeManagement.API.Repositories.Ticket
                 cmd.Parameters.AddWithValue("@ExpectedResult", (object?)request.ExpectedResult ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@ActualResult", (object?)request.ActualResult ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Environment", (object?)request.Environment ?? DBNull.Value);
-
-                // Output parameters
                 var ticketIdParam = new SqlParameter("@TicketId", SqlDbType.Int) { Direction = ParameterDirection.Output };
                 var ticketNumberParam = new SqlParameter("@TicketNumber", SqlDbType.NVarChar, 50) { Direction = ParameterDirection.Output };
                 cmd.Parameters.Add(ticketIdParam);
@@ -867,15 +871,127 @@ namespace EmployeeManagement.API.Repositories.Ticket
         /// </summary>
         public async Task<TicketDropdowns> GetDropdownsAsync()
         {
-            var dropdowns = new TicketDropdowns
-            {
-                Statuses = new List<string>(TicketStatusValues.AllStatuses),
-                Priorities = new List<string>(TicketPriorityValues.AllPriorities),
-                TicketTypes = new List<string>(TicketTypeValues.AllTypes)
-            };
+            var dropdowns = new TicketDropdowns();
 
-            dropdowns.Developers = await GetDevelopersAsync();
-            dropdowns.QAUsers = await GetQAUsersAsync();
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetTicketDropdowns", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                // 1. Ticket Types
+                while (await reader.ReadAsync())
+                {
+                    dropdowns.TicketTypeItems.Add(new TicketMasterItem
+                    {
+                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                        Name = reader["Name"]?.ToString() ?? "",
+                        Code = reader["Code"]?.ToString() ?? "",
+                        ColorCode = reader["ColorCode"]?.ToString(),
+                        SortOrder = Convert.ToInt32(reader["SortOrder"])
+                    });
+                }
+
+                // 2. Priorities
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dropdowns.PriorityItems.Add(new TicketPriorityItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            Code = reader["Code"]?.ToString() ?? "",
+                            ColorCode = reader["ColorCode"]?.ToString(),
+                            SLAHours = reader["SLAHours"] == DBNull.Value ? null : Convert.ToInt32(reader["SLAHours"]),
+                            SortOrder = Convert.ToInt32(reader["SortOrder"])
+                        });
+                    }
+                }
+
+                // 3. Statuses
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dropdowns.StatusItems.Add(new TicketStatusItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            Code = reader["Code"]?.ToString() ?? "",
+                            ColorCode = reader["ColorCode"]?.ToString(),
+                            IsDefault = Convert.ToBoolean(reader["IsDefault"]),
+                            IsFinalStatus = Convert.ToBoolean(reader["IsFinalStatus"]),
+                            SortOrder = Convert.ToInt32(reader["SortOrder"])
+                        });
+                    }
+                }
+
+                // 4. Categories
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dropdowns.CategoryItems.Add(new TicketMasterItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            Code = reader["Code"]?.ToString() ?? "",
+                            SortOrder = Convert.ToInt32(reader["SortOrder"])
+                        });
+                    }
+                }
+
+                // 5. Modules
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dropdowns.ModuleItems.Add(new TicketModuleItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            Code = reader["Code"]?.ToString() ?? "",
+                            CategoryId = reader["CategoryId"] == DBNull.Value ? null : Convert.ToInt32(reader["CategoryId"]),
+                            SortOrder = Convert.ToInt32(reader["SortOrder"])
+                        });
+                    }
+                }
+
+                // 6. Severities
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        dropdowns.SeverityItems.Add(new TicketMasterItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            Code = reader["Code"]?.ToString() ?? "",
+                            ColorCode = reader["ColorCode"]?.ToString(),
+                            SortOrder = Convert.ToInt32(reader["SortOrder"])
+                        });
+                    }
+                }
+
+                // Backward compatibility for existing UI
+                dropdowns.TicketTypes = dropdowns.TicketTypeItems.Select(x => x.Name).ToList();
+                dropdowns.Priorities = dropdowns.PriorityItems.Select(x => x.Name).ToList();
+                dropdowns.Statuses = dropdowns.StatusItems.Select(x => x.Name).ToList();
+
+                dropdowns.Developers = await GetUsersByRolesAsync("Developer,Lead,Admin");
+                dropdowns.QAUsers = await GetUsersByRolesAsync("QA,Admin");
+                dropdowns.Roles = await GetAllRolesAsync();
+                dropdowns.Departments = await GetAllDepartmentsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting dynamic ticket dropdowns");
+                throw;
+            }
 
             return dropdowns;
         }
@@ -975,54 +1091,61 @@ namespace EmployeeManagement.API.Repositories.Ticket
         {
             return new Models.Ticket.Ticket
             {
-                TicketId = reader.GetInt32(reader.GetOrdinal("TicketId")),
-                TicketNumber = reader.GetString(reader.GetOrdinal("TicketNumber")),
-                Title = reader.GetString(reader.GetOrdinal("Title")),
-                Description = reader.GetString(reader.GetOrdinal("Description")),
-                TicketType = reader.GetString(reader.GetOrdinal("TicketType")),
-                Priority = reader.GetString(reader.GetOrdinal("Priority")),
-                Status = reader.GetString(reader.GetOrdinal("Status")),
-                CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                UpdatedDate = reader.GetDateTime(reader.GetOrdinal("UpdatedDate")),
-                DueDate = reader.IsDBNull(reader.GetOrdinal("DueDate")) ? null : reader.GetDateTime(reader.GetOrdinal("DueDate")),
-                ResolvedDate = reader.IsDBNull(reader.GetOrdinal("ResolvedDate")) ? null : reader.GetDateTime(reader.GetOrdinal("ResolvedDate")),
-                ClosedDate = reader.IsDBNull(reader.GetOrdinal("ClosedDate")) ? null : reader.GetDateTime(reader.GetOrdinal("ClosedDate")),
-                StepsToReproduce = reader["StepsToReproduce"]?.ToString(),
-                ExpectedResult = reader["ExpectedResult"]?.ToString(),
-                ActualResult = reader["ActualResult"]?.ToString(),
-                Environment = reader["Environment"]?.ToString(),
-                IsOverdue = reader.GetBoolean(reader.GetOrdinal("IsOverdue")),
-                CreatedBy = reader.GetInt32(reader.GetOrdinal("CreatedBy")),
-                CreatedByName = reader["CreatedByName"]?.ToString(),
-                CreatedByEmail = reader["CreatedByEmail"]?.ToString(),
-                AssignedTo = reader.IsDBNull(reader.GetOrdinal("AssignedTo")) ? null : reader.GetInt32(reader.GetOrdinal("AssignedTo")),
-                AssignedToName = reader["AssignedToName"]?.ToString(),
-                AssignedToEmail = reader["AssignedToEmail"]?.ToString()
+                TicketId = SafeGetInt(reader, "TicketId"),
+                TicketNumber = SafeGetString(reader, "TicketNumber"),
+                Title = SafeGetString(reader, "Title"),
+                Description = SafeGetString(reader, "Description"),
+
+                TicketType = SafeGetString(reader, "TicketType"),
+                Priority = SafeGetString(reader, "Priority"),
+                Status = SafeGetString(reader, "Status"),
+
+                CreatedDate = SafeGetDateTime(reader, "CreatedDate"),
+                UpdatedDate = SafeGetDateTime(reader, "UpdatedDate"),
+                DueDate = SafeGetNullableDateTime(reader, "DueDate"),
+                ResolvedDate = SafeGetNullableDateTime(reader, "ResolvedDate"),
+                ClosedDate = SafeGetNullableDateTime(reader, "ClosedDate"),
+
+                StepsToReproduce = SafeGetString(reader, "StepsToReproduce"),
+                ExpectedResult = SafeGetString(reader, "ExpectedResult"),
+                ActualResult = SafeGetString(reader, "ActualResult"),
+                Environment = SafeGetString(reader, "Environment"),
+
+                IsOverdue = SafeGetBool(reader, "IsOverdue"),
+
+                CreatedBy = SafeGetInt(reader, "CreatedBy"),
+                CreatedByName = SafeGetString(reader, "CreatedByName"),
+                CreatedByEmail = SafeGetString(reader, "CreatedByEmail"),
+
+                AssignedTo = SafeGetNullableInt(reader, "AssignedTo"),
+                AssignedToName = SafeGetString(reader, "AssignedToName"),
+                AssignedToEmail = SafeGetString(reader, "AssignedToEmail")
             };
         }
 
-        /// <summary>
-        /// Map reader to TicketListItem object
-        /// </summary>
         private TicketListItem MapTicketListItemFromReader(SqlDataReader reader)
         {
             return new TicketListItem
             {
-                TicketId = reader.GetInt32(reader.GetOrdinal("TicketId")),
-                TicketNumber = reader.GetString(reader.GetOrdinal("TicketNumber")),
-                Title = reader.GetString(reader.GetOrdinal("Title")),
-                Description = reader.GetString(reader.GetOrdinal("Description")),
-                TicketType = reader.GetString(reader.GetOrdinal("TicketType")),
-                Priority = reader.GetString(reader.GetOrdinal("Priority")),
-                Status = reader.GetString(reader.GetOrdinal("Status")),
-                CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                UpdatedDate = reader.GetDateTime(reader.GetOrdinal("UpdatedDate")),
-                DueDate = reader.IsDBNull(reader.GetOrdinal("DueDate")) ? null : reader.GetDateTime(reader.GetOrdinal("DueDate")),
-                IsOverdue = reader.GetBoolean(reader.GetOrdinal("IsOverdue")),
-                CreatedByName = reader["CreatedByName"]?.ToString(),
-                AssignedToName = reader["AssignedToName"]?.ToString(),
-                CommentCount = reader.GetInt32(reader.GetOrdinal("CommentCount")),
-                AttachmentCount = reader.GetInt32(reader.GetOrdinal("AttachmentCount"))
+                TicketId = SafeGetInt(reader, "TicketId"),
+                TicketNumber = SafeGetString(reader, "TicketNumber"),
+                Title = SafeGetString(reader, "Title"),
+                Description = SafeGetString(reader, "Description"),
+
+                TicketType = SafeGetString(reader, "TicketType"),
+                Priority = SafeGetString(reader, "Priority"),
+                Status = SafeGetString(reader, "Status"),
+
+                CreatedDate = SafeGetDateTime(reader, "CreatedDate"),
+                UpdatedDate = SafeGetDateTime(reader, "UpdatedDate"),
+                DueDate = SafeGetNullableDateTime(reader, "DueDate"),
+                IsOverdue = SafeGetBool(reader, "IsOverdue"),
+
+                CreatedByName = SafeGetString(reader, "CreatedByName"),
+                AssignedToName = SafeGetString(reader, "AssignedToName"),
+
+                CommentCount = SafeGetInt(reader, "CommentCount"),
+                AttachmentCount = SafeGetInt(reader, "AttachmentCount")
             };
         }
         #region EMAIL RECIPIENT METHODS
@@ -1030,7 +1153,7 @@ namespace EmployeeManagement.API.Repositories.Ticket
         /// <summary>
         /// Get recipients for ticket email notifications
         /// </summary>
-      
+
         #region NEW: DYNAMIC USER METHODS
 
         /// <summary>
@@ -1108,7 +1231,40 @@ namespace EmployeeManagement.API.Repositories.Ticket
 
             return roles;
         }
+        public async Task<List<TicketStatusItem>> GetAllowedNextStatusesAsync(int ticketId, int userId)
+        {
+            var statuses = new List<TicketStatusItem>();
 
+            try
+            {
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetAllowedNextTicketStatuses", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@TicketId", ticketId);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    statuses.Add(new TicketStatusItem
+                    {
+                        Id = SafeGetInt(reader, "StatusId"),
+                        Name = SafeGetString(reader, "StatusName"),
+                        Code = SafeGetString(reader, "StatusCode"),
+                        ColorCode = SafeGetString(reader, "ColorCode")
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting allowed next statuses for ticket {TicketId}", ticketId);
+            }
+
+            return statuses;
+        }
         /// <summary>
         /// Get all departments
         /// </summary>
@@ -1183,6 +1339,61 @@ namespace EmployeeManagement.API.Repositories.Ticket
             }
 
             return recipients;
+        }
+
+        private static string SafeGetString(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                return reader.IsDBNull(ordinal) ? "" : reader.GetValue(ordinal)?.ToString() ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private static bool SafeGetBool(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                if (reader.IsDBNull(ordinal)) return false;
+                return Convert.ToBoolean(reader.GetValue(ordinal));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static int? SafeGetNullableInt(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                if (reader.IsDBNull(ordinal)) return null;
+                return Convert.ToInt32(reader.GetValue(ordinal));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static DateTime? SafeGetNullableDateTime(SqlDataReader reader, string column)
+        {
+            try
+            {
+                var ordinal = reader.GetOrdinal(column);
+                if (reader.IsDBNull(ordinal)) return null;
+                return Convert.ToDateTime(reader.GetValue(ordinal));
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         #endregion

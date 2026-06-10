@@ -2,6 +2,7 @@
     ViewData["Title"] = "All Tickets";
     var userRole = ViewBag.UserRole as string ?? "Employee";
     var ticketsJson = ViewBag.TicketsJson as string ?? "{}";
+    var dropdownsJson = ViewBag.DropdownsJson as string ?? "{}";
     var canBulk = userRole == "Admin" || userRole == "Manager";
 }
 
@@ -20,18 +21,18 @@
             margin-bottom: 1.5rem;
         }
 
-        .filter-card {
+        .filter-card, .data-card {
             background: white;
             border-radius: 14px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .filter-card {
             padding: 1.25rem;
             margin-bottom: 1.25rem;
         }
 
         .data-card {
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             overflow: hidden;
         }
 
@@ -60,56 +61,6 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-        }
-
-        .status-new {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .status-assigned {
-            background: #e0e7ff;
-            color: #4338ca;
-        }
-
-        .status-inprogress {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-onhold {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .status-fixedbydev {
-            background: #ede9fe;
-            color: #6d28d9;
-        }
-
-        .status-readyforqa {
-            background: #dbeafe;
-            color: #1e3a8a;
-        }
-
-        .status-intesting {
-            background: #ccfbf1;
-            color: #115e59;
-        }
-
-        .status-resolved {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-reopened {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .status-closed {
-            background: #f3f4f6;
-            color: #1f2937;
         }
 
         .priority-pill {
@@ -156,6 +107,21 @@
                 display: flex;
             }
 
+        .overdue-tag {
+            background: #ef4444;
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: 700;
+        }
+
+        .empty-box {
+            padding: 4rem 1rem;
+            text-align: center;
+        }
+
         @@keyframes slideDown {
             from {
                 opacity: 0;
@@ -167,29 +133,18 @@
                 transform: translateY(0);
             }
         }
-
-        .overdue-tag {
-            background: #ef4444;
-            color: white;
-            font-size: 0.65rem;
-            padding: 0.15rem 0.4rem;
-            border-radius: 4px;
-            margin-left: 0.5rem;
-            font-weight: 700;
-        }
     </style>
 }
 
 <div class="container-fluid py-3 pb-5">
 
-    <!-- HERO -->
     <div class="list-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h3 class="fw-bold mb-1">
                     <i class="bi bi-list-ul me-2"></i>All Tickets
                 </h3>
-                <p class="mb-0 opacity-90">Manage and track all tickets</p>
+                <p class="mb-0 opacity-90">Manage and track all tickets dynamically</p>
             </div>
             <div class="d-flex gap-2">
                 <a asp-action="Create" class="btn btn-light fw-bold">
@@ -202,44 +157,51 @@
         </div>
     </div>
 
-    <!-- FILTERS -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <div class="filter-card">
-        <form method="get" class="row g-2 align-items-end">
+        <form method="get" class="row g-2 align-items-end" id="filterForm">
             <div class="col-md-3">
                 <label class="form-label small fw-bold">Search</label>
                 <input type="text" name="searchTerm" value="@ViewBag.FilterSearch"
-                       class="form-control" placeholder="Title, ticket #..." />
+                       class="form-control" placeholder="Title, ticket #, user..." />
             </div>
+
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Status</label>
-                <select name="status" class="form-select">
+                <select name="status" class="form-select" id="statusFilter">
                     <option value="">All Status</option>
-                    @foreach (var s in new[] { "New", "Assigned", "InProgress", "OnHold", "ReadyForQA", "InTesting", "Resolved", "Closed" })
-                    {
-                        <option value="@s" selected="@(ViewBag.FilterStatus == s)">@s</option>
-                    }
                 </select>
             </div>
+
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Priority</label>
-                <select name="priority" class="form-select">
+                <select name="priority" class="form-select" id="priorityFilter">
                     <option value="">All Priority</option>
-                    @foreach (var p in new[] { "Critical", "High", "Medium", "Low" })
-                    {
-                        <option value="@p" selected="@(ViewBag.FilterPriority == p)">@p</option>
-                    }
                 </select>
             </div>
+
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Type</label>
-                <select name="ticketType" class="form-select">
+                <select name="ticketType" class="form-select" id="typeFilter">
                     <option value="">All Types</option>
-                    @foreach (var t in new[] { "Bug", "Feature", "Task", "Improvement", "Support" })
-                    {
-                        <option value="@t" selected="@(ViewBag.FilterType == t)">@t</option>
-                    }
                 </select>
             </div>
+
             <div class="col-md-3 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">
                     <i class="bi bi-search me-1"></i>Filter
@@ -258,11 +220,11 @@
                 <i class="bi bi-check-square fs-4"></i>
                 <strong><span id="selectedCount">0</span> selected</strong>
                 <div class="ms-auto d-flex gap-2 flex-wrap">
-                    <button class="btn btn-light btn-sm" onclick="clearSelection()">Clear</button>
-                    <button class="btn btn-warning btn-sm" onclick="bulkAssign()">
+                    <button type="button" class="btn btn-light btn-sm" onclick="clearSelection()">Clear</button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="openBulkAssignModal()">
                         <i class="bi bi-person-check me-1"></i>Assign
                     </button>
-                    <button class="btn btn-success btn-sm" onclick="bulkStatusChange()">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openBulkStatusModal()">
                         <i class="bi bi-arrow-repeat me-1"></i>Change Status
                     </button>
                 </div>
@@ -270,7 +232,6 @@
         </div>
     }
 
-    <!-- TABLE -->
     <div class="data-card">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -279,7 +240,9 @@
                         <tr>
                             @if (canBulk)
                             {
-                                <th style="width:40px;"><input type="checkbox" class="form-check-input" onchange="toggleAll(this)" /></th>
+                                <th style="width:40px;">
+                                    <input type="checkbox" class="form-check-input" onchange="toggleAll(this)" />
+                                </th>
                             }
                             <th>Ticket #</th>
                             <th>Title</th>
@@ -302,7 +265,7 @@
             </div>
         </div>
 
-        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
             <small class="text-muted">Showing <strong id="totalCount">0</strong> tickets</small>
             <nav id="pagination"></nav>
         </div>
@@ -311,40 +274,138 @@
 
 @Html.AntiForgeryToken()
 
+<div class="modal fade" id="bulkAssignModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Bulk Assign</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fw-bold">Assign To</label>
+                <select id="bulkAssignUser" class="form-select mb-3">
+                    <option value="">Select user</option>
+                </select>
+                <label class="form-label fw-bold">Remarks</label>
+                <textarea id="bulkAssignRemarks" class="form-control" rows="3">Bulk assignment</textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-primary" onclick="bulkAssign()">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bulkStatusModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Bulk Status Change</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fw-bold">New Status</label>
+                <select id="bulkStatusValue" class="form-select mb-3">
+                    <option value="">Select status</option>
+                </select>
+                <label class="form-label fw-bold">Remarks</label>
+                <textarea id="bulkStatusRemarks" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-success" onclick="bulkStatusChange()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         const ticketsData = @Html.Raw(ticketsJson);
+        const dropdownData = @Html.Raw(dropdownsJson);
         const canBulk = @canBulk.ToString().ToLower();
-        let selected = new Set();
 
-        $(document).ready(function() {
-            if (ticketsData?.data?.tickets) {
-                renderTickets(ticketsData.data.tickets);
-                $('#totalCount').text(ticketsData.data.totalRecords || 0);
-                renderPagination(ticketsData.data);
-            } else {
-                showEmpty();
-            }
+        const filterStatus = '@(ViewBag.FilterStatus ?? "")';
+        const filterPriority = '@(ViewBag.FilterPriority ?? "")';
+        const filterType = '@(ViewBag.FilterType ?? "")';
+
+        let selected = new Set();
+        let tickets = [];
+        let dropdowns = dropdownData?.data || {};
+
+        $(document).ready(function () {
+            tickets = ticketsData?.data?.tickets || [];
+
+            bindFilters();
+            bindBulkDropdowns();
+            renderTickets(tickets);
+            $('#totalCount').text(ticketsData?.data?.totalRecords || tickets.length || 0);
+            renderPagination(ticketsData?.data || {});
         });
 
-        function renderTickets(tickets) {
+        function bindFilters() {
+            bindSelect('#statusFilter', getMasterOrTicketValues('statusItems', 'statuses', 'status'), filterStatus);
+            bindSelect('#priorityFilter', getMasterOrTicketValues('priorityItems', 'priorities', 'priority'), filterPriority);
+            bindSelect('#typeFilter', getMasterOrTicketValues('ticketTypeItems', 'ticketTypes', 'ticketType'), filterType);
+        }
+
+        function bindBulkDropdowns() {
+            bindSelect('#bulkStatusValue', getMasterOrTicketValues('statusItems', 'statuses', 'status'), '');
+
+            const users = dropdowns.developers || [];
+            const ddl = $('#bulkAssignUser');
+            users.forEach(u => {
+                const id = u.userId || u.id;
+                const name = u.fullName || u.name || 'User';
+                const role = u.role || '';
+                ddl.append(`<option value="${id}">${escapeHtml(name)} ${role ? '(' + escapeHtml(role) + ')' : ''}</option>`);
+            });
+        }
+
+        function getMasterOrTicketValues(itemListName, stringListName, ticketProp) {
+            const itemList = dropdowns[itemListName] || [];
+            if (itemList.length) return itemList.map(x => ({ value: x.name, text: x.name }));
+
+            const stringList = dropdowns[stringListName] || [];
+            if (stringList.length) return stringList.map(x => ({ value: x, text: x }));
+
+            const unique = [...new Set(tickets.map(t => t[ticketProp]).filter(Boolean))];
+            return unique.map(x => ({ value: x, text: x }));
+        }
+
+        function bindSelect(selector, items, selectedValue) {
+            const ddl = $(selector);
+            ddl.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                const selectedAttr = x.value === selectedValue ? 'selected' : '';
+                ddl.append(`<option value="${escapeHtml(x.value)}" ${selectedAttr}>${escapeHtml(displayStatus(x.text))}</option>`);
+            });
+        }
+
+        function renderTickets(list) {
             const tbody = $('#tableBody');
             tbody.empty();
 
-            if (!tickets.length) { showEmpty(); return; }
+            if (!list.length) {
+                showEmpty();
+                return;
+            }
 
-            tickets.forEach(t => {
-                const cb = canBulk ?
-                    `<td><input type="checkbox" class="form-check-input cb" value="${t.ticketId}" onchange="toggle(${t.ticketId})" /></td>` : '';
+            list.forEach(t => {
+                const cb = canBulk
+                    ? `<td><input type="checkbox" class="form-check-input cb" value="${t.ticketId}" onchange="toggle(${t.ticketId}, this)" /></td>`
+                    : '';
 
                 const overdue = t.isOverdue ? '<span class="overdue-tag">OVERDUE</span>' : '';
-                const statusClass = `status-${t.status.toLowerCase().replace(/\s/g, '')}`;
-                const priorityClass = `priority-${t.priority.toLowerCase()}`;
+                const statusClass = getStatusBadgeClass(t.status);
+                const priorityClass = `priority-${normalizeKey(t.priority)}`;
 
                 tbody.append(`
                     <tr class="ticket-row" data-id="${t.ticketId}">
                         ${cb}
-                        <td><span class="ticket-num">${t.ticketNumber}</span></td>
+                        <td><span class="ticket-num">${escapeHtml(t.ticketNumber)}</span></td>
                         <td>
                             <a href="/Ticket/Details/${t.ticketId}" class="text-decoration-none fw-semibold text-dark">
                                 ${escapeHtml(t.title)}
@@ -355,11 +416,13 @@
                                 ${t.attachmentCount > 0 ? `<i class="bi bi-paperclip"></i> ${t.attachmentCount}` : ''}
                             </div>
                         </td>
-                        <td><span class="badge bg-light text-dark">${t.ticketType}</span></td>
-                        <td><span class="priority-pill ${priorityClass}">
-                            <i class="bi bi-circle-fill"></i>${t.priority}
-                        </span></td>
-                        <td><span class="status-badge ${statusClass}">${t.status}</span></td>
+                        <td><span class="badge bg-light text-dark">${escapeHtml(t.ticketType || '')}</span></td>
+                        <td>
+                            <span class="priority-pill ${priorityClass}">
+                                <i class="bi bi-circle-fill"></i>${escapeHtml(t.priority || '')}
+                            </span>
+                        </td>
+                        <td><span class="status-badge ${statusClass}">${escapeHtml(displayStatus(t.status))}</span></td>
                         <td>${t.assignedToName ? `<small><i class="bi bi-person-circle"></i> ${escapeHtml(t.assignedToName)}</small>` : '<small class="text-muted">Unassigned</small>'}</td>
                         <td><small class="text-muted">${formatDate(t.createdDate)}</small></td>
                         <td class="text-center">
@@ -374,20 +437,31 @@
 
         function showEmpty() {
             $('#tableBody').html(`
-                <tr><td colspan="9" class="text-center py-5">
-                    <i class="bi bi-inbox display-1 text-muted opacity-50"></i>
-                    <h5 class="mt-3 text-muted">No tickets found</h5>
-                </td></tr>
+                <tr>
+                    <td colspan="9" class="empty-box">
+                        <i class="bi bi-inbox display-1 text-muted opacity-50"></i>
+                        <h5 class="mt-3 text-muted">No tickets found</h5>
+                        <a href="/Ticket/Create" class="btn btn-primary mt-2">
+                            <i class="bi bi-plus-circle me-1"></i>Create Ticket
+                        </a>
+                    </td>
+                </tr>
             `);
         }
 
         function toggleAll(cb) {
-            $('.cb').prop('checked', cb.checked).trigger('change');
+            $('.cb').each(function () {
+                $(this).prop('checked', cb.checked);
+                const id = parseInt($(this).val());
+                if (cb.checked) selected.add(id);
+                else selected.delete(id);
+            });
+            updateBulkBar();
         }
 
-        function toggle(id) {
-            if (selected.has(id)) selected.delete(id);
-            else selected.add(id);
+        function toggle(id, el) {
+            if ($(el).is(':checked')) selected.add(id);
+            else selected.delete(id);
             updateBulkBar();
         }
 
@@ -403,41 +477,56 @@
             updateBulkBar();
         }
 
-        async function bulkStatusChange() {
-            const status = prompt('Enter new status:');
-            if (!status) return;
-            const remarks = prompt('Remarks:') || '';
-            const token = $('input[name="__RequestVerificationToken"]').val();
+        function openBulkAssignModal() {
+            if (!selected.size) return alert('Select tickets first');
+            new bootstrap.Modal(document.getElementById('bulkAssignModal')).show();
+        }
 
+        function openBulkStatusModal() {
+            if (!selected.size) return alert('Select tickets first');
+            new bootstrap.Modal(document.getElementById('bulkStatusModal')).show();
+        }
+
+        async function bulkAssign() {
+            const assignedTo = $('#bulkAssignUser').val();
+            if (!assignedTo) return alert('Please select user');
+
+            const token = $('input[name="__RequestVerificationToken"]').val();
             const fd = new FormData();
+
             Array.from(selected).forEach(id => fd.append('ticketIds', id));
-            fd.append('newStatus', status);
-            fd.append('remarks', remarks);
+            fd.append('assignedTo', assignedTo);
             fd.append('__RequestVerificationToken', token);
 
-            const res = await fetch('/Ticket/BulkStatusChange', {
-                method: 'POST', body: fd,
+            const res = await fetch('/Ticket/BulkAssign', {
+                method: 'POST',
+                body: fd,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
+
             const result = await res.json();
             alert(result.message);
             if (result.success) location.reload();
         }
 
-        async function bulkAssign() {
-            const userId = prompt('User ID to assign:');
-            if (!userId) return;
-            const token = $('input[name="__RequestVerificationToken"]').val();
+        async function bulkStatusChange() {
+            const newStatus = $('#bulkStatusValue').val();
+            if (!newStatus) return alert('Please select status');
 
+            const token = $('input[name="__RequestVerificationToken"]').val();
             const fd = new FormData();
+
             Array.from(selected).forEach(id => fd.append('ticketIds', id));
-            fd.append('assignedTo', userId);
+            fd.append('newStatus', newStatus);
+            fd.append('remarks', $('#bulkStatusRemarks').val());
             fd.append('__RequestVerificationToken', token);
 
-            const res = await fetch('/Ticket/BulkAssign', {
-                method: 'POST', body: fd,
+            const res = await fetch('/Ticket/BulkStatusChange', {
+                method: 'POST',
+                body: fd,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
+
             const result = await res.json();
             alert(result.message);
             if (result.success) location.reload();
@@ -448,25 +537,60 @@
             const size = data.pageSize || 20;
             const current = data.pageNumber || 1;
             const pages = Math.ceil(total / size);
+
             if (pages <= 1) return;
 
+            const url = new URL(window.location.href);
             let html = '<ul class="pagination pagination-sm mb-0">';
-            for (let i = 1; i <= Math.min(pages, 10); i++) {
-                html += `<li class="page-item ${i === current ? 'active' : ''}">
-                    <a class="page-link" href="?pageNumber=${i}">${i}</a>
-                </li>`;
+
+            for (let i = 1; i <= pages && i <= 10; i++) {
+                url.searchParams.set('pageNumber', i);
+                html += `
+                    <li class="page-item ${i === current ? 'active' : ''}">
+                        <a class="page-link" href="${url.pathname + url.search}">${i}</a>
+                    </li>`;
             }
+
             html += '</ul>';
             $('#pagination').html(html);
         }
 
+        function getStatusBadgeClass(status) {
+            const s = normalizeKey(status);
+            if (s.includes('new')) return 'bg-info';
+            if (s.includes('assigned')) return 'bg-primary';
+            if (s.includes('progress')) return 'bg-warning text-dark';
+            if (s.includes('testing') || s.includes('qa')) return 'bg-secondary';
+            if (s.includes('resolved')) return 'bg-success';
+            if (s.includes('closed')) return 'bg-dark';
+            if (s.includes('reopen')) return 'bg-danger';
+            if (s.includes('hold')) return 'bg-light text-dark';
+            if (s.includes('cancel')) return 'bg-danger';
+            return 'bg-primary';
+        }
+
+        function displayStatus(status) {
+            return (status || '')
+                .replace('InProgress', 'In Progress')
+                .replace('OnHold', 'On Hold')
+                .replace('FixedByDev', 'Fixed By Dev')
+                .replace('ReadyForQA', 'Ready For QA')
+                .replace('InTesting', 'In Testing');
+        }
+
+        function normalizeKey(value) {
+            return (value || '').toString().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+        }
+
         function formatDate(d) {
             if (!d) return '';
-            return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+            const date = new Date(d);
+            if (isNaN(date)) return '';
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
         }
 
         function escapeHtml(t) {
-            if (!t) return '';
+            if (t === null || t === undefined) return '';
             const div = document.createElement('div');
             div.textContent = t;
             return div.innerHTML;

@@ -694,7 +694,19 @@ namespace EmployeeManagement.UI.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-
+        [HttpGet]
+        public async Task<IActionResult> GetNextStatuses(int ticketId)
+        {
+            try
+            {
+                var data = await CallApiGetAsync($"api/Ticket/{ticketId}/next-statuses");
+                return Content(data, "application/json");
+            }
+            catch (Exception ex)
+            {
+                return Json(new { status = false, message = ex.Message, data = new List<object>() });
+            }
+        }
         #endregion
 
         #region AJAX

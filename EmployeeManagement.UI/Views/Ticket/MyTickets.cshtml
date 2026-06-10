@@ -2,7 +2,7 @@
     ViewData["Title"] = "My Tickets";
     var userRole = ViewBag.UserRole as string ?? "Employee";
     var ticketsJson = ViewBag.TicketsJson as string ?? "{}";
-    var selectedStatus = ViewBag.SelectedStatus as string;
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
 }
 
 @section Styles {
@@ -32,11 +32,12 @@
             text-decoration: none;
             color: inherit;
             display: block;
+            height: 100%;
         }
 
             .stat-mini:hover {
                 transform: translateY(-3px);
-                border-color: #667eea;
+                border-color: #11998e;
                 color: inherit;
                 text-decoration: none;
             }
@@ -112,12 +113,26 @@
             text-align: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
+
+        .status-badge {
+            border-radius: 20px;
+            font-size: 0.72rem;
+            padding: .35rem .65rem;
+            font-weight: 700;
+        }
+
+        .toolbar-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
     </style>
 }
 
 <div class="container-fluid py-3 pb-5">
 
-    <!-- HERO -->
     <div class="my-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -126,52 +141,72 @@
                 </h3>
                 <p class="mb-0 opacity-90">Tickets created by or assigned to you</p>
             </div>
-            <a asp-action="Create" class="btn btn-light fw-bold">
-                <i class="bi bi-plus-circle me-1"></i>New Ticket
-            </a>
+            <div class="d-flex gap-2">
+                <a asp-action="Create" class="btn btn-light fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i>New Ticket
+                </a>
+                <a asp-action="Index" class="btn btn-outline-light fw-semibold">
+                    <i class="bi bi-grid me-1"></i>Dashboard
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- STATUS FILTERS -->
-    <div class="row g-2 mb-3">
-        <div class="col">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="toolbar-card">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Search</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Search title, number, description..." />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Sort</label>
+                <select class="form-select" id="sortSelect">
+                    <option value="updated-desc">Latest Updated</option>
+                    <option value="created-desc">Latest Created</option>
+                    <option value="due-asc">Due Date</option>
+                    <option value="priority">Priority</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold">Priority</label>
+                <select class="form-select" id="priorityFilter">
+                    <option value="">All Priority</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-secondary w-100" onclick="resetClientFilters()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3" id="statusFilters">
+        <div class="col-6 col-sm-4 col-md-2">
             <a href="@Url.Action("MyTickets")"
                class="stat-mini @(string.IsNullOrEmpty(selectedStatus) ? "active" : "")">
                 <h4 class="stat-num text-primary" id="allCount">0</h4>
                 <div class="stat-name">All</div>
             </a>
         </div>
-        <div class="col">
-            <a href="@Url.Action("MyTickets", new { status = "New" })"
-               class="stat-mini @(selectedStatus == "New" ? "active" : "")">
-                <h4 class="stat-num text-info" id="newCount">0</h4>
-                <div class="stat-name">New</div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="@Url.Action("MyTickets", new { status = "InProgress" })"
-               class="stat-mini @(selectedStatus == "InProgress" ? "active" : "")">
-                <h4 class="stat-num text-warning" id="progressCount">0</h4>
-                <div class="stat-name">In Progress</div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="@Url.Action("MyTickets", new { status = "Resolved" })"
-               class="stat-mini @(selectedStatus == "Resolved" ? "active" : "")">
-                <h4 class="stat-num text-success" id="resolvedCount">0</h4>
-                <div class="stat-name">Resolved</div>
-            </a>
-        </div>
-        <div class="col">
-            <a href="@Url.Action("MyTickets", new { status = "Closed" })"
-               class="stat-mini @(selectedStatus == "Closed" ? "active" : "")">
-                <h4 class="stat-num text-dark" id="closedCount">0</h4>
-                <div class="stat-name">Closed</div>
-            </a>
-        </div>
     </div>
 
-    <!-- TICKETS -->
     <div id="ticketsContainer">
         <div class="text-center py-5">
             <div class="spinner-border text-primary"></div>
@@ -181,54 +216,159 @@
 
 @section Scripts {
     <script>
-        const ticketsData = @Html.Raw(ticketsJson);
+        const ticketsApiData = @Html.Raw(ticketsJson);
+        const selectedStatus = '@selectedStatus';
 
-        $(document).ready(function() {
-            if (ticketsData?.data) {
-                renderTickets(ticketsData.data);
-                updateCounts(ticketsData.data);
-            } else {
-                showEmpty();
-            }
+        let allTickets = [];
+        let visibleTickets = [];
+
+        $(document).ready(function () {
+            allTickets = normalizeTickets(ticketsApiData?.data);
+            visibleTickets = [...allTickets];
+
+            bindPriorityFilter(allTickets);
+            renderDynamicStatusFilters(allTickets);
+            applyClientFilters();
+
+            $('#searchInput, #sortSelect, #priorityFilter').on('input change', function () {
+                applyClientFilters();
+            });
         });
+
+        function normalizeTickets(data) {
+            if (!data) return [];
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data.tickets)) return data.tickets;
+            return [];
+        }
+
+        function renderDynamicStatusFilters(tickets) {
+            const container = $('#statusFilters');
+
+            const statusMap = {};
+            tickets.forEach(t => {
+                const status = cleanStatus(t.status);
+                if (!statusMap[status]) statusMap[status] = 0;
+                statusMap[status]++;
+            });
+
+            const statusOrder = ['New', 'Assigned', 'In Progress', 'InProgress', 'Fixed By Dev', 'FixedByDev', 'Ready For QA', 'ReadyForQA', 'In Testing', 'InTesting', 'Resolved', 'Closed', 'Reopened', 'On Hold', 'OnHold', 'Cancelled'];
+
+            const sortedStatuses = Object.keys(statusMap).sort((a, b) => {
+                const ai = statusOrder.indexOf(a);
+                const bi = statusOrder.indexOf(b);
+                if (ai === -1 && bi === -1) return a.localeCompare(b);
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+            });
+
+            sortedStatuses.forEach(status => {
+                const active = selectedStatus === status ? 'active' : '';
+                const color = getStatusTextClass(status);
+
+                container.append(`
+                    <div class="col-6 col-sm-4 col-md-2">
+                        <a href="/Ticket/MyTickets?status=${encodeURIComponent(status)}" class="stat-mini ${active}">
+                            <h4 class="stat-num ${color}">${statusMap[status]}</h4>
+                            <div class="stat-name">${escapeHtml(displayStatus(status))}</div>
+                        </a>
+                    </div>
+                `);
+            });
+        }
+
+        function bindPriorityFilter(tickets) {
+            const priorities = [...new Set(tickets.map(t => cleanText(t.priority)).filter(Boolean))];
+            const order = ['Critical', 'High', 'Medium', 'Low'];
+            priorities.sort((a, b) => {
+                const ai = order.indexOf(a);
+                const bi = order.indexOf(b);
+                if (ai === -1 && bi === -1) return a.localeCompare(b);
+                if (ai === -1) return 1;
+                if (bi === -1) return -1;
+                return ai - bi;
+            });
+
+            const ddl = $('#priorityFilter');
+            priorities.forEach(p => ddl.append(`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`));
+        }
+
+        function applyClientFilters() {
+            const search = ($('#searchInput').val() || '').toLowerCase().trim();
+            const priority = $('#priorityFilter').val();
+            const sort = $('#sortSelect').val();
+
+            visibleTickets = allTickets.filter(t => {
+                const matchSearch =
+                    !search ||
+                    (t.ticketNumber || '').toLowerCase().includes(search) ||
+                    (t.title || '').toLowerCase().includes(search) ||
+                    (t.description || '').toLowerCase().includes(search) ||
+                    (t.assignedToName || '').toLowerCase().includes(search);
+
+                const matchPriority = !priority || cleanText(t.priority) === priority;
+
+                return matchSearch && matchPriority;
+            });
+
+            sortTickets(visibleTickets, sort);
+            updateCounts(allTickets);
+            renderTickets(visibleTickets);
+        }
+
+        function sortTickets(tickets, sort) {
+            const priorityWeight = { critical: 1, high: 2, medium: 3, low: 4 };
+
+            tickets.sort((a, b) => {
+                if (sort === 'created-desc') return new Date(b.createdDate || 0) - new Date(a.createdDate || 0);
+                if (sort === 'due-asc') return new Date(a.dueDate || '9999-12-31') - new Date(b.dueDate || '9999-12-31');
+                if (sort === 'priority') {
+                    return (priorityWeight[(a.priority || '').toLowerCase()] || 99) - (priorityWeight[(b.priority || '').toLowerCase()] || 99);
+                }
+                return new Date(b.updatedDate || b.createdDate || 0) - new Date(a.updatedDate || a.createdDate || 0);
+            });
+        }
 
         function updateCounts(tickets) {
             $('#allCount').text(tickets.length);
-            $('#newCount').text(tickets.filter(t => t.status === 'New').length);
-            $('#progressCount').text(tickets.filter(t => t.status === 'InProgress').length);
-            $('#resolvedCount').text(tickets.filter(t => t.status === 'Resolved').length);
-            $('#closedCount').text(tickets.filter(t => t.status === 'Closed').length);
         }
 
         function renderTickets(tickets) {
             const container = $('#ticketsContainer');
             container.empty();
 
-            if (!tickets.length) { showEmpty(); return; }
+            if (!tickets.length) {
+                showEmpty();
+                return;
+            }
 
             tickets.forEach(t => {
-                const pClass = t.priority.toLowerCase();
+                const pClass = cleanText(t.priority).toLowerCase();
+                const statusClass = getStatusBadgeClass(t.status);
+                const statusText = displayStatus(t.status);
 
                 container.append(`
                     <a href="/Ticket/Details/${t.ticketId}" class="ticket-card ${pClass}">
-                        <div class="row align-items-center">
+                        <div class="row align-items-center g-2">
                             <div class="col-md-7">
                                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                                    <span class="ticket-num">${t.ticketNumber}</span>
-                                    <span class="badge bg-light text-dark small">${t.ticketType}</span>
+                                    <span class="ticket-num">${escapeHtml(t.ticketNumber)}</span>
+                                    <span class="badge bg-light text-dark small">${escapeHtml(t.ticketType || 'Ticket')}</span>
                                     ${t.isOverdue ? '<span class="badge bg-danger small">⚠️ OVERDUE</span>' : ''}
                                 </div>
                                 <h6 class="fw-bold mb-1">${escapeHtml(t.title)}</h6>
-                                <small class="text-muted">${escapeHtml(t.description?.substring(0,100) || '')}${t.description?.length > 100 ? '...' : ''}</small>
+                                <small class="text-muted">${escapeHtml(shortText(t.description, 120))}</small>
                             </div>
                             <div class="col-md-3 text-md-end">
-                                <span class="badge bg-primary">${t.status}</span>
+                                <span class="badge status-badge ${statusClass}">${escapeHtml(statusText)}</span>
                                 <div class="small text-muted mt-1">
-                                    ${t.assignedToName ? `<i class="bi bi-person"></i> ${escapeHtml(t.assignedToName)}` : 'Unassigned'}
+                                    ${t.assignedToName ? `<i class="bi bi-person"></i> ${escapeHtml(t.assignedToName)}` : '<span class="text-muted">Unassigned</span>'}
                                 </div>
                             </div>
                             <div class="col-md-2 text-md-end">
-                                <small class="text-muted">${formatDate(t.createdDate)}</small>
+                                <small class="text-muted d-block">${formatDate(t.createdDate)}</small>
+                                ${t.dueDate ? `<small class="${t.isOverdue ? 'text-danger fw-bold' : 'text-muted'}">Due: ${formatDate(t.dueDate)}</small>` : ''}
                             </div>
                         </div>
                     </a>
@@ -240,8 +380,8 @@
             $('#ticketsContainer').html(`
                 <div class="empty-state">
                     <i class="bi bi-inbox display-1 text-muted opacity-50"></i>
-                    <h5 class="mt-3 text-muted">No tickets yet</h5>
-                    <p class="text-muted">Create your first ticket to get started</p>
+                    <h5 class="mt-3 text-muted">No tickets found</h5>
+                    <p class="text-muted">Create your first ticket or change filter criteria.</p>
                     <a href="/Ticket/Create" class="btn btn-success mt-2">
                         <i class="bi bi-plus-circle me-1"></i>Create Ticket
                     </a>
@@ -249,17 +389,74 @@
             `);
         }
 
+        function resetClientFilters() {
+            $('#searchInput').val('');
+            $('#priorityFilter').val('');
+            $('#sortSelect').val('updated-desc');
+            applyClientFilters();
+        }
+
+        function cleanStatus(s) {
+            return cleanText(s || 'Unknown');
+        }
+
+        function cleanText(s) {
+            return (s || '').toString().trim();
+        }
+
+        function displayStatus(status) {
+            const s = cleanText(status);
+            return s
+                .replace('InProgress', 'In Progress')
+                .replace('OnHold', 'On Hold')
+                .replace('FixedByDev', 'Fixed By Dev')
+                .replace('ReadyForQA', 'Ready For QA')
+                .replace('InTesting', 'In Testing');
+        }
+
+        function getStatusTextClass(status) {
+            const s = normalizeKey(status);
+            if (s.includes('new')) return 'text-info';
+            if (s.includes('progress') || s.includes('testing')) return 'text-warning';
+            if (s.includes('resolved') || s.includes('closed')) return 'text-success';
+            if (s.includes('reopen') || s.includes('cancel')) return 'text-danger';
+            return 'text-primary';
+        }
+
+        function getStatusBadgeClass(status) {
+            const s = normalizeKey(status);
+            if (s.includes('new')) return 'bg-info';
+            if (s.includes('assigned')) return 'bg-primary';
+            if (s.includes('progress')) return 'bg-warning text-dark';
+            if (s.includes('testing') || s.includes('qa')) return 'bg-secondary';
+            if (s.includes('resolved')) return 'bg-success';
+            if (s.includes('closed')) return 'bg-dark';
+            if (s.includes('reopen')) return 'bg-danger';
+            if (s.includes('hold')) return 'bg-light text-dark';
+            return 'bg-primary';
+        }
+
+        function normalizeKey(value) {
+            return (value || '').toString().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+        }
+
+        function shortText(value, len) {
+            const text = value || '';
+            return text.length > len ? text.substring(0, len) + '...' : text;
+        }
+
         function formatDate(d) {
             if (!d) return '';
             const date = new Date(d);
+            if (isNaN(date)) return '';
             const diff = (new Date() - date) / 1000;
-            if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-            if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
+            if (diff >= 0 && diff < 3600) return Math.max(1, Math.floor(diff / 60)) + 'm ago';
+            if (diff >= 0 && diff < 86400) return Math.floor(diff / 3600) + 'h ago';
             return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         }
 
         function escapeHtml(t) {
-            if (!t) return '';
+            if (t === null || t === undefined) return '';
             const div = document.createElement('div');
             div.textContent = t;
             return div.innerHTML;

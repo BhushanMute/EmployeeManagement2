@@ -612,6 +612,21 @@ namespace EmployeeManagement.API.Controllers
             }
         }
 
+        [HttpGet("{id:int}/next-statuses")]
+        public async Task<IActionResult> GetNextStatuses(int id)
+        {
+            try
+            {
+                var statuses = await _ticketRepo.GetAllowedNextStatusesAsync(id, UserId);
+                return Ok(ApiResponse<List<TicketStatusItem>>.Success(statuses));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading next statuses for ticket {TicketId}", id);
+                return StatusCode(500, ApiResponse<object>.Fail("Error loading next statuses"));
+            }
+        }
+
         #endregion
     }
 }
