@@ -71,10 +71,9 @@
             color: #ef4444;
         }
 
-        /* Priority Selector */
         .priority-selector {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 0.75rem;
         }
 
@@ -92,32 +91,36 @@
                 transform: translateY(-2px);
             }
 
-            .priority-option.selected.critical {
-                border-color: #dc3545;
-                background: linear-gradient(135deg, #fff5f5, #fed7d7);
+            .priority-option.selected {
+                border-color: #11998e;
+                background: linear-gradient(135deg, #ecfdf5, #d1fae5);
             }
 
-            .priority-option.selected.high {
-                border-color: #fd7e14;
-                background: linear-gradient(135deg, #fff7ed, #ffedd5);
-            }
+                .priority-option.selected.critical {
+                    border-color: #dc3545;
+                    background: linear-gradient(135deg, #fff5f5, #fed7d7);
+                }
 
-            .priority-option.selected.medium {
-                border-color: #ffc107;
-                background: linear-gradient(135deg, #fffbeb, #fef3c7);
-            }
+                .priority-option.selected.high {
+                    border-color: #fd7e14;
+                    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+                }
 
-            .priority-option.selected.low {
-                border-color: #28a745;
-                background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-            }
+                .priority-option.selected.medium {
+                    border-color: #ffc107;
+                    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+                }
+
+                .priority-option.selected.low {
+                    border-color: #28a745;
+                    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+                }
 
         .priority-icon {
             font-size: 1.5rem;
             margin-bottom: 0.5rem;
         }
 
-        /* Type Selector */
         .type-selector {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -179,12 +182,20 @@
             color: #94a3b8;
             margin-top: 0.25rem;
         }
+
+        .empty-master-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 1rem;
+            color: #64748b;
+            background: #f8fafc;
+            text-align: center;
+        }
     </style>
 }
 
 <div class="container py-3 pb-5">
 
-    <!-- HERO -->
     <div class="form-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -199,6 +210,14 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show shadow-sm">
@@ -210,9 +229,14 @@
     <form asp-action="Create" method="post" id="createForm">
         @Html.AntiForgeryToken()
 
+        <input type="hidden" name="ticketTypeId" id="ticketTypeIdInput" />
+        <input type="hidden" name="priorityId" id="priorityIdInput" />
+        <input type="hidden" name="categoryId" id="categoryIdInput" />
+        <input type="hidden" name="moduleId" id="moduleIdInput" />
+        <input type="hidden" name="severityId" id="severityIdInput" />
+
         <div class="form-card">
 
-            <!-- BASIC INFO -->
             <div class="form-section">
                 <div class="form-section-title">
                     <i class="bi bi-info-circle text-primary"></i>Basic Information
@@ -222,7 +246,7 @@
                     <label class="form-label">Title <span class="required">*</span></label>
                     <input type="text" name="title" class="form-control" required
                            maxlength="500" id="titleInput"
-                           placeholder="Brief description (e.g., Login page error on Chrome)" />
+                           placeholder="Brief description e.g. Login page error on Chrome" />
                     <div class="char-counter"><span id="titleCount">0</span>/500</div>
                 </div>
 
@@ -234,76 +258,26 @@
                 </div>
             </div>
 
-            <!-- TICKET TYPE -->
             <div class="form-section">
                 <div class="form-section-title">
                     <i class="bi bi-tags text-info"></i>Ticket Type
                 </div>
 
-                <input type="hidden" name="ticketType" id="typeInput" value="Bug" required />
+                <input type="hidden" name="ticketType" id="typeInput" required />
 
-                <div class="type-selector">
-                    <div class="type-option selected" data-type="Bug" onclick="selectType(this, 'Bug')">
-                        <i class="bi bi-bug-fill text-danger"></i>
-                        <strong>Bug</strong>
-                        <small class="d-block text-muted">Something broken</small>
-                    </div>
-                    <div class="type-option" data-type="Feature" onclick="selectType(this, 'Feature')">
-                        <i class="bi bi-stars text-warning"></i>
-                        <strong>Feature</strong>
-                        <small class="d-block text-muted">New functionality</small>
-                    </div>
-                    <div class="type-option" data-type="Task" onclick="selectType(this, 'Task')">
-                        <i class="bi bi-check2-square text-primary"></i>
-                        <strong>Task</strong>
-                        <small class="d-block text-muted">Work item</small>
-                    </div>
-                    <div class="type-option" data-type="Improvement" onclick="selectType(this, 'Improvement')">
-                        <i class="bi bi-arrow-up-circle text-success"></i>
-                        <strong>Improvement</strong>
-                        <small class="d-block text-muted">Enhance existing</small>
-                    </div>
-                    <div class="type-option" data-type="Support" onclick="selectType(this, 'Support')">
-                        <i class="bi bi-headset text-info"></i>
-                        <strong>Support</strong>
-                        <small class="d-block text-muted">Need help</small>
-                    </div>
-                </div>
+                <div class="type-selector" id="dynamicTypeSelector"></div>
             </div>
 
-            <!-- PRIORITY -->
             <div class="form-section">
                 <div class="form-section-title">
                     <i class="bi bi-flag-fill text-warning"></i>Priority
                 </div>
 
-                <input type="hidden" name="priority" id="priorityInput" value="Medium" required />
+                <input type="hidden" name="priority" id="priorityInput" required />
 
-                <div class="priority-selector">
-                    <div class="priority-option" data-priority="Low" onclick="selectPriority(this, 'Low')">
-                        <div class="priority-icon"><i class="bi bi-arrow-down-circle text-success"></i></div>
-                        <strong>Low</strong>
-                        <small class="d-block text-muted">No urgency</small>
-                    </div>
-                    <div class="priority-option selected medium" data-priority="Medium" onclick="selectPriority(this, 'Medium')">
-                        <div class="priority-icon"><i class="bi bi-dash-circle text-warning"></i></div>
-                        <strong>Medium</strong>
-                        <small class="d-block text-muted">Normal</small>
-                    </div>
-                    <div class="priority-option" data-priority="High" onclick="selectPriority(this, 'High')">
-                        <div class="priority-icon"><i class="bi bi-arrow-up-circle" style="color:#fd7e14;"></i></div>
-                        <strong>High</strong>
-                        <small class="d-block text-muted">Important</small>
-                    </div>
-                    <div class="priority-option" data-priority="Critical" onclick="selectPriority(this, 'Critical')">
-                        <div class="priority-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
-                        <strong>Critical</strong>
-                        <small class="d-block text-muted">Urgent!</small>
-                    </div>
-                </div>
+                <div class="priority-selector" id="dynamicPrioritySelector"></div>
             </div>
 
-            <!-- CATEGORIZATION -->
             <div class="form-section">
                 <div class="form-section-title">
                     <i class="bi bi-diagram-3 text-secondary"></i>Categorization
@@ -312,47 +286,28 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Module</label>
-                        <select name="module" class="form-select">
+                        <select name="module" id="moduleSelect" class="form-select">
                             <option value="">Select Module</option>
-                            <option value="HR">HR Management</option>
-                            <option value="Payroll">Payroll</option>
-                            <option value="Leave">Leave Management</option>
-                            <option value="Attendance">Attendance</option>
-                            <option value="Employee">Employee</option>
-                            <option value="Reports">Reports</option>
-                            <option value="Authentication">Authentication</option>
-                            <option value="UI">User Interface</option>
-                            <option value="API">API</option>
-                            <option value="Database">Database</option>
                         </select>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Category</label>
-                        <select name="category" class="form-select">
+                        <select name="category" id="categorySelect" class="form-select">
                             <option value="">Select Category</option>
-                            <option value="Functionality">Functionality</option>
-                            <option value="UI/UX">UI/UX</option>
-                            <option value="Performance">Performance</option>
-                            <option value="Security">Security</option>
-                            <option value="Documentation">Documentation</option>
-                            <option value="Integration">Integration</option>
                         </select>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Severity</label>
-                        <select name="severity" class="form-select">
+                        <select name="severity" id="severitySelect" class="form-select">
                             <option value="">Select Severity</option>
-                            <option value="Blocker">Blocker</option>
-                            <option value="Major">Major</option>
-                            <option value="Minor">Minor</option>
-                            <option value="Trivial">Trivial</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <!-- BUG-SPECIFIC FIELDS -->
-            <div class="form-section" id="bugFieldsSection">
+            <div class="form-section" id="bugFieldsSection" style="display:none;">
                 <div class="form-section-title">
                     <i class="bi bi-bug text-danger"></i>Bug Details
                 </div>
@@ -380,12 +335,11 @@
                     <div class="mt-3">
                         <label class="form-label">Environment</label>
                         <input type="text" name="environment" class="form-control"
-                               placeholder="e.g., Windows 11, Chrome 119, Production" />
+                               placeholder="e.g. Windows 11, Chrome 119, Production" />
                     </div>
                 </div>
             </div>
 
-            <!-- ASSIGNMENT (Manager/Admin only) -->
             @if (userRole == "Admin" || userRole == "Manager")
             {
                 <div class="form-section">
@@ -400,11 +354,13 @@
                                 <option value="">Unassigned</option>
                             </select>
                         </div>
+
                         <div class="col-md-3">
                             <label class="form-label">Due Date</label>
                             <input type="date" name="dueDate" class="form-control"
                                    min="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
+
                         <div class="col-md-3">
                             <label class="form-label">Est. Hours</label>
                             <input type="number" name="estimatedHours" class="form-control"
@@ -414,20 +370,22 @@
                 </div>
             }
 
-            <!-- ACTIONS -->
             <div class="form-section">
                 <div class="d-flex gap-2 justify-content-end flex-wrap">
                     <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
                         <i class="bi bi-x-circle me-1"></i>Cancel
                     </a>
+
                     <button type="reset" class="btn btn-outline-warning px-4">
                         <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
                     </button>
+
                     <button type="submit" class="btn btn-submit px-4" id="submitBtn">
                         <i class="bi bi-check-circle me-1"></i>Create Ticket
                     </button>
                 </div>
             </div>
+
         </div>
     </form>
 </div>
@@ -435,38 +393,218 @@
 @section Scripts {
     <script>
         const dropdownData = @Html.Raw(dropdownsJson);
+        const dd = dropdownData?.data || {};
 
-        $(document).ready(function() {
-            // Populate developers
-            if (dropdownData?.data?.developers) {
-                const $select = $('#assignSelect');
-                dropdownData.data.developers.forEach(d => {
-                    $select.append(`<option value="${d.userId}">${d.fullName} (${d.role || 'Developer'})</option>`);
-                });
-            }
+        $(document).ready(function () {
+            bindTicketTypes();
+            bindPriorities();
+            bindCategories();
+            bindModules();
+            bindSeverities();
+            bindDevelopers();
 
-            // Char counter
-            $('#titleInput').on('input', function() {
+            $('#titleInput').on('input', function () {
                 $('#titleCount').text(this.value.length);
+            });
+
+            $('#moduleSelect').on('change', function () {
+                const selected = $(this).find(':selected');
+                $('#moduleIdInput').val(selected.data('id') || '');
+            });
+
+            $('#categorySelect').on('change', function () {
+                const selected = $(this).find(':selected');
+                $('#categoryIdInput').val(selected.data('id') || '');
+            });
+
+            $('#severitySelect').on('change', function () {
+                const selected = $(this).find(':selected');
+                $('#severityIdInput').val(selected.data('id') || '');
+            });
+
+            $('#createForm').on('reset', function () {
+                setTimeout(function () {
+                    const firstType = $('#dynamicTypeSelector .type-option').first();
+                    if (firstType.length) {
+                        selectType(firstType[0], firstType.data('name'), firstType.data('id'));
+                    }
+
+                    const mediumPriority = $('#dynamicPrioritySelector .priority-option').filter(function () {
+                        return ($(this).data('name') || '').toString().toLowerCase() === 'medium';
+                    }).first();
+
+                    const firstPriority = mediumPriority.length ? mediumPriority : $('#dynamicPrioritySelector .priority-option').first();
+                    if (firstPriority.length) {
+                        selectPriority(firstPriority[0], firstPriority.data('name'), firstPriority.data('id'));
+                    }
+
+                    $('#categoryIdInput').val('');
+                    $('#moduleIdInput').val('');
+                    $('#severityIdInput').val('');
+                }, 50);
             });
         });
 
-        function selectType(el, type) {
+        function bindTicketTypes() {
+            const items = dd.ticketTypeItems || [];
+            const $box = $('#dynamicTypeSelector');
+            $box.empty();
+
+            if (!items.length && dd.ticketTypes && dd.ticketTypes.length) {
+                dd.ticketTypes.forEach((name, index) => {
+                    $box.append(buildTypeCard(index + 1, name, name, null));
+                });
+            } else if (items.length) {
+                items.forEach(x => {
+                    $box.append(buildTypeCard(x.id, x.name, x.code, x.colorCode));
+                });
+            } else {
+                $box.html('<div class="empty-master-box">No ticket types found. Please add Ticket Type master data.</div>');
+                return;
+            }
+
+            const $first = $box.find('.type-option').first();
+            if ($first.length) {
+                selectType($first[0], $first.data('name'), $first.data('id'));
+            }
+        }
+
+        function bindPriorities() {
+            const items = dd.priorityItems || [];
+            const $box = $('#dynamicPrioritySelector');
+            $box.empty();
+
+            if (!items.length && dd.priorities && dd.priorities.length) {
+                dd.priorities.forEach((name, index) => {
+                    $box.append(buildPriorityCard(index + 1, name, name, null));
+                });
+            } else if (items.length) {
+                items.forEach(x => {
+                    $box.append(buildPriorityCard(x.id, x.name, x.code, x.colorCode));
+                });
+            } else {
+                $box.html('<div class="empty-master-box">No priorities found. Please add Priority master data.</div>');
+                return;
+            }
+
+            const $medium = $box.find('.priority-option').filter(function () {
+                const name = ($(this).data('name') || '').toString().toLowerCase();
+                const code = ($(this).data('code') || '').toString().toLowerCase();
+                return name === 'medium' || code === 'medium';
+            }).first();
+
+            const $selected = $medium.length ? $medium : $box.find('.priority-option').first();
+
+            if ($selected.length) {
+                selectPriority($selected[0], $selected.data('name'), $selected.data('id'));
+            }
+        }
+
+        function bindCategories() {
+            const items = dd.categoryItems || [];
+            const $select = $('#categorySelect');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
+        function bindModules() {
+            const items = dd.moduleItems || [];
+            const $select = $('#moduleSelect');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}" data-category-id="${x.categoryId || ''}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
+        function bindSeverities() {
+            const items = dd.severityItems || [];
+            const $select = $('#severitySelect');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
+        function bindDevelopers() {
+            const developers = dd.developers || [];
+            const $select = $('#assignSelect');
+
+            if (!$select.length) return;
+
+            $select.find('option:not(:first)').remove();
+
+            developers.forEach(d => {
+                const userId = d.userId || d.id || d.value;
+                const fullName = d.fullName || d.name || d.text || 'User';
+                const role = d.role || 'Developer';
+
+                $select.append(`<option value="${userId}">${escapeHtml(fullName)} (${escapeHtml(role)})</option>`);
+            });
+        }
+
+        function buildTypeCard(id, name, code, color) {
+            const lower = (name || '').toLowerCase();
+            const icon = getTypeIcon(lower);
+
+            return `
+                <div class="type-option"
+                     data-id="${id}"
+                     data-name="${escapeHtml(name)}"
+                     data-code="${escapeHtml(code || '')}"
+                     onclick="selectType(this, '${escapeJs(name)}', ${id})">
+                    <i class="${icon}" style="${color ? `color:${color};` : ''}"></i>
+                    <strong>${escapeHtml(name)}</strong>
+                    <small class="d-block text-muted">${escapeHtml(code || '')}</small>
+                </div>`;
+        }
+
+        function buildPriorityCard(id, name, code, color) {
+            const cls = (name || '').toLowerCase().replace(/\s+/g, '');
+            const icon = getPriorityIcon(cls);
+
+            return `
+                <div class="priority-option"
+                     data-id="${id}"
+                     data-name="${escapeHtml(name)}"
+                     data-code="${escapeHtml(code || '')}"
+                     onclick="selectPriority(this, '${escapeJs(name)}', ${id})">
+                    <div class="priority-icon">
+                        <i class="${icon}" style="${color ? `color:${color};` : ''}"></i>
+                    </div>
+                    <strong>${escapeHtml(name)}</strong>
+                    <small class="d-block text-muted">${escapeHtml(code || '')}</small>
+                </div>`;
+        }
+
+        function selectType(el, type, id) {
             $('.type-option').removeClass('selected');
             $(el).addClass('selected');
+
             $('#typeInput').val(type);
+            $('#ticketTypeIdInput').val(id || '');
 
-            if (type === 'Bug') $('#bugFieldsSection').slideDown();
-            else $('#bugFieldsSection').slideUp();
+            if ((type || '').toLowerCase() === 'bug') {
+                $('#bugFieldsSection').slideDown();
+            } else {
+                $('#bugFieldsSection').slideUp();
+            }
         }
 
-        function selectPriority(el, priority) {
+        function selectPriority(el, priority, id) {
             $('.priority-option').removeClass('selected critical high medium low');
-            $(el).addClass('selected ' + priority.toLowerCase());
+            const cls = (priority || '').toLowerCase().replace(/\s+/g, '');
+            $(el).addClass('selected ' + cls);
+
             $('#priorityInput').val(priority);
+            $('#priorityIdInput').val(id || '');
         }
 
-        $('#createForm').on('submit', function(e) {
+        $('#createForm').on('submit', function (e) {
             const title = $('#titleInput').val().trim();
             const desc = $('#descInput').val().trim();
 
@@ -482,8 +620,51 @@
                 return;
             }
 
+            if (!$('#typeInput').val()) {
+                e.preventDefault();
+                alert('Please select ticket type');
+                return;
+            }
+
+            if (!$('#priorityInput').val()) {
+                e.preventDefault();
+                alert('Please select priority');
+                return;
+            }
+
             $('#submitBtn').prop('disabled', true)
                 .html('<i class="bi bi-hourglass-split me-1"></i>Creating...');
         });
+
+        function getTypeIcon(type) {
+            if (type.includes('bug')) return 'bi bi-bug-fill text-danger';
+            if (type.includes('feature')) return 'bi bi-stars text-warning';
+            if (type.includes('task')) return 'bi bi-check2-square text-primary';
+            if (type.includes('support')) return 'bi bi-headset text-info';
+            if (type.includes('change')) return 'bi bi-arrow-repeat text-warning';
+            if (type.includes('improvement')) return 'bi bi-arrow-up-circle text-success';
+            return 'bi bi-ticket-detailed text-primary';
+        }
+
+        function getPriorityIcon(priority) {
+            if (priority.includes('critical')) return 'bi bi-exclamation-triangle text-danger';
+            if (priority.includes('high')) return 'bi bi-arrow-up-circle';
+            if (priority.includes('medium')) return 'bi bi-dash-circle text-warning';
+            if (priority.includes('low')) return 'bi bi-arrow-down-circle text-success';
+            return 'bi bi-flag text-secondary';
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function escapeJs(value) {
+            return String(value || '').replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+        }
     </script>
 }

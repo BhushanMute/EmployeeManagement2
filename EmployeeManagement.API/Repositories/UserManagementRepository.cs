@@ -1,4 +1,5 @@
 ﻿using EmployeeManagement.API.Models;
+using EmployeeManagement.API.Models.UserManagement;
 using Microsoft.Data.SqlClient;
 using System.Data;
 

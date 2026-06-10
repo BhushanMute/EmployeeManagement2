@@ -49,5 +49,6 @@ namespace EmployeeManagement.API.Repositories.Ticket
         /// Get email notification recipients for ticket events
         /// </summary>
         Task<List<TicketEmailRecipient>> GetEmailRecipientsAsync(int ticketId, string eventType);
+        Task<List<TicketStatusItem>> GetAllowedNextStatusesAsync(int ticketId, int userId);
     }
 }

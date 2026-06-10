@@ -38,6 +38,16 @@
             z-index: 2;
         }
 
+        .role-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 0.3rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
         .stat-card {
             background: white;
             border-radius: 14px;
@@ -47,7 +57,7 @@
             border: none;
             position: relative;
             overflow: hidden;
-            cursor: pointer;
+            height: 100%;
         }
 
             .stat-card:hover {
@@ -88,6 +98,14 @@
                 background: linear-gradient(180deg, #2193b0, #6dd5ed);
             }
 
+            .stat-card.darkc::before {
+                background: linear-gradient(180deg, #111827, #4b5563);
+            }
+
+            .stat-card.pink::before {
+                background: linear-gradient(180deg, #ec4899, #f9a8d4);
+            }
+
         .stat-icon {
             width: 56px;
             height: 56px;
@@ -97,6 +115,7 @@
             justify-content: center;
             font-size: 1.4rem;
             color: white;
+            flex-shrink: 0;
         }
 
         .stat-value {
@@ -127,6 +146,7 @@
             transition: all 0.3s;
             border: 2px solid transparent;
             display: block;
+            height: 100%;
         }
 
             .quick-action:hover {
@@ -154,6 +174,7 @@
             padding: 1.5rem;
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             height: 100%;
+            min-height: 360px;
         }
 
         .activity-feed {
@@ -162,6 +183,7 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             overflow: hidden;
             height: 100%;
+            min-height: 360px;
         }
 
         .activity-item {
@@ -222,14 +244,35 @@
             background: #28a745;
         }
 
-        .role-badge {
-            background: rgba(255,255,255,0.25);
-            padding: 0.3rem 0.85rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.3);
+        .dynamic-status-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid #667eea;
+            height: 100%;
+            text-decoration: none;
+            display: block;
+            color: inherit;
+            transition: all .25s;
+        }
+
+            .dynamic-status-card:hover {
+                transform: translateY(-3px);
+                color: inherit;
+                text-decoration: none;
+            }
+
+        .dynamic-count {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .empty-box {
+            text-align: center;
+            color: #94a3b8;
+            padding: 2rem 1rem;
         }
 
         @@keyframes fadeInUp {
@@ -252,9 +295,8 @@
 
 <div class="container-fluid py-3 pb-5">
 
-    <!-- ===== HERO ===== -->
     <div class="hero-banner fade-in">
-        <div class="row align-items-center position-relative">
+        <div class="row align-items-center position-relative hero-content">
             <div class="col-md-8">
                 <h2 class="fw-bold mb-1">
                     <i class="bi bi-ticket-detailed me-2"></i>Ticket Dashboard
@@ -265,9 +307,10 @@
                         <i class="bi bi-shield-check me-1"></i>@userRole
                     </span>
                 </p>
+
                 <div class="d-flex gap-2 flex-wrap">
                     <a asp-action="Create" class="btn btn-light fw-bold">
-                        <i class="bi bi-plus-circle m New Tickete-1"></i>Create Ticket
+                        <i class="bi bi-plus-circle me-1"></i>Create Ticket
                     </a>
                     <a asp-action="MyTickets" class="btn btn-outline-light fw-semibold">
                         <i class="bi bi-person-badge me-1"></i>My Tickets
@@ -277,6 +320,7 @@
                     </a>
                 </div>
             </div>
+
             <div class="col-md-4 text-end d-none d-md-block">
                 <i class="bi bi-clipboard-data" style="font-size: 6rem; opacity: 0.15;"></i>
             </div>
@@ -290,6 +334,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show shadow-sm">
@@ -298,7 +343,6 @@
         </div>
     }
 
-    <!-- ===== STAT CARDS ===== -->
     <div class="row g-3 mb-4">
         <div class="col-md-2 col-sm-4 col-6">
             <a href="@Url.Action("List")" class="text-decoration-none">
@@ -315,6 +359,7 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-2 col-sm-4 col-6">
             <a href="@Url.Action("List", new { status = "New" })" class="text-decoration-none">
                 <div class="stat-card orange fade-in">
@@ -330,6 +375,7 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-2 col-sm-4 col-6">
             <a href="@Url.Action("List", new { status = "InProgress" })" class="text-decoration-none">
                 <div class="stat-card purple fade-in">
@@ -345,6 +391,7 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-2 col-sm-4 col-6">
             <a href="@Url.Action("List", new { status = "Resolved" })" class="text-decoration-none">
                 <div class="stat-card green fade-in">
@@ -360,6 +407,7 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-2 col-sm-4 col-6">
             <a href="@Url.Action("List", new { priority = "Critical" })" class="text-decoration-none">
                 <div class="stat-card red fade-in">
@@ -375,22 +423,26 @@
                 </div>
             </a>
         </div>
+
         <div class="col-md-2 col-sm-4 col-6">
-            <div class="stat-card teal fade-in">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h3 class="stat-value" id="overdueCount">0</h3>
-                        <div class="stat-label">Overdue</div>
-                    </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);">
-                        <i class="bi bi-clock-history"></i>
+            <a href="@Url.Action("List")" class="text-decoration-none">
+                <div class="stat-card teal fade-in">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="stat-value" id="overdueCount">0</h3>
+                            <div class="stat-label">Overdue</div>
+                        </div>
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #2193b0, #6dd5ed);">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
-    <!-- ===== QUICK ACTIONS ===== -->
+    <div class="row g-3 mb-4" id="dynamicStatusCards"></div>
+
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-sm-6">
             <a asp-action="Create" class="quick-action">
@@ -401,15 +453,17 @@
                 <small class="text-muted">Report a new issue</small>
             </a>
         </div>
+
         <div class="col-md-3 col-sm-6">
             <a asp-action="MyTickets" class="quick-action">
                 <div class="quick-action-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
                     <i class="bi bi-person-badge"></i>
                 </div>
                 <h6 class="fw-bold mb-0">My Tickets</h6>
-                <small class="text-muted">Tickets I created</small>
+                <small class="text-muted">Tickets I created or assigned</small>
             </a>
         </div>
+
         @if (userRole != "Employee")
         {
             <div class="col-md-3 col-sm-6">
@@ -422,6 +476,7 @@
                 </a>
             </div>
         }
+
         <div class="col-md-3 col-sm-6">
             <a asp-action="List" class="quick-action">
                 <div class="quick-action-icon" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">
@@ -433,9 +488,7 @@
         </div>
     </div>
 
-    <!-- ===== CHARTS & ACTIVITY ===== -->
     <div class="row g-3">
-        <!-- Priority Chart -->
         <div class="col-lg-4">
             <div class="chart-card">
                 <h6 class="fw-bold mb-3">
@@ -443,10 +496,13 @@
                     Priority Distribution
                 </h6>
                 <canvas id="priorityChart" style="max-height: 280px;"></canvas>
+                <div id="priorityEmpty" class="empty-box d-none">
+                    <i class="bi bi-pie-chart fs-1 d-block opacity-50"></i>
+                    No priority data
+                </div>
             </div>
         </div>
 
-        <!-- Type Chart -->
         <div class="col-lg-4">
             <div class="chart-card">
                 <h6 class="fw-bold mb-3">
@@ -454,10 +510,13 @@
                     Ticket Types
                 </h6>
                 <canvas id="typeChart" style="max-height: 280px;"></canvas>
+                <div id="typeEmpty" class="empty-box d-none">
+                    <i class="bi bi-bar-chart fs-1 d-block opacity-50"></i>
+                    No type data
+                </div>
             </div>
         </div>
 
-        <!-- Recent Activity -->
         <div class="col-lg-4">
             <div class="activity-feed">
                 <div class="p-3 border-bottom">
@@ -477,25 +536,28 @@
     </div>
 </div>
 
- 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         let dashboardData = {};
+
         try {
             dashboardData = @Html.Raw(dashboardJson);
-            console.log('Dashboard data:', dashboardData);  // Debug
         } catch (e) {
-            console.error('Failed to parse dashboard data:', e);
+            dashboardData = {};
+            console.error('Failed to parse dashboard json', e);
         }
 
-        $(document).ready(function() {
+        let priorityChartInstance = null;
+        let typeChartInstance = null;
+
+        $(document).ready(function () {
             try {
                 if (dashboardData && dashboardData.data) {
                     renderDashboard(dashboardData.data);
                 } else if (dashboardData && dashboardData.status === false) {
-                    console.warn('API returned error:', dashboardData.message);
-                    showEmptyState(dashboardData.message);
+                    showEmptyState(dashboardData.message || 'No data available');
                 } else {
                     showEmptyState('No data available');
                 }
@@ -506,34 +568,65 @@
         });
 
         function renderDashboard(data) {
-            // ✅ FIX: Data is directly on object, not nested under 'stats'
-            const stats = data;  // ← Changed from data.stats || data
+            const stats = data.stats || data || {};
 
-            console.log('Stats:', stats);  // Debug
+            animate('#totalCount', stats.totalTickets || 0);
+            animate('#newCount', stats.newTickets || 0);
+            animate('#progressCount', stats.inProgressTickets || 0);
+            animate('#resolvedCount', stats.resolvedTickets || 0);
+            animate('#criticalCount', stats.criticalTickets || 0);
+            animate('#overdueCount', stats.overdueTickets || 0);
 
-            animate('#totalCount', stats?.totalTickets || 0);
-            animate('#newCount', stats?.newTickets || 0);
-            animate('#progressCount', stats?.inProgressTickets || 0);
-            animate('#resolvedCount', stats?.resolvedTickets || 0);
-            animate('#criticalCount', stats?.criticalTickets || 0);
-            animate('#overdueCount', stats?.overdueTickets || 0);
-
-            // Charts
-            if (data.priorityDistribution?.length > 0) {
-                renderPriorityChart(data.priorityDistribution);
-            }
-            if (data.typeDistribution?.length > 0) {
-                renderTypeChart(data.typeDistribution);
-            }
+            renderDynamicStatusCards(data);
+            renderPriorityChart(data.priorityDistribution || []);
+            renderTypeChart(data.typeDistribution || []);
             renderActivities(data.recentActivities || []);
         }
 
-        function showEmptyState(message = 'No data') {
+        function renderDynamicStatusCards(data) {
+            const container = $('#dynamicStatusCards');
+            container.empty();
+
+            const possible = [
+                { label: 'Assigned', count: data.assignedTickets, status: 'Assigned', color: '#6366f1', icon: 'bi-person-check' },
+                { label: 'Blocked', count: data.blockedTickets, status: 'Blocked', color: '#ef4444', icon: 'bi-slash-circle' },
+                { label: 'Reopened', count: data.reopenedTickets, status: 'Reopened', color: '#f97316', icon: 'bi-arrow-counterclockwise' },
+                { label: 'Closed', count: data.closedTickets, status: 'Closed', color: '#111827', icon: 'bi-x-circle' },
+                { label: 'High Priority', count: data.highPriorityTickets, priority: 'High', color: '#f97316', icon: 'bi-arrow-up-circle' }
+            ];
+
+            possible
+                .filter(x => Number(x.count || 0) > 0)
+                .forEach(x => {
+                    const url = x.priority
+                        ? `/Ticket/List?priority=${encodeURIComponent(x.priority)}`
+                        : `/Ticket/List?status=${encodeURIComponent(x.status)}`;
+
+                    container.append(`
+                        <div class="col-md-2 col-sm-4 col-6">
+                            <a href="${url}" class="dynamic-status-card" style="border-left-color:${x.color}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="dynamic-count">${x.count || 0}</div>
+                                        <div class="stat-label">${escapeHtml(x.label)}</div>
+                                    </div>
+                                    <i class="bi ${x.icon}" style="font-size:1.8rem;color:${x.color}"></i>
+                                </div>
+                            </a>
+                        </div>
+                    `);
+                });
+        }
+
+        function showEmptyState(message) {
             $('.stat-value').text('0');
+            $('#priorityChart, #typeChart').hide();
+            $('#priorityEmpty, #typeEmpty').removeClass('d-none');
+
             $('#recentActivities').html(`
                 <div class="text-center py-4 text-muted">
                     <i class="bi bi-inbox d-block fs-2 mb-2 opacity-50"></i>
-                    <small>${message}</small>
+                    <small>${escapeHtml(message)}</small>
                     <br>
                     <a href="/Ticket/Create" class="btn btn-sm btn-primary mt-2">
                         <i class="bi bi-plus-circle"></i> Create First Ticket
@@ -545,69 +638,103 @@
         function animate(selector, target) {
             const $el = $(selector);
             if (!$el.length) return;
-            const current = parseInt($el.text()) || 0;
-            $({ value: current }).animate({ value: target }, {
+
+            target = Number(target || 0);
+
+            $({ value: 0 }).animate({ value: target }, {
                 duration: 800,
-                step: function() { $el.text(Math.round(this.value)); },
-                complete: function() { $el.text(target); }
+                step: function () {
+                    $el.text(Math.round(this.value));
+                },
+                complete: function () {
+                    $el.text(target);
+                }
             });
         }
 
         function renderPriorityChart(data) {
-            try {
-                const ctx = document.getElementById('priorityChart');
-                if (!ctx) return;
+            const ctx = document.getElementById('priorityChart');
 
-                new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: data.map(d => d.priority || 'Unknown'),
-                        datasets: [{
-                            data: data.map(d => d.count || 0),
-                            backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#28a745'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
+            if (!ctx || !Array.isArray(data) || data.length === 0) {
+                $('#priorityChart').hide();
+                $('#priorityEmpty').removeClass('d-none');
+                return;
+            }
+
+            $('#priorityChart').show();
+            $('#priorityEmpty').addClass('d-none');
+
+            if (priorityChartInstance) priorityChartInstance.destroy();
+
+            priorityChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d.priority || d.name || 'Unknown'),
+                    datasets: [{
+                        data: data.map(d => d.count || d.total || 0),
+                        backgroundColor: data.map(d => getPriorityColor(d.priority || d.name)),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
                     }
-                });
-            } catch (e) { console.warn('Priority chart error:', e); }
+                }
+            });
         }
 
         function renderTypeChart(data) {
-            try {
-                const ctx = document.getElementById('typeChart');
-                if (!ctx) return;
+            const ctx = document.getElementById('typeChart');
 
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.map(d => d.ticketType || 'Unknown'),
-                        datasets: [{
-                            label: 'Count',
-                            data: data.map(d => d.count || 0),
-                            backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                            borderRadius: 8
-                        }]
+            if (!ctx || !Array.isArray(data) || data.length === 0) {
+                $('#typeChart').hide();
+                $('#typeEmpty').removeClass('d-none');
+                return;
+            }
+
+            $('#typeChart').show();
+            $('#typeEmpty').addClass('d-none');
+
+            if (typeChartInstance) typeChartInstance.destroy();
+
+            typeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.ticketType || d.type || d.name || 'Unknown'),
+                    datasets: [{
+                        label: 'Count',
+                        data: data.map(d => d.count || d.total || 0),
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
                     }
-                });
-            } catch (e) { console.warn('Type chart error:', e); }
+                }
+            });
         }
 
         function renderActivities(activities) {
             const container = $('#recentActivities');
             container.empty();
 
-            if (!activities?.length) {
+            if (!Array.isArray(activities) || activities.length === 0) {
                 container.html(`
                     <div class="text-center py-4 text-muted">
                         <i class="bi bi-inbox d-block fs-2 mb-2 opacity-50"></i>
@@ -620,21 +747,21 @@
             const colors = ['#667eea', '#f5576c', '#11998e', '#fa709a', '#a18cd1'];
 
             activities.forEach((a, i) => {
-                const initials = (a.createdByName || 'U').charAt(0).toUpperCase();
+                const initials = (a.createdByName || a.assignedToName || 'U').charAt(0).toUpperCase();
                 const color = colors[i % colors.length];
-                const priorityClass = `priority-${(a.priority || 'low').toLowerCase()}`;
+                const priorityClass = `priority-${normalizeKey(a.priority || 'low')}`;
 
                 container.append(`
                     <a href="/Ticket/Details/${a.ticketId}" class="activity-item">
-                        <div class="activity-avatar" style="background: ${color};">${initials}</div>
+                        <div class="activity-avatar" style="background:${color};">${escapeHtml(initials)}</div>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="d-flex justify-content-between gap-2">
-                                <strong class="small text-truncate">${escapeHtml(a.title)}</strong>
-                                <span class="badge bg-light text-dark small flex-shrink-0">${a.status}</span>
+                                <strong class="small text-truncate">${escapeHtml(a.title || 'Untitled')}</strong>
+                                <span class="badge ${getStatusBadgeClass(a.status)} small flex-shrink-0">${escapeHtml(displayStatus(a.status || ''))}</span>
                             </div>
                             <small class="text-muted">
                                 <span class="priority-dot ${priorityClass}"></span>
-                                ${a.ticketNumber || ''} • ${formatDate(a.updatedDate)}
+                                ${escapeHtml(a.ticketNumber || '')} • ${formatRelative(a.updatedDate || a.createdDate)}
                             </small>
                         </div>
                     </a>
@@ -642,20 +769,61 @@
             });
         }
 
-        function formatDate(d) {
+        function getPriorityColor(priority) {
+            const p = normalizeKey(priority);
+            if (p.includes('critical')) return '#dc3545';
+            if (p.includes('high')) return '#fd7e14';
+            if (p.includes('medium')) return '#ffc107';
+            if (p.includes('low')) return '#28a745';
+            return '#667eea';
+        }
+
+        function getStatusBadgeClass(status) {
+            const s = normalizeKey(status);
+            if (s.includes('new')) return 'bg-info';
+            if (s.includes('assigned')) return 'bg-primary';
+            if (s.includes('progress')) return 'bg-warning text-dark';
+            if (s.includes('testing') || s.includes('qa')) return 'bg-secondary';
+            if (s.includes('resolved')) return 'bg-success';
+            if (s.includes('closed')) return 'bg-dark';
+            if (s.includes('reopen')) return 'bg-danger';
+            if (s.includes('hold')) return 'bg-light text-dark';
+            if (s.includes('cancel')) return 'bg-danger';
+            return 'bg-primary';
+        }
+
+        function displayStatus(status) {
+            return (status || '')
+                .toString()
+                .replaceAll('_', ' ')
+                .replace('InProgress', 'In Progress')
+                .replace('OnHold', 'On Hold')
+                .replace('FixedByDev', 'Fixed By Dev')
+                .replace('ReadyForQA', 'Ready For QA')
+                .replace('InTesting', 'In Testing');
+        }
+
+        function normalizeKey(value) {
+            return (value || '').toString().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+        }
+
+        function formatRelative(d) {
             if (!d || d === '0001-01-01T00:00:00') return '';
-            try {
-                const date = new Date(d);
-                const diff = (new Date() - date) / 1000;
-                if (diff < 60) return 'just now';
-                if (diff < 3600) return Math.floor(diff/60) + 'm ago';
-                if (diff < 86400) return Math.floor(diff/3600) + 'h ago';
-                return date.toLocaleDateString();
-            } catch { return ''; }
+
+            const date = new Date(d);
+            if (isNaN(date)) return '';
+
+            const diff = (new Date() - date) / 1000;
+
+            if (diff >= 0 && diff < 60) return 'just now';
+            if (diff >= 0 && diff < 3600) return Math.floor(diff / 60) + 'm ago';
+            if (diff >= 0 && diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         }
 
         function escapeHtml(text) {
-            if (!text) return '';
+            if (text === null || text === undefined) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;

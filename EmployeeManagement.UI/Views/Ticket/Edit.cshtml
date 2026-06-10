@@ -1,8 +1,8 @@
 ﻿@{
     ViewData["Title"] = "Edit Ticket";
     var userRole = ViewBag.UserRole as string ?? "Employee";
-    var ticketData = ViewBag.TicketData as string ?? "{}";
-    var dropdownData = ViewBag.DropdownData as string ?? "{}";
+    var ticketData = ViewBag.TicketJson as string ?? "{}";
+    var dropdownData = ViewBag.DropdownsJson as string ?? "{}";
 }
 
 @section Styles {
@@ -25,6 +25,7 @@
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
             border: none;
+            overflow: hidden;
         }
 
         .form-section {
@@ -43,6 +44,9 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .form-control, .form-select {
@@ -81,6 +85,11 @@
                 background: linear-gradient(135deg, #fef2f2, #fce7f3);
             }
 
+            .selector-option i {
+                font-size: 1.35rem;
+                margin-bottom: 0.35rem;
+            }
+
         .btn-update {
             background: linear-gradient(135deg, #fa709a, #fee140);
             color: white;
@@ -88,6 +97,7 @@
             border-radius: 12px;
             padding: 0.75rem 2rem;
             font-weight: 700;
+            transition: all 0.2s;
         }
 
             .btn-update:hover {
@@ -115,6 +125,15 @@
                 animation: bounceIn 0.4s;
             }
 
+        .empty-master-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 1rem;
+            color: #64748b;
+            background: #f8fafc;
+            text-align: center;
+        }
+
         @@keyframes bounceIn {
             0% {
                 transform: scale(0.5);
@@ -135,7 +154,6 @@
 
 <div class="container py-3 pb-5">
 
-    <!-- HERO -->
     <div class="edit-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -150,6 +168,14 @@
         </div>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show shadow-sm">
@@ -160,14 +186,20 @@
 
     <form asp-action="Edit" method="post" id="editForm">
         @Html.AntiForgeryToken()
+
         <input type="hidden" name="ticketId" id="ticketIdInput" />
+
+        <input type="hidden" name="ticketTypeId" id="ticketTypeIdInput" />
+        <input type="hidden" name="priorityId" id="priorityIdInput" />
+        <input type="hidden" name="categoryId" id="categoryIdInput" />
+        <input type="hidden" name="moduleId" id="moduleIdInput" />
+        <input type="hidden" name="severityId" id="severityIdInput" />
 
         <div class="form-card">
 
-            <!-- BASIC INFO -->
             <div class="form-section">
                 <div class="form-section-title">
-                    <i class="bi bi-info-circle me-1"></i>Basic Information
+                    <i class="bi bi-info-circle text-primary"></i>Basic Information
                 </div>
 
                 <div class="mb-3">
@@ -183,88 +215,63 @@
                 </div>
             </div>
 
-            <!-- TYPE & PRIORITY -->
             <div class="form-section">
                 <div class="form-section-title">
-                    <i class="bi bi-tags me-1"></i>Type & Priority
+                    <i class="bi bi-tags text-info"></i>Type & Priority
                 </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Ticket Type</label>
                         <input type="hidden" name="ticketType" id="ticketTypeInput" />
-                        <div class="type-selector" id="typeSelector">
-                            <div class="selector-option" data-value="Bug" onclick="selectOption(this, 'type', 'Bug')">
-                                <i class="bi bi-bug text-danger"></i><div class="small fw-bold">Bug</div>
-                            </div>
-                            <div class="selector-option" data-value="Feature" onclick="selectOption(this, 'type', 'Feature')">
-                                <i class="bi bi-stars text-warning"></i><div class="small fw-bold">Feature</div>
-                            </div>
-                            <div class="selector-option" data-value="Task" onclick="selectOption(this, 'type', 'Task')">
-                                <i class="bi bi-check2-square text-primary"></i><div class="small fw-bold">Task</div>
-                            </div>
-                            <div class="selector-option" data-value="Improvement" onclick="selectOption(this, 'type', 'Improvement')">
-                                <i class="bi bi-arrow-up-circle text-success"></i><div class="small fw-bold">Improvement</div>
-                            </div>
-                            <div class="selector-option" data-value="Support" onclick="selectOption(this, 'type', 'Support')">
-                                <i class="bi bi-headset text-info"></i><div class="small fw-bold">Support</div>
-                            </div>
-                        </div>
+                        <div class="type-selector" id="typeSelector"></div>
                     </div>
 
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Priority</label>
                         <input type="hidden" name="priority" id="priorityInput" />
-                        <div class="priority-selector" id="prioritySelector">
-                            <div class="selector-option" data-value="Low" onclick="selectOption(this, 'priority', 'Low')">
-                                <i class="bi bi-arrow-down-circle text-success"></i><div class="small fw-bold">Low</div>
-                            </div>
-                            <div class="selector-option" data-value="Medium" onclick="selectOption(this, 'priority', 'Medium')">
-                                <i class="bi bi-dash-circle text-warning"></i><div class="small fw-bold">Medium</div>
-                            </div>
-                            <div class="selector-option" data-value="High" onclick="selectOption(this, 'priority', 'High')">
-                                <i class="bi bi-arrow-up-circle text-orange"></i><div class="small fw-bold">High</div>
-                            </div>
-                            <div class="selector-option" data-value="Critical" onclick="selectOption(this, 'priority', 'Critical')">
-                                <i class="bi bi-exclamation-triangle text-danger"></i><div class="small fw-bold">Critical</div>
-                            </div>
-                        </div>
+                        <div class="priority-selector" id="prioritySelector"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- DUE DATE -->
             <div class="form-section">
                 <div class="form-section-title">
-                    <i class="bi bi-calendar me-1"></i>Schedule
+                    <i class="bi bi-calendar text-secondary"></i>Schedule & Categorization
                 </div>
 
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold">Due Date</label>
                         <input type="date" name="dueDate" id="dueDateInput" class="form-control" />
                     </div>
-                    <div class="col-md-6">
+
+                    <div class="col-md-3">
                         <label class="form-label fw-semibold">Module</label>
                         <select name="module" id="moduleInput" class="form-select">
                             <option value="">Select Module</option>
-                            <option value="HR">HR Management</option>
-                            <option value="Payroll">Payroll</option>
-                            <option value="Leave">Leave</option>
-                            <option value="Attendance">Attendance</option>
-                            <option value="Employee">Employee</option>
-                            <option value="Reports">Reports</option>
-                            <option value="UI">UI</option>
-                            <option value="API">API</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Category</label>
+                        <select name="category" id="categoryInput" class="form-select">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Severity</label>
+                        <select name="severity" id="severityInput" class="form-select">
+                            <option value="">Select Severity</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <!-- BUG FIELDS -->
             <div class="form-section" id="bugFieldsSection" style="display:none;">
                 <div class="form-section-title">
-                    <i class="bi bi-bug me-1"></i>Bug Details
+                    <i class="bi bi-bug text-danger"></i>Bug Details
                 </div>
 
                 <div class="mb-3">
@@ -277,6 +284,7 @@
                         <label class="form-label fw-semibold">Expected Result</label>
                         <textarea name="expectedResult" id="expectedInput" class="form-control" rows="2"></textarea>
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Actual Result</label>
                         <textarea name="actualResult" id="actualInput" class="form-control" rows="2"></textarea>
@@ -289,22 +297,22 @@
                 </div>
             </div>
 
-            <!-- ACTIONS -->
             <div class="form-section">
-                <div class="d-flex justify-content-end gap-2">
+                <div class="d-flex justify-content-end gap-2 flex-wrap">
                     <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">
                         <i class="bi bi-x-circle me-1"></i>Cancel
                     </a>
-                    <button type="submit" class="btn btn-update">
+
+                    <button type="submit" class="btn btn-update" id="updateBtn">
                         <i class="bi bi-check-circle me-1"></i>Update Ticket
                     </button>
                 </div>
             </div>
+
         </div>
     </form>
 </div>
 
-<!-- Unsaved changes indicator -->
 <div class="changes-indicator" id="changesIndicator">
     <i class="bi bi-exclamation-circle me-1"></i>You have unsaved changes
 </div>
@@ -312,74 +320,322 @@
 @section Scripts {
     <script>
         const ticketData = @Html.Raw(ticketData);
+        const dropdownData = @Html.Raw(dropdownData);
+        const dd = dropdownData?.data || {};
         let hasChanges = false;
+        let isInitialLoad = true;
 
-        $(document).ready(function() {
+        $(document).ready(function () {
+            bindTicketTypes();
+            bindPriorities();
+            bindCategories();
+            bindModules();
+            bindSeverities();
+
             if (ticketData?.data) {
                 populateForm(ticketData.data);
-                trackChanges();
+            } else {
+                $('#editTicketNumber').text('Ticket not found');
             }
+
+            trackChanges();
+
+            $('#moduleInput').on('change', function () {
+                $('#moduleIdInput').val($(this).find(':selected').data('id') || '');
+            });
+
+            $('#categoryInput').on('change', function () {
+                $('#categoryIdInput').val($(this).find(':selected').data('id') || '');
+            });
+
+            $('#severityInput').on('change', function () {
+                $('#severityIdInput').val($(this).find(':selected').data('id') || '');
+            });
+
+            isInitialLoad = false;
         });
 
+        function bindTicketTypes() {
+            const items = dd.ticketTypeItems || [];
+            const $box = $('#typeSelector');
+            $box.empty();
+
+            if (!items.length && dd.ticketTypes && dd.ticketTypes.length) {
+                dd.ticketTypes.forEach((name, index) => {
+                    $box.append(buildTypeCard(index + 1, name, name, null));
+                });
+            } else if (items.length) {
+                items.forEach(x => {
+                    $box.append(buildTypeCard(x.id, x.name, x.code, x.colorCode));
+                });
+            } else {
+                $box.html('<div class="empty-master-box">No ticket types found.</div>');
+            }
+        }
+
+        function bindPriorities() {
+            const items = dd.priorityItems || [];
+            const $box = $('#prioritySelector');
+            $box.empty();
+
+            if (!items.length && dd.priorities && dd.priorities.length) {
+                dd.priorities.forEach((name, index) => {
+                    $box.append(buildPriorityCard(index + 1, name, name, null));
+                });
+            } else if (items.length) {
+                items.forEach(x => {
+                    $box.append(buildPriorityCard(x.id, x.name, x.code, x.colorCode));
+                });
+            } else {
+                $box.html('<div class="empty-master-box">No priorities found.</div>');
+            }
+        }
+
+        function bindCategories() {
+            const items = dd.categoryItems || [];
+            const $select = $('#categoryInput');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
+        function bindModules() {
+            const items = dd.moduleItems || [];
+            const $select = $('#moduleInput');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}" data-category-id="${x.categoryId || ''}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
+        function bindSeverities() {
+            const items = dd.severityItems || [];
+            const $select = $('#severityInput');
+            $select.find('option:not(:first)').remove();
+
+            items.forEach(x => {
+                $select.append(`<option value="${escapeHtml(x.name)}" data-id="${x.id}">${escapeHtml(x.name)}</option>`);
+            });
+        }
+
         function populateForm(t) {
-            $('#editTicketNumber').html(`<i class="bi bi-hash"></i>${t.ticketNumber}`);
-            $('#ticketIdInput').val(t.ticketId);
-            $('#titleInput').val(t.title);
-            $('#descInput').val(t.description);
+            $('#editTicketNumber').html(`<i class="bi bi-hash"></i>${escapeHtml(t.ticketNumber || '')}`);
+
+            $('#ticketIdInput').val(t.ticketId || '');
+            $('#titleInput').val(t.title || '');
+            $('#descInput').val(t.description || '');
             $('#dueDateInput').val(t.dueDate ? t.dueDate.split('T')[0] : '');
-            $('#moduleInput').val(t.module || '');
+
             $('#stepsInput').val(t.stepsToReproduce || '');
             $('#expectedInput').val(t.expectedResult || '');
             $('#actualInput').val(t.actualResult || '');
             $('#envInput').val(t.environment || '');
 
-            // Select type & priority
-            $(`.type-selector [data-value="${t.ticketType}"]`).addClass('selected');
-            $('#ticketTypeInput').val(t.ticketType);
+            selectTypeByTicket(t);
+            selectPriorityByTicket(t);
 
-            $(`.priority-selector [data-value="${t.priority}"]`).addClass('selected');
-            $('#priorityInput').val(t.priority);
+            setSelectByValueOrId('#moduleInput', '#moduleIdInput', t.module || t.moduleName, t.moduleId);
+            setSelectByValueOrId('#categoryInput', '#categoryIdInput', t.category || t.categoryName, t.categoryId);
+            setSelectByValueOrId('#severityInput', '#severityIdInput', t.severity || t.severityName, t.severityId);
 
-            if (t.ticketType === 'Bug') $('#bugFieldsSection').show();
+            if ((t.ticketType || '').toLowerCase() === 'bug') {
+                $('#bugFieldsSection').show();
+            } else {
+                $('#bugFieldsSection').hide();
+            }
         }
 
-        function selectOption(element, type, value) {
-            const selector = type === 'type' ? '.type-selector' : '.priority-selector';
+        function selectTypeByTicket(t) {
+            let $option = $(`#typeSelector .selector-option[data-id="${t.ticketTypeId}"]`);
+
+            if (!$option.length) {
+                $option = $('#typeSelector .selector-option').filter(function () {
+                    return ($(this).data('name') || '').toString().toLowerCase() === (t.ticketType || '').toLowerCase();
+                }).first();
+            }
+
+            if ($option.length) {
+                selectOption($option[0], 'type', $option.data('name'), $option.data('id'), false);
+            } else {
+                $('#ticketTypeInput').val(t.ticketType || '');
+                $('#ticketTypeIdInput').val(t.ticketTypeId || '');
+            }
+        }
+
+        function selectPriorityByTicket(t) {
+            let $option = $(`#prioritySelector .selector-option[data-id="${t.priorityId}"]`);
+
+            if (!$option.length) {
+                $option = $('#prioritySelector .selector-option').filter(function () {
+                    return ($(this).data('name') || '').toString().toLowerCase() === (t.priority || '').toLowerCase();
+                }).first();
+            }
+
+            if ($option.length) {
+                selectOption($option[0], 'priority', $option.data('name'), $option.data('id'), false);
+            } else {
+                $('#priorityInput').val(t.priority || '');
+                $('#priorityIdInput').val(t.priorityId || '');
+            }
+        }
+
+        function setSelectByValueOrId(selectId, hiddenId, value, id) {
+            const $select = $(selectId);
+
+            if (id) {
+                const $byId = $select.find(`option[data-id="${id}"]`);
+                if ($byId.length) {
+                    $byId.prop('selected', true);
+                    $(hiddenId).val(id);
+                    return;
+                }
+            }
+
+            if (value) {
+                $select.val(value);
+                $(hiddenId).val($select.find(':selected').data('id') || '');
+            }
+        }
+
+        function buildTypeCard(id, name, code, color) {
+            const lower = (name || '').toLowerCase();
+            const icon = getTypeIcon(lower);
+
+            return `
+                <div class="selector-option"
+                     data-id="${id}"
+                     data-name="${escapeHtml(name)}"
+                     data-code="${escapeHtml(code || '')}"
+                     onclick="selectOption(this, 'type', '${escapeJs(name)}', ${id}, true)">
+                    <i class="${icon}" style="${color ? `color:${color};` : ''}"></i>
+                    <div class="small fw-bold">${escapeHtml(name)}</div>
+                    <small class="text-muted">${escapeHtml(code || '')}</small>
+                </div>`;
+        }
+
+        function buildPriorityCard(id, name, code, color) {
+            const lower = (name || '').toLowerCase();
+            const icon = getPriorityIcon(lower);
+
+            return `
+                <div class="selector-option"
+                     data-id="${id}"
+                     data-name="${escapeHtml(name)}"
+                     data-code="${escapeHtml(code || '')}"
+                     onclick="selectOption(this, 'priority', '${escapeJs(name)}', ${id}, true)">
+                    <i class="${icon}" style="${color ? `color:${color};` : ''}"></i>
+                    <div class="small fw-bold">${escapeHtml(name)}</div>
+                    <small class="text-muted">${escapeHtml(code || '')}</small>
+                </div>`;
+        }
+
+        function selectOption(element, type, value, id, markChange = true) {
+            const selector = type === 'type' ? '#typeSelector' : '#prioritySelector';
             $(`${selector} .selector-option`).removeClass('selected');
             $(element).addClass('selected');
 
             if (type === 'type') {
                 $('#ticketTypeInput').val(value);
-                if (value === 'Bug') $('#bugFieldsSection').slideDown();
-                else $('#bugFieldsSection').slideUp();
+                $('#ticketTypeIdInput').val(id || '');
+
+                if ((value || '').toLowerCase() === 'bug') {
+                    $('#bugFieldsSection').slideDown();
+                } else {
+                    $('#bugFieldsSection').slideUp();
+                }
             } else {
                 $('#priorityInput').val(value);
+                $('#priorityIdInput').val(id || '');
             }
 
-            hasChanges = true;
-            $('#changesIndicator').addClass('show');
+            if (markChange && !isInitialLoad) {
+                hasChanges = true;
+                $('#changesIndicator').addClass('show');
+            }
         }
 
         function trackChanges() {
-            $('input, textarea, select').on('change input', function() {
-                hasChanges = true;
-                $('#changesIndicator').addClass('show');
+            $('input, textarea, select').on('change input', function () {
+                if (!isInitialLoad) {
+                    hasChanges = true;
+                    $('#changesIndicator').addClass('show');
+                }
             });
         }
 
-        // Warn before leaving
-        window.addEventListener('beforeunload', function(e) {
+        window.addEventListener('beforeunload', function (e) {
             if (hasChanges) {
                 e.preventDefault();
                 e.returnValue = '';
             }
         });
 
-        // Disable warning on submit
-        $('#editForm').on('submit', function() {
+        $('#editForm').on('submit', function (e) {
+            const title = $('#titleInput').val().trim();
+            const desc = $('#descInput').val().trim();
+
+            if (title.length < 5) {
+                e.preventDefault();
+                alert('Title must be at least 5 characters');
+                return;
+            }
+
+            if (desc.length < 10) {
+                e.preventDefault();
+                alert('Description must be at least 10 characters');
+                return;
+            }
+
+            if (!$('#ticketTypeInput').val()) {
+                e.preventDefault();
+                alert('Please select ticket type');
+                return;
+            }
+
+            if (!$('#priorityInput').val()) {
+                e.preventDefault();
+                alert('Please select priority');
+                return;
+            }
+
             hasChanges = false;
-            $(this).find('button[type="submit"]').prop('disabled', true)
+
+            $('#updateBtn').prop('disabled', true)
                 .html('<i class="bi bi-hourglass-split me-1"></i>Updating...');
         });
+
+        function getTypeIcon(type) {
+            if (type.includes('bug')) return 'bi bi-bug text-danger';
+            if (type.includes('feature')) return 'bi bi-stars text-warning';
+            if (type.includes('task')) return 'bi bi-check2-square text-primary';
+            if (type.includes('support')) return 'bi bi-headset text-info';
+            if (type.includes('change')) return 'bi bi-arrow-repeat text-warning';
+            if (type.includes('improvement')) return 'bi bi-arrow-up-circle text-success';
+            return 'bi bi-ticket-detailed text-primary';
+        }
+
+        function getPriorityIcon(priority) {
+            if (priority.includes('critical')) return 'bi bi-exclamation-triangle text-danger';
+            if (priority.includes('high')) return 'bi bi-arrow-up-circle';
+            if (priority.includes('medium')) return 'bi bi-dash-circle text-warning';
+            if (priority.includes('low')) return 'bi bi-arrow-down-circle text-success';
+            return 'bi bi-flag text-secondary';
+        }
+
+        function escapeHtml(value) {
+            return String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function escapeJs(value) {
+            return String(value || '').replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+        }
     </script>
 }

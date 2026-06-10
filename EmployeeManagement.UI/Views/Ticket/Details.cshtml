@@ -1,10 +1,13 @@
 ﻿@{
     ViewData["Title"] = "Ticket Details";
+
     var userRole = ViewBag.UserRole as string ?? "Employee";
     var userId = (int)(ViewBag.UserId ?? 0);
     var userName = ViewBag.UserName as string ?? "User";
+
     var ticketJson = ViewBag.TicketJson as string ?? "{}";
     var dropdownsJson = ViewBag.DropdownsJson as string ?? "{}";
+
     var isAdmin = userRole == "Admin";
     var isManager = userRole == "Manager" || isAdmin;
     var isQA = userRole == "QA" || isAdmin;
@@ -126,41 +129,17 @@
                 color: white;
             }
 
-            .btn-wf.progress {
-                background: linear-gradient(135deg, #4facfe, #00f2fe);
-            }
+        .btn-dynamic {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
 
-            .btn-wf.fixed {
-                background: linear-gradient(135deg, #a18cd1, #fbc2eb);
-            }
+        .btn-edit {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
 
-            .btn-wf.qa {
-                background: linear-gradient(135deg, #667eea, #764ba2);
-            }
-
-            .btn-wf.testing {
-                background: linear-gradient(135deg, #2193b0, #6dd5ed);
-            }
-
-            .btn-wf.resolve {
-                background: linear-gradient(135deg, #11998e, #38ef7d);
-            }
-
-            .btn-wf.close-btn {
-                background: linear-gradient(135deg, #2c3e50, #4a5568);
-            }
-
-            .btn-wf.reopen {
-                background: linear-gradient(135deg, #eb3349, #f45c43);
-            }
-
-            .btn-wf.hold {
-                background: linear-gradient(135deg, #f7971e, #ffd200);
-            }
-
-            .btn-wf.edit-btn {
-                background: linear-gradient(135deg, #fa709a, #fee140);
-            }
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+        }
 
         .comment-box {
             background: white;
@@ -193,6 +172,7 @@
             justify-content: center;
             font-weight: 700;
             font-size: 0.9rem;
+            flex-shrink: 0;
         }
 
         .attach-item {
@@ -214,6 +194,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .timeline {
@@ -273,9 +254,34 @@
                 background: #eef2ff;
             }
 
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .empty-mini {
+            color: #94a3b8;
+            text-align: center;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+        }
+
         @@media print {
             .no-print {
                 display: none !important;
+            }
+
+            body {
+                background: white !important;
+            }
+
+            .card-section {
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
             }
         }
     </style>
@@ -283,7 +289,6 @@
 
 <div class="container py-3 pb-5">
 
-    <!-- HERO -->
     <div class="hero">
         <div class="hero-content">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -292,7 +297,7 @@
                     <h3 class="fw-bold mt-2 mb-1" id="heroTitle">Loading...</h3>
                     <div id="heroMeta" class="d-flex gap-2 flex-wrap mt-2"></div>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 no-print">
                     <a href="javascript:history.back()" class="btn btn-light btn-sm fw-semibold">
                         <i class="bi bi-arrow-left me-1"></i>Back
                     </a>
@@ -306,47 +311,52 @@
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm no-print">
             <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm no-print">
             <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <!-- WORKFLOW BUTTONS -->
     <div class="card-section no-print">
         <div class="card-body-custom">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <strong class="text-muted">⚡ Actions:</strong>
-                <div class="d-flex gap-2 flex-wrap" id="workflowBtns"></div>
+                <strong class="text-muted">
+                    <i class="bi bi-lightning-charge-fill text-warning me-1"></i>Actions
+                </strong>
+                <div class="d-flex gap-2 flex-wrap" id="workflowBtns">
+                    <small class="text-muted">Loading actions...</small>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="row g-3">
-        <!-- LEFT -->
         <div class="col-lg-8">
-            <!-- Description -->
+
             <div class="card-section">
-                <div class="card-header-custom"><i class="bi bi-file-text me-2"></i>Description</div>
+                <div class="card-header-custom">
+                    <i class="bi bi-file-text me-2"></i>Description
+                </div>
                 <div class="card-body-custom">
                     <div class="desc-box" id="descBox">Loading...</div>
                 </div>
             </div>
 
-            <!-- Bug Details -->
             <div class="card-section" id="bugSection" style="display:none;">
-                <div class="card-header-custom"><i class="bi bi-bug me-2"></i>Bug Details</div>
+                <div class="card-header-custom">
+                    <i class="bi bi-bug me-2"></i>Bug Details
+                </div>
                 <div class="card-body-custom" id="bugBody"></div>
             </div>
 
-            <!-- Comments -->
             <div class="card-section">
                 <div class="card-header-custom d-flex justify-content-between">
                     <span><i class="bi bi-chat-dots me-2"></i>Comments</span>
@@ -361,6 +371,7 @@
                             <input type="hidden" id="commentTicketId" />
                             <textarea name="comment" class="form-control mb-2" rows="3"
                                       placeholder="Write a comment..." required id="commentText"></textarea>
+
                             <div class="d-flex justify-content-between align-items-center">
                                 @if (isDeveloper || isQA || isManager)
                                 {
@@ -373,9 +384,9 @@
                                 }
                                 else
                                 {
-
                                     <div></div>
                                 }
+
                                 <button type="submit" class="btn btn-primary btn-sm" id="commentSubmitBtn">
                                     <i class="bi bi-send me-1"></i>Post
                                 </button>
@@ -384,21 +395,24 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
-        <!-- RIGHT SIDEBAR -->
         <div class="col-lg-4">
-            <!-- Info -->
+
             <div class="card-section">
-                <div class="card-header-custom"><i class="bi bi-info-circle me-2"></i>Details</div>
+                <div class="card-header-custom">
+                    <i class="bi bi-info-circle me-2"></i>Details
+                </div>
                 <div class="card-body-custom" id="infoSidebar"></div>
             </div>
 
-            <!-- Assignment -->
             @if (isManager)
             {
                 <div class="card-section no-print">
-                    <div class="card-header-custom"><i class="bi bi-person-check me-2"></i>Assign</div>
+                    <div class="card-header-custom">
+                        <i class="bi bi-person-check me-2"></i>Assign
+                    </div>
                     <div class="card-body-custom">
                         <form asp-action="Assign" method="post">
                             @Html.AntiForgeryToken()
@@ -407,7 +421,7 @@
                                 <option value="">Select Developer...</option>
                             </select>
                             <textarea name="remarks" class="form-control form-control-sm mb-2" rows="2"
-                                  placeholder="Notes (optional)"></textarea>
+                                  placeholder="Notes optional"></textarea>
                             <button type="submit" class="btn btn-primary btn-sm w-100">
                                 <i class="bi bi-person-check me-1"></i>Assign Ticket
                             </button>
@@ -416,7 +430,6 @@
                 </div>
             }
 
-            <!-- Attachments -->
             <div class="card-section">
                 <div class="card-header-custom d-flex justify-content-between">
                     <span><i class="bi bi-paperclip me-2"></i>Attachments</span>
@@ -429,9 +442,10 @@
                           class="mt-3 no-print" id="uploadForm">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="ticketId" id="uploadTicketId" />
+
                         <label class="upload-zone d-block">
                             <i class="bi bi-cloud-upload display-6 text-primary"></i>
-                            <div class="mt-2 fw-semibold small">Click or drag to upload (max 10MB)</div>
+                            <div class="mt-2 fw-semibold small">Click to upload max 10MB</div>
                             <input type="file" name="file" class="d-none" id="fileInput" required
                                    onchange="this.form.submit();" />
                         </label>
@@ -439,34 +453,39 @@
                 </div>
             </div>
 
-            <!-- History -->
             <div class="card-section">
-                <div class="card-header-custom"><i class="bi bi-clock-history me-2"></i>Timeline</div>
+                <div class="card-header-custom">
+                    <i class="bi bi-clock-history me-2"></i>Timeline
+                </div>
                 <div class="card-body-custom">
                     <div class="timeline" id="historyTimeline" style="max-height: 400px; overflow-y: auto;"></div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
 
-<!-- STATUS MODAL -->
 <div class="modal fade" id="statusModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius: 16px; border: none;">
-            <div class="modal-header text-white" id="modalHeader"
+            <div class="modal-header text-white"
                  style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 16px 16px 0 0;">
                 <h5 class="modal-title fw-bold" id="modalTitle">Change Status</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+
             <form id="statusForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" id="statusTicketId" />
                 <input type="hidden" id="statusNewStatus" />
+
                 <div class="modal-body p-4">
-                    <p>Change status to <strong id="statusTargetText"></strong>?</p>
-                    <textarea id="statusRemarks" class="form-control" rows="3" placeholder="Remarks (optional)"></textarea>
+                    <p class="mb-2">Change status to <strong id="statusTargetText"></strong>?</p>
+                    <div class="small text-muted mb-2" id="statusRequirementText"></div>
+                    <textarea id="statusRemarks" class="form-control" rows="3" placeholder="Remarks optional"></textarea>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="statusSubmitBtn">
@@ -482,6 +501,7 @@
     <script>
         const ticketJson = @Html.Raw(ticketJson);
         const dropdownsJson = @Html.Raw(dropdownsJson);
+
         const role = '@userRole';
         const uid = @userId;
         const isAdmin = @isAdmin.ToString().ToLower();
@@ -490,267 +510,584 @@
         const isDev = @isDeveloper.ToString().ToLower();
 
         let ticket = null;
+        let allowedStatuses = [];
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             if (ticketJson?.data) {
                 ticket = ticketJson.data;
                 render(ticket);
                 loadDropdowns();
+                loadAllowedNextStatuses(ticket.ticketId);
             } else {
-                alert('Failed to load ticket');
-                history.back();
+                toast('error', 'Failed to load ticket');
+                setTimeout(() => history.back(), 800);
             }
         });
 
         function render(t) {
-            // Hero
-            $('#heroNum').html(`<i class="bi bi-hash"></i>${t.ticketNumber}`);
-            $('#heroTitle').text(t.title);
+            $('#heroNum').html(`<i class="bi bi-hash"></i>${escapeHtml(t.ticketNumber)}`);
+            $('#heroTitle').text(t.title || 'Untitled Ticket');
+
             $('#heroMeta').html(`
-                <span class="badge bg-white bg-opacity-25">${t.ticketType}</span>
-                <span class="badge bg-white bg-opacity-25">${t.priority}</span>
-                <span class="badge bg-white bg-opacity-25">${t.status}</span>
+                <span class="badge bg-white bg-opacity-25">${escapeHtml(t.ticketType || 'Ticket')}</span>
+                <span class="badge bg-white bg-opacity-25">${escapeHtml(t.priority || 'Priority')}</span>
+                <span class="badge bg-white bg-opacity-25">${escapeHtml(displayStatus(t.status))}</span>
                 ${t.isOverdue ? '<span class="badge bg-danger">⚠️ OVERDUE</span>' : ''}
             `);
 
-            // Description
             $('#descBox').text(t.description || 'No description');
 
-            // Bug details
-            if (t.ticketType === 'Bug' && (t.stepsToReproduce || t.expectedResult || t.actualResult)) {
-                let html = '';
-                if (t.stepsToReproduce) html += `<div class="p-3 rounded mb-2" style="background:#fef3c7;border-left:3px solid #f59e0b;"><strong>Steps:</strong><pre class="mb-0 mt-1 small">${esc(t.stepsToReproduce)}</pre></div>`;
-                if (t.expectedResult) html += `<div class="p-3 rounded mb-2" style="background:#d1fae5;border-left:3px solid #10b981;"><strong>Expected:</strong><p class="mb-0 mt-1 small">${esc(t.expectedResult)}</p></div>`;
-                if (t.actualResult) html += `<div class="p-3 rounded mb-2" style="background:#fee2e2;border-left:3px solid #ef4444;"><strong>Actual:</strong><p class="mb-0 mt-1 small">${esc(t.actualResult)}</p></div>`;
-                if (t.environment) html += `<div class="p-3 rounded" style="background:#dbeafe;border-left:3px solid #3b82f6;"><strong>Environment:</strong> ${esc(t.environment)}</div>`;
-                $('#bugBody').html(html);
-                $('#bugSection').show();
-            }
-
-            // Sidebar
+            renderBugDetails(t);
             renderSidebar(t);
-
-            // Workflow buttons
-            renderButtons(t);
-
-            // Comments
             renderComments(t.comments || []);
-
-            // Attachments
             renderAttachments(t.attachments || []);
-
-            // History
             renderHistory(t.history || []);
 
-            // Set form IDs
             $('#commentTicketId, #assignTicketId, #uploadTicketId').val(t.ticketId);
         }
 
+        function renderBugDetails(t) {
+            const isBug = normalizeKey(t.ticketType).includes('bug');
+            const hasBugData = t.stepsToReproduce || t.expectedResult || t.actualResult || t.environment;
+
+            if (!isBug || !hasBugData) {
+                $('#bugSection').hide();
+                return;
+            }
+
+            let html = '';
+
+            if (t.stepsToReproduce) {
+                html += `
+                    <div class="p-3 rounded mb-2" style="background:#fef3c7;border-left:3px solid #f59e0b;">
+                        <strong>Steps to Reproduce</strong>
+                        <pre class="mb-0 mt-1 small" style="white-space:pre-wrap;">${escapeHtml(t.stepsToReproduce)}</pre>
+                    </div>`;
+            }
+
+            if (t.expectedResult) {
+                html += `
+                    <div class="p-3 rounded mb-2" style="background:#d1fae5;border-left:3px solid #10b981;">
+                        <strong>Expected Result</strong>
+                        <p class="mb-0 mt-1 small">${escapeHtml(t.expectedResult)}</p>
+                    </div>`;
+            }
+
+            if (t.actualResult) {
+                html += `
+                    <div class="p-3 rounded mb-2" style="background:#fee2e2;border-left:3px solid #ef4444;">
+                        <strong>Actual Result</strong>
+                        <p class="mb-0 mt-1 small">${escapeHtml(t.actualResult)}</p>
+                    </div>`;
+            }
+
+            if (t.environment) {
+                html += `
+                    <div class="p-3 rounded" style="background:#dbeafe;border-left:3px solid #3b82f6;">
+                        <strong>Environment</strong>
+                        <div class="small mt-1">${escapeHtml(t.environment)}</div>
+                    </div>`;
+            }
+
+            $('#bugBody').html(html);
+            $('#bugSection').show();
+        }
+
         function renderSidebar(t) {
-            const pColor = { Critical: 'danger', High: 'warning', Medium: 'info', Low: 'success' };
             $('#infoSidebar').html(`
-                <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value"><span class="badge bg-primary">${t.status}</span></div></div>
-                <div class="meta-item"><div class="meta-label">Priority</div><div class="meta-value"><span class="badge bg-${pColor[t.priority] || 'secondary'}">${t.priority}</span></div></div>
-                <div class="meta-item"><div class="meta-label">Created By</div><div class="meta-value">${esc(t.createdByName || 'N/A')}</div><small class="text-muted">${fmtDate(t.createdDate)}</small></div>
-                <div class="meta-item"><div class="meta-label">Assigned To</div><div class="meta-value">${t.assignedToName ? '<i class="bi bi-person-circle"></i> ' + esc(t.assignedToName) : '<span class="text-muted">Unassigned</span>'}</div></div>
-                ${t.dueDate ? `<div class="meta-item"><div class="meta-label">Due Date</div><div class="meta-value ${t.isOverdue ? 'text-danger' : ''}">${fmtDate(t.dueDate)} ${t.isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : ''}</div></div>` : ''}
-                <div class="meta-item"><div class="meta-label">Updated</div><div class="meta-value">${fmtDate(t.updatedDate)}</div></div>
+                <div class="meta-item">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-value">
+                        <span class="badge ${getStatusBadgeClass(t.status)}">${escapeHtml(displayStatus(t.status))}</span>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Priority</div>
+                    <div class="meta-value">
+                        <span class="badge ${getPriorityBadgeClass(t.priority)}">${escapeHtml(t.priority || 'N/A')}</span>
+                    </div>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Type</div>
+                    <div class="meta-value">${escapeHtml(t.ticketType || 'N/A')}</div>
+                </div>
+
+                ${t.categoryName || t.category ? `
+                <div class="meta-item">
+                    <div class="meta-label">Category</div>
+                    <div class="meta-value">${escapeHtml(t.categoryName || t.category)}</div>
+                </div>` : ''}
+
+                ${t.moduleName || t.module ? `
+                <div class="meta-item">
+                    <div class="meta-label">Module</div>
+                    <div class="meta-value">${escapeHtml(t.moduleName || t.module)}</div>
+                </div>` : ''}
+
+                ${t.severityName || t.severity ? `
+                <div class="meta-item">
+                    <div class="meta-label">Severity</div>
+                    <div class="meta-value">${escapeHtml(t.severityName || t.severity)}</div>
+                </div>` : ''}
+
+                <div class="meta-item">
+                    <div class="meta-label">Created By</div>
+                    <div class="meta-value">${escapeHtml(t.createdByName || 'N/A')}</div>
+                    <small class="text-muted">${formatDate(t.createdDate)}</small>
+                </div>
+
+                <div class="meta-item">
+                    <div class="meta-label">Assigned To</div>
+                    <div class="meta-value">
+                        ${t.assignedToName ? '<i class="bi bi-person-circle"></i> ' + escapeHtml(t.assignedToName) : '<span class="text-muted">Unassigned</span>'}
+                    </div>
+                </div>
+
+                ${t.dueDate ? `
+                <div class="meta-item">
+                    <div class="meta-label">Due Date</div>
+                    <div class="meta-value ${t.isOverdue ? 'text-danger' : ''}">
+                        ${formatDate(t.dueDate)}
+                        ${t.isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : ''}
+                    </div>
+                </div>` : ''}
+
+                <div class="meta-item">
+                    <div class="meta-label">Updated</div>
+                    <div class="meta-value">${formatDate(t.updatedDate)}</div>
+                </div>
             `);
         }
 
-        function renderButtons(t) {
+        async function loadAllowedNextStatuses(ticketId) {
+            $('#workflowBtns').html('<small class="text-muted">Loading actions...</small>');
+
+            try {
+                const response = await fetch(`/Ticket/GetNextStatuses?ticketId=${ticketId}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await response.json();
+                allowedStatuses = result?.data || [];
+
+                renderDynamicWorkflowButtons(ticket, allowedStatuses);
+            } catch (err) {
+                renderFallbackWorkflowButtons(ticket);
+            }
+        }
+
+        function renderDynamicWorkflowButtons(t, statuses) {
             const btns = [];
-            const s = t.status;
-            const myTicket = t.assignedTo === uid;
-            const created = t.createdBy === uid;
 
-            // Edit
-            if ((isManager || created) && s !== 'Closed' && s !== 'Cancelled')
-                btns.push(`<a href="/Ticket/Edit/${t.ticketId}" class="btn-wf edit-btn"><i class="bi bi-pencil"></i>Edit</a>`);
+            const canEdit = (isManager || t.createdBy === uid) && !isFinalStatus(t.status);
+            if (canEdit) {
+                btns.push(`<a href="/Ticket/Edit/${t.ticketId}" class="btn-wf btn-edit"><i class="bi bi-pencil"></i>Edit</a>`);
+            }
 
-            // Start Work (Developer)
-            if ((isDev && myTicket) && ['Assigned', 'OnHold', 'Reopened'].includes(s))
-                btns.push(`<button class="btn-wf progress" onclick="openStatusModal(${t.ticketId},'InProgress','Start Working')"><i class="bi bi-play-circle"></i>Start</button>`);
+            if (Array.isArray(statuses) && statuses.length) {
+                statuses.forEach(s => {
+                    const name = s.name || s.statusName || s.code || '';
+                    const code = s.code || s.statusCode || name;
+                    const color = s.colorCode || '#667eea';
+                    const requiresRemarks = s.requiresRemarks === true || s.requiresRemarks === 1;
 
-            // Mark Fixed (Developer)
-            if ((isDev && myTicket) && s === 'InProgress')
-                btns.push(`<button class="btn-wf fixed" onclick="openStatusModal(${t.ticketId},'FixedByDev','Mark Fixed')"><i class="bi bi-check2-square"></i>Fixed</button>`);
+                    btns.push(`
+                        <button type="button"
+                                class="btn-wf btn-dynamic"
+                                style="background:linear-gradient(135deg, ${color}, ${shadeColor(color, -18)});"
+                                onclick="openStatusModal(${t.ticketId}, '${escapeJs(code || name)}', '${escapeJs(displayStatus(name))}', ${requiresRemarks})">
+                            <i class="${getStatusIcon(name || code)}"></i>${escapeHtml(displayStatus(name || code))}
+                        </button>
+                    `);
+                });
+            }
 
-            // Send to QA
-            if ((isDev || isAdmin) && s === 'FixedByDev')
-                btns.push(`<button class="btn-wf qa" onclick="openStatusModal(${t.ticketId},'ReadyForQA','Send to QA')"><i class="bi bi-send"></i>Send to QA</button>`);
-
-            // Start Testing (QA)
-            if ((isQA) && s === 'ReadyForQA')
-                btns.push(`<button class="btn-wf testing" onclick="openStatusModal(${t.ticketId},'InTesting','Start Testing')"><i class="bi bi-clipboard-check"></i>Test</button>`);
-
-            // Resolve (QA)
-            if ((isQA) && ['InTesting', 'ReadyForQA'].includes(s))
-                btns.push(`<button class="btn-wf resolve" onclick="openStatusModal(${t.ticketId},'Resolved','Resolve')"><i class="bi bi-check-circle"></i>Resolve</button>`);
-
-            // Close (QA/Manager)
-            if ((isQA || isManager) && s === 'Resolved')
-                btns.push(`<button class="btn-wf close-btn" onclick="openStatusModal(${t.ticketId},'Closed','Close')"><i class="bi bi-x-circle"></i>Close</button>`);
-
-            // Reopen
-            if ((isQA || isManager || created) && ['Closed', 'Resolved'].includes(s))
-                btns.push(`<button class="btn-wf reopen" onclick="openStatusModal(${t.ticketId},'Reopened','Reopen')"><i class="bi bi-arrow-counterclockwise"></i>Reopen</button>`);
-
-            // Hold
-            if ((myTicket || isManager) && ['InProgress', 'Assigned'].includes(s))
-                btns.push(`<button class="btn-wf hold" onclick="openStatusModal(${t.ticketId},'OnHold','Put On Hold')"><i class="bi bi-pause-circle"></i>Hold</button>`);
+            if (isAdmin) {
+                btns.push(`
+                    <form method="post" action="/Ticket/Delete/${t.ticketId}" onsubmit="return confirm('Delete this ticket?')" class="d-inline">
+                        <input name="__RequestVerificationToken" type="hidden" value="${getAntiForgeryToken()}" />
+                        <button type="submit" class="btn-wf btn-delete">
+                            <i class="bi bi-trash"></i>Delete
+                        </button>
+                    </form>
+                `);
+            }
 
             $('#workflowBtns').html(btns.length ? btns.join('') : '<small class="text-muted">No actions available</small>');
         }
 
+        function renderFallbackWorkflowButtons(t) {
+            const btns = [];
+            const s = normalizeKey(t.status);
+            const myTicket = t.assignedTo === uid;
+            const created = t.createdBy === uid;
+
+            if ((isManager || created) && !isFinalStatus(t.status)) {
+                btns.push(`<a href="/Ticket/Edit/${t.ticketId}" class="btn-wf btn-edit"><i class="bi bi-pencil"></i>Edit</a>`);
+            }
+
+            if ((isDev && myTicket) && ['assigned', 'onhold', 'reopened'].includes(s)) {
+                btns.push(`<button class="btn-wf btn-dynamic" onclick="openStatusModal(${t.ticketId},'InProgress','In Progress', false)"><i class="bi bi-play-circle"></i>Start</button>`);
+            }
+
+            if ((isDev && myTicket) && s === 'inprogress') {
+                btns.push(`<button class="btn-wf btn-dynamic" onclick="openStatusModal(${t.ticketId},'FixedByDev','Fixed By Dev', true)"><i class="bi bi-check2-square"></i>Fixed</button>`);
+            }
+
+            if ((isQA || isManager) && ['readyforqa', 'intesting'].includes(s)) {
+                btns.push(`<button class="btn-wf btn-dynamic" onclick="openStatusModal(${t.ticketId},'Resolved','Resolved', true)"><i class="bi bi-check-circle"></i>Resolve</button>`);
+            }
+
+            if ((isQA || isManager) && s === 'resolved') {
+                btns.push(`<button class="btn-wf btn-dynamic" onclick="openStatusModal(${t.ticketId},'Closed','Closed', true)"><i class="bi bi-x-circle"></i>Close</button>`);
+            }
+
+            $('#workflowBtns').html(btns.length ? btns.join('') : '<small class="text-muted">No actions available</small>');
+        }
+
+        function openStatusModal(ticketId, status, title, requiresRemarks) {
+            $('#statusTicketId').val(ticketId);
+            $('#statusNewStatus').val(status);
+            $('#statusTargetText').text(displayStatus(title || status));
+            $('#modalTitle').text('Change Status');
+            $('#statusRemarks').val('');
+            $('#statusRemarks').prop('required', requiresRemarks === true);
+            $('#statusRequirementText').html(requiresRemarks ? '<span class="text-danger">Remarks are required for this action.</span>' : '');
+            new bootstrap.Modal(document.getElementById('statusModal')).show();
+        }
+
+        $('#statusForm').on('submit', async function (e) {
+            e.preventDefault();
+
+            const remarks = $('#statusRemarks').val().trim();
+            const isRequired = $('#statusRemarks').prop('required');
+
+            if (isRequired && !remarks) {
+                alert('Remarks are required');
+                return;
+            }
+
+            const btn = $('#statusSubmitBtn');
+            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-1"></i>Updating...');
+
+            const token = getAntiForgeryToken();
+            const fd = new FormData();
+            fd.append('ticketId', $('#statusTicketId').val());
+            fd.append('newStatus', $('#statusNewStatus').val());
+            fd.append('remarks', remarks);
+            fd.append('__RequestVerificationToken', token);
+
+            try {
+                const res = await fetch('/Ticket/ChangeStatus', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    toast('success', result.message || 'Status updated');
+                    setTimeout(() => location.reload(), 900);
+                } else {
+                    toast('error', result.message || 'Failed to update status');
+                    btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm');
+                }
+            } catch {
+                toast('error', 'Error occurred');
+                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm');
+            }
+        });
+
+        $('#commentForm').on('submit', async function (e) {
+            e.preventDefault();
+
+            const comment = $('#commentText').val().trim();
+            if (!comment) return;
+
+            const btn = $('#commentSubmitBtn');
+            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-1"></i>Posting...');
+
+            const fd = new FormData();
+            fd.append('ticketId', ticket.ticketId);
+            fd.append('comment', comment);
+            fd.append('isInternal', $('#internalCheck').is(':checked'));
+            fd.append('__RequestVerificationToken', getAntiForgeryToken());
+
+            try {
+                const res = await fetch('/Ticket/AddComment', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const result = await res.json().catch(() => ({ success: res.ok }));
+
+                if (res.ok && result.success !== false) {
+                    location.reload();
+                } else {
+                    toast('error', result.message || 'Failed to add comment');
+                    btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Post');
+                }
+            } catch {
+                toast('error', 'Error adding comment');
+                btn.prop('disabled', false).html('<i class="bi bi-send me-1"></i>Post');
+            }
+        });
+
         function renderComments(comments) {
             $('#commentBadge').text(comments.length);
-            if (!comments.length) { $('#commentList').html('<div class="text-center text-muted py-3"><i class="bi bi-chat-square-dots fs-2 d-block opacity-50"></i>No comments</div>'); return; }
+
+            if (!comments.length) {
+                $('#commentList').html('<div class="empty-mini"><i class="bi bi-chat-square-dots fs-2 d-block opacity-50"></i>No comments</div>');
+                return;
+            }
 
             const html = comments.map(c => `
                 <div class="comment-box ${c.isInternal ? 'internal' : ''} ${c.isSystemGenerated ? 'system' : ''}">
                     <div class="d-flex gap-2">
-                        <div class="comment-avatar">${(c.userName || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="comment-avatar">${escapeHtml((c.userName || 'U').charAt(0).toUpperCase())}</div>
                         <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between">
-                                <div><strong class="small">${esc(c.userName || 'User')}</strong>
+                            <div class="d-flex justify-content-between gap-2">
+                                <div>
+                                    <strong class="small">${escapeHtml(c.userName || 'User')}</strong>
                                     ${c.isInternal ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem">Internal</span>' : ''}
                                 </div>
-                                <small class="text-muted">${fmtDateTime(c.createdDate)}</small>
+                                <small class="text-muted">${formatDateTime(c.createdDate)}</small>
                             </div>
-                            <div class="mt-1 small">${esc(c.comment)}</div>
+                            <div class="mt-1 small" style="white-space:pre-wrap;">${escapeHtml(c.comment)}</div>
                         </div>
                     </div>
                 </div>
             `).join('');
+
             $('#commentList').html(html);
         }
 
         function renderAttachments(attachments) {
             $('#attachBadge').text(attachments.length);
-            if (!attachments.length) { $('#attachList').html('<small class="text-muted">No files</small>'); return; }
+
+            if (!attachments.length) {
+                $('#attachList').html('<div class="empty-mini"><i class="bi bi-paperclip fs-2 d-block opacity-50"></i>No files</div>');
+                return;
+            }
 
             const html = attachments.map(a => `
                 <div class="attach-item">
-                    <div class="attach-icon"><i class="bi bi-file-earmark"></i></div>
+                    <div class="attach-icon"><i class="${getFileIcon(a.fileName)}"></i></div>
                     <div class="flex-grow-1 overflow-hidden">
-                        <div class="text-truncate fw-semibold small">${esc(a.fileName)}</div>
-                        <small class="text-muted">${fmtSize(a.fileSize)} • ${esc(a.uploadedByName || '')}</small>
+                        <div class="text-truncate fw-semibold small">${escapeHtml(a.fileName)}</div>
+                        <small class="text-muted">${formatSize(a.fileSize)} • ${escapeHtml(a.uploadedByName || '')}</small>
                     </div>
-                    <a href="/Ticket/DownloadAttachment/${a.attachmentId}" class="btn btn-sm btn-outline-primary"><i class="bi bi-download"></i></a>
+                    <a href="/Ticket/DownloadAttachment/${a.attachmentId}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    ${isAdmin ? `
+                        <form method="post" action="/Ticket/DeleteAttachment" class="d-inline" onsubmit="return confirm('Delete this attachment?')">
+                            <input type="hidden" name="attachmentId" value="${a.attachmentId}" />
+                            <input type="hidden" name="ticketId" value="${ticket.ticketId}" />
+                            <input name="__RequestVerificationToken" type="hidden" value="${getAntiForgeryToken()}" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>` : ''}
                 </div>
             `).join('');
+
             $('#attachList').html(html);
         }
 
         function renderHistory(history) {
-            if (!history.length) { $('#historyTimeline').html('<small class="text-muted">No activity</small>'); return; }
+            if (!history.length) {
+                $('#historyTimeline').html('<div class="empty-mini">No activity</div>');
+                return;
+            }
 
             const html = history.map(h => {
                 let change = '';
-                if (h.oldValue && h.newValue) change = `<small><span class="badge bg-light text-dark">${esc(h.oldValue)}</span> → <span class="badge bg-primary">${esc(h.newValue)}</span></small>`;
+                if (h.oldValue && h.newValue) {
+                    change = `<small><span class="badge bg-light text-dark">${escapeHtml(h.oldValue)}</span> → <span class="badge bg-primary">${escapeHtml(h.newValue)}</span></small>`;
+                }
 
                 return `
                     <div class="tl-item">
-                        <div class="tl-dot"><i class="bi bi-circle-fill"></i></div>
+                        <div class="tl-dot"><i class="${getHistoryIcon(h.changeType)}"></i></div>
                         <div class="tl-content">
-                            <div class="d-flex justify-content-between"><strong class="small">${esc(h.changedByName || 'System')}</strong><small class="text-muted">${fmtDate(h.changeDate)}</small></div>
-                            <small class="text-muted">${h.changeType}${h.fieldName ? ': ' + h.fieldName : ''}</small>
-                            ${change}
-                            ${h.remarks ? `<div class="small mt-1 text-muted"><i>"${esc(h.remarks)}"</i></div>` : ''}
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong class="small">${escapeHtml(h.changedByName || 'System')}</strong>
+                                <small class="text-muted">${formatDate(h.changeDate)}</small>
+                            </div>
+                            <small class="text-muted">${escapeHtml(h.changeType || 'Activity')}</small>
+                            <div>${change}</div>
+                            ${h.remarks ? `<div class="small mt-1 text-muted"><i>"${escapeHtml(h.remarks)}"</i></div>` : ''}
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
+
             $('#historyTimeline').html(html);
         }
 
-        // STATUS MODAL
-        function openStatusModal(ticketId, status, title) {
-            $('#statusTicketId').val(ticketId);
-            $('#statusNewStatus').val(status);
-            $('#statusTargetText').text(status);
-            $('#modalTitle').text(title);
-            $('#statusRemarks').val('');
-            new bootstrap.Modal(document.getElementById('statusModal')).show();
-        }
-
-        $('#statusForm').on('submit', async function(e) {
-            e.preventDefault();
-            const btn = $('#statusSubmitBtn');
-            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-1"></i>...');
-
-            const token = $('input[name="__RequestVerificationToken"]').first().val();
-            const fd = new FormData();
-            fd.append('ticketId', $('#statusTicketId').val());
-            fd.append('newStatus', $('#statusNewStatus').val());
-            fd.append('remarks', $('#statusRemarks').val());
-            fd.append('__RequestVerificationToken', token);
-
-            try {
-                const res = await fetch('/Ticket/ChangeStatus', {
-                    method: 'POST', body: fd,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    toast('success', result.message);
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    toast('error', result.message || 'Failed');
-                    btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Confirm');
-                }
-            } catch (err) {
-                toast('error', 'Error occurred');
-                btn.prop('disabled', false);
-            }
-        });
-
-        // COMMENT FORM
-        $('#commentForm').on('submit', async function(e) {
-            e.preventDefault();
-            const btn = $('#commentSubmitBtn');
-            btn.prop('disabled', true);
-
-            const token = $('input[name="__RequestVerificationToken"]').first().val();
-            const fd = new FormData();
-            fd.append('ticketId', ticket.ticketId);
-            fd.append('comment', $('#commentText').val());
-            fd.append('isInternal', $('#internalCheck').is(':checked'));
-            fd.append('__RequestVerificationToken', token);
-
-            try {
-                const res = await fetch('/Ticket/AddComment', {
-                    method: 'POST', body: fd,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                if (res.ok) location.reload();
-                else { toast('error', 'Failed'); btn.prop('disabled', false); }
-            } catch {
-                toast('error', 'Error');
-                btn.prop('disabled', false);
-            }
-        });
-
-        // DROPDOWNS
         function loadDropdowns() {
-            if (dropdownsJson?.data?.developers) {
-                const sel = $('#assignSelect');
-                dropdownsJson.data.developers.forEach(d => {
-                    sel.append(`<option value="${d.userId}">${d.fullName} (${d.role || ''})</option>`);
-                });
-            }
+            const data = dropdownsJson?.data || {};
+            const developers = data.developers || [];
+
+            const sel = $('#assignSelect');
+            if (!sel.length) return;
+
+            developers.forEach(d => {
+                const id = d.userId || d.id;
+                const name = d.fullName || d.name || 'User';
+                const role = d.role || 'Developer';
+                const selected = ticket && ticket.assignedTo === id ? 'selected' : '';
+                sel.append(`<option value="${id}" ${selected}>${escapeHtml(name)} (${escapeHtml(role)})</option>`);
+            });
         }
 
-        // HELPERS
-        function esc(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-        function fmtDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
-        function fmtDateTime(d) { if (!d) return ''; return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
-        function fmtSize(b) { if (!b) return '0 B'; if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1) + ' KB'; return (b/1048576).toFixed(1) + ' MB'; }
+        function getAntiForgeryToken() {
+            return $('input[name="__RequestVerificationToken"]').first().val() || '';
+        }
+
+        function isFinalStatus(status) {
+            const s = normalizeKey(status);
+            return s === 'closed' || s === 'cancelled' || s === 'canceled';
+        }
+
+        function displayStatus(status) {
+            return (status || '')
+                .toString()
+                .replaceAll('_', ' ')
+                .replace('InProgress', 'In Progress')
+                .replace('OnHold', 'On Hold')
+                .replace('FixedByDev', 'Fixed By Dev')
+                .replace('ReadyForQA', 'Ready For QA')
+                .replace('InTesting', 'In Testing');
+        }
+
+        function normalizeKey(value) {
+            return (value || '').toString().toLowerCase().replaceAll(' ', '').replaceAll('_', '');
+        }
+
+        function getStatusBadgeClass(status) {
+            const s = normalizeKey(status);
+            if (s.includes('new')) return 'bg-info';
+            if (s.includes('assigned')) return 'bg-primary';
+            if (s.includes('progress')) return 'bg-warning text-dark';
+            if (s.includes('qa') || s.includes('testing')) return 'bg-secondary';
+            if (s.includes('resolved')) return 'bg-success';
+            if (s.includes('closed')) return 'bg-dark';
+            if (s.includes('reopen')) return 'bg-danger';
+            if (s.includes('hold')) return 'bg-light text-dark';
+            if (s.includes('cancel')) return 'bg-danger';
+            return 'bg-primary';
+        }
+
+        function getPriorityBadgeClass(priority) {
+            const p = normalizeKey(priority);
+            if (p.includes('critical')) return 'bg-danger';
+            if (p.includes('high')) return 'bg-warning text-dark';
+            if (p.includes('medium')) return 'bg-info';
+            if (p.includes('low')) return 'bg-success';
+            return 'bg-secondary';
+        }
+
+        function getStatusIcon(status) {
+            const s = normalizeKey(status);
+            if (s.includes('progress')) return 'bi bi-play-circle';
+            if (s.includes('fixed')) return 'bi bi-check2-square';
+            if (s.includes('qa')) return 'bi bi-send';
+            if (s.includes('testing')) return 'bi bi-clipboard-check';
+            if (s.includes('resolved')) return 'bi bi-check-circle';
+            if (s.includes('closed')) return 'bi bi-x-circle';
+            if (s.includes('reopen')) return 'bi bi-arrow-counterclockwise';
+            if (s.includes('hold')) return 'bi bi-pause-circle';
+            if (s.includes('cancel')) return 'bi bi-slash-circle';
+            if (s.includes('assigned')) return 'bi bi-person-check';
+            return 'bi bi-arrow-repeat';
+        }
+
+        function getHistoryIcon(type) {
+            const t = normalizeKey(type);
+            if (t.includes('created')) return 'bi bi-plus-circle';
+            if (t.includes('status')) return 'bi bi-arrow-repeat';
+            if (t.includes('assign')) return 'bi bi-person-check';
+            if (t.includes('comment')) return 'bi bi-chat-dots';
+            if (t.includes('attach')) return 'bi bi-paperclip';
+            return 'bi bi-circle-fill';
+        }
+
+        function getFileIcon(fileName) {
+            const f = (fileName || '').toLowerCase();
+            if (f.endsWith('.pdf')) return 'bi bi-file-earmark-pdf';
+            if (f.endsWith('.doc') || f.endsWith('.docx')) return 'bi bi-file-earmark-word';
+            if (f.endsWith('.xls') || f.endsWith('.xlsx')) return 'bi bi-file-earmark-excel';
+            if (f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg')) return 'bi bi-file-earmark-image';
+            if (f.endsWith('.zip') || f.endsWith('.rar')) return 'bi bi-file-earmark-zip';
+            return 'bi bi-file-earmark';
+        }
+
+        function shadeColor(color, percent) {
+            if (!color || !color.startsWith('#')) return '#4f46e5';
+            let R = parseInt(color.substring(1, 3), 16);
+            let G = parseInt(color.substring(3, 5), 16);
+            let B = parseInt(color.substring(5, 7), 16);
+
+            R = parseInt(R * (100 + percent) / 100);
+            G = parseInt(G * (100 + percent) / 100);
+            B = parseInt(B * (100 + percent) / 100);
+
+            R = Math.min(255, Math.max(0, R));
+            G = Math.min(255, Math.max(0, G));
+            B = Math.min(255, Math.max(0, B));
+
+            return '#' + R.toString(16).padStart(2, '0') + G.toString(16).padStart(2, '0') + B.toString(16).padStart(2, '0');
+        }
+
+        function formatDate(d) {
+            if (!d || d === '0001-01-01T00:00:00') return '';
+            const date = new Date(d);
+            if (isNaN(date)) return '';
+            return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function formatDateTime(d) {
+            if (!d || d === '0001-01-01T00:00:00') return '';
+            const date = new Date(d);
+            if (isNaN(date)) return '';
+            return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatSize(b) {
+            if (!b) return '0 B';
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            return (b / 1048576).toFixed(1) + ' MB';
+        }
+
+        function escapeHtml(t) {
+            if (t === null || t === undefined) return '';
+            const d = document.createElement('div');
+            d.textContent = t;
+            return d.innerHTML;
+        }
+
+        function escapeJs(value) {
+            return String(value || '').replaceAll("\\", "\\\\").replaceAll("'", "\\'");
+        }
 
         function toast(type, msg) {
             const bg = type === 'success' ? 'bg-success' : 'bg-danger';
-            const t = $(`<div class="toast align-items-center text-white ${bg} border-0 position-fixed top-0 end-0 m-3 show" style="z-index:10000"><div class="d-flex"><div class="toast-body"><i class="bi bi-${type === 'success' ? 'check-circle' : 'x-circle'} me-2"></i>${msg}</div><button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`);
+            const icon = type === 'success' ? 'check-circle' : 'x-circle';
+
+            const t = $(`
+                <div class="toast align-items-center text-white ${bg} border-0 position-fixed top-0 end-0 m-3 show" style="z-index:10000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${icon} me-2"></i>${escapeHtml(msg)}
+                        </div>
+                        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>`);
+
             $('body').append(t);
             setTimeout(() => t.fadeOut(() => t.remove()), 3500);
         }
