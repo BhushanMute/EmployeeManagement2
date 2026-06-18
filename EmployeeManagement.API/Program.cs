@@ -64,8 +64,7 @@ builder.Services.AddScoped<ILeaveRepository, LeaveRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IUserManagementRepository, UserManagementRepository>();
 builder.Services.AddScoped<ITicketRepository, TicketRepository>();
-
-// =============================================
+ // =============================================
 // PAYROLL SYSTEM - REPOSITORIES (NEW)
 // =============================================
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();

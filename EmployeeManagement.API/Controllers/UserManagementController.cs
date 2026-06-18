@@ -1,6 +1,7 @@
 ﻿// File: EmployeeManagement.API/Controllers/UserManagementController.cs
 using EmployeeManagement.API.Common;
 using EmployeeManagement.API.Models;
+using EmployeeManagement.API.Models.UserManagement;
 using EmployeeManagement.API.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,7 @@ namespace EmployeeManagement.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    
+    [Authorize] // Ensure all endpoints require authentication
     public class UserManagementController : ControllerBase
     {
         private readonly IUserManagementRepository _userRepo;
@@ -26,23 +27,31 @@ namespace EmployeeManagement.API.Controllers
 
         private int CurrentUserId =>
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
- 
+
+        private string CurrentUserEmail =>
+            User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value ?? string.Empty;
+
         /// <summary>
         /// GET: api/UserManagement/users
         /// </summary>
         [HttpGet("users")]
-        public async Task<IActionResult> GetAllUsers( [FromQuery] string? search = null, [FromQuery] string? role = null, [FromQuery] string? status = null, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+        public async Task<IActionResult> GetAllUsers(
+            [FromQuery] string? search = null,
+            [FromQuery] string? role = null,
+            [FromQuery] string? status = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
         {
             try
             {
-                _logger.LogInformation("GET users called by user {UserId}", CurrentUserId);
+                _logger.LogInformation("GET users called by user {UserId} ({UserEmail})", CurrentUserId, CurrentUserEmail);
 
                 var result = await _userRepo.GetAllUsersAsync(search, role, status, pageNumber, pageSize);
                 return Ok(ApiResponse<UserListResponse>.Success(result, "Users fetched"));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching users");
+                _logger.LogError(ex, "Error fetching users for user {UserId}", CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -63,7 +72,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching user {Id}", id);
+                _logger.LogError(ex, "Error fetching user {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -76,7 +85,8 @@ namespace EmployeeManagement.API.Controllers
         {
             try
             {
-                _logger.LogInformation("Creating user: {Username}", request?.Username);
+                _logger.LogInformation("Creating user: {Username} by user {CreatorId}",
+                    request?.Username, CurrentUserId);
 
                 if (request == null)
                     return BadRequest(ApiResponse<object>.Fail("Request body is required"));
@@ -104,7 +114,8 @@ namespace EmployeeManagement.API.Controllers
 
                 if (result.Success)
                 {
-                    _logger.LogInformation("User created: {Username} (ID: {Id})", request.Username, result.NewId);
+                    _logger.LogInformation("User created: {Username} (ID: {Id}) by user {CreatorId}",
+                        request.Username, result.NewId, CurrentUserId);
                     return Ok(ApiResponse<UserOperationResult>.Success(result, result.Message));
                 }
 
@@ -112,7 +123,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating user");
+                _logger.LogError(ex, "Error creating user by user {UserId}", CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -137,7 +148,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating user {Id}", id);
+                _logger.LogError(ex, "Error updating user {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -160,6 +171,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting user {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -177,6 +189,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error toggling status for user {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -198,6 +211,7 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error resetting password for user {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -219,31 +233,60 @@ namespace EmployeeManagement.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching roles");
+                _logger.LogError(ex, "Error fetching roles by user {UserId}", CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
 
         /// <summary>
         /// ✅ FIXED: POST: api/UserManagement/roles (lowercase, consistent)
+        /// Now handles cases where CurrentUserId might be 0
         /// </summary>
         [HttpPost("roles")]
         public async Task<IActionResult> CreateRole([FromBody] CreateRoleRequest request)
         {
             try
             {
-                if (request == null || string.IsNullOrWhiteSpace(request.RoleName))
+                _logger.LogInformation("Creating role: {RoleName} by user {UserId}",
+                    request?.RoleName, CurrentUserId);
+
+                if (request == null)
+                    return BadRequest(ApiResponse<object>.Fail("Request body is required"));
+
+                if (string.IsNullOrWhiteSpace(request.RoleName))
                     return BadRequest(ApiResponse<object>.Fail("Role name is required"));
 
+                // Validate that the user is authenticated (CurrentUserId should not be 0)
+                if (CurrentUserId == 0)
+                {
+                    _logger.LogWarning("Unauthorized attempt to create role by unauthenticated user");
+                    return Unauthorized(ApiResponse<object>.Fail("Authentication required to create role"));
+                }
+
+                // Trim whitespace from role name
+                request.RoleName = request.RoleName.Trim();
+
+                // Optional: Additional validation for role name length or format
+                if (request.RoleName.Length > 100)
+                    return BadRequest(ApiResponse<object>.Fail("Role name cannot exceed 100 characters"));
+
                 var result = await _userRepo.CreateRoleAsync(request, CurrentUserId);
-                return result.Success
-                    ? Ok(ApiResponse<UserOperationResult>.Success(result, result.Message))
-                    : BadRequest(ApiResponse<object>.Fail(result.Message));
+
+                if (result.Success)
+                {
+                    _logger.LogInformation("Role created: {RoleName} (ID: {Id}) by user {CreatorId}",
+                        request.RoleName, result.NewId, CurrentUserId);
+                    return Ok(ApiResponse<UserOperationResult>.Success(result, result.Message));
+                }
+
+                _logger.LogWarning("Failed to create role: {Message}", result.Message);
+                return BadRequest(ApiResponse<object>.Fail(result.Message));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating role");
-                return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
+                _logger.LogError(ex, "Error creating role by user {UserId}. Exception: {Exception}",
+                    CurrentUserId, ex);
+                return StatusCode(500, ApiResponse<object>.Fail($"Error creating role: {ex.Message}"));
             }
         }
 
@@ -255,18 +298,40 @@ namespace EmployeeManagement.API.Controllers
         {
             try
             {
+                _logger.LogInformation("Updating role ID: {RoleId} by user {UserId}", id, CurrentUserId);
+
                 if (request == null)
                     return BadRequest(ApiResponse<object>.Fail("Request body is required"));
 
+                if (id <= 0)
+                    return BadRequest(ApiResponse<object>.Fail("Invalid role ID"));
+
+                // Validate that the user is authenticated
+                if (CurrentUserId == 0)
+                {
+                    _logger.LogWarning("Unauthorized attempt to update role by unauthenticated user");
+                    return Unauthorized(ApiResponse<object>.Fail("Authentication required to update role"));
+                }
+
                 request.RoleId = id;
+
+                // Trim whitespace from role name
+                if (!string.IsNullOrWhiteSpace(request.RoleName))
+                    request.RoleName = request.RoleName.Trim();
+
                 var result = await _userRepo.UpdateRoleAsync(request, CurrentUserId);
 
-                return result.Success
-                    ? Ok(ApiResponse<UserOperationResult>.Success(result, result.Message))
-                    : BadRequest(ApiResponse<object>.Fail(result.Message));
+                if (result.Success)
+                {
+                    _logger.LogInformation("Role updated: ID {RoleId} by user {UpdaterId}", id, CurrentUserId);
+                    return Ok(ApiResponse<UserOperationResult>.Success(result, result.Message));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(result.Message));
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating role {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -279,13 +344,31 @@ namespace EmployeeManagement.API.Controllers
         {
             try
             {
+                _logger.LogInformation("Deleting role ID: {RoleId} by user {UserId}", id, CurrentUserId);
+
+                if (id <= 0)
+                    return BadRequest(ApiResponse<object>.Fail("Invalid role ID"));
+
+                // Validate that the user is authenticated
+                if (CurrentUserId == 0)
+                {
+                    _logger.LogWarning("Unauthorized attempt to delete role by unauthenticated user");
+                    return Unauthorized(ApiResponse<object>.Fail("Authentication required to delete role"));
+                }
+
                 var result = await _userRepo.DeleteRoleAsync(id);
-                return result.Success
-                    ? Ok(ApiResponse<UserOperationResult>.Success(result))
-                    : BadRequest(ApiResponse<object>.Fail(result.Message));
+
+                if (result.Success)
+                {
+                    _logger.LogInformation("Role deleted: ID {RoleId} by user {DeleterId}", id, CurrentUserId);
+                    return Ok(ApiResponse<UserOperationResult>.Success(result));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(result.Message));
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error deleting role {Id} by user {UserId}", id, CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }
@@ -302,12 +385,13 @@ namespace EmployeeManagement.API.Controllers
         {
             try
             {
+                _logger.LogInformation("Fetching dropdowns by user {UserId}", CurrentUserId);
                 var data = await _userRepo.GetDropdownDataAsync();
                 return Ok(ApiResponse<UserDropdownData>.Success(data));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching dropdowns");
+                _logger.LogError(ex, "Error fetching dropdowns by user {UserId}", CurrentUserId);
                 return StatusCode(500, ApiResponse<object>.Fail(ex.Message));
             }
         }

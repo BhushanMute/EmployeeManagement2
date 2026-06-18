@@ -179,6 +179,33 @@
             border-radius: 16px;
             overflow: hidden;
         }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+        
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 }
 
@@ -204,6 +231,7 @@
         </div>
     </div>
 
+    <!-- MESSAGES -->
     @if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show shadow-sm">
@@ -253,6 +281,11 @@
             <div class="spinner-border text-primary"></div>
         </div>
     </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="loading-spinner"></div>
+    </div>
 </div>
 
 <!-- CREATE ROLE MODAL -->
@@ -263,18 +296,21 @@
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Create New Role</h5>
                 <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/UserManagement/CreateRole" method="post">
+            <form id="createRoleForm" method="post" action="@Url.Action("CreateRole", "UserManagement")">
                 @Html.AntiForgeryToken()
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Role Name <span class="text-danger">*</span></label>
-                        <input type="text" name="roleName" class="form-control" required
-                               placeholder="e.g., Project Manager" />
+                        <input type="text" name="roleName" id="createRoleName" class="form-control" required
+                               placeholder="e.g., Project Manager" maxlength="100" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Description</label>
-                        <textarea name="roleDescription" class="form-control" rows="3"
-                                  placeholder="Brief description of role permissions..."></textarea>
+                        <textarea name="roleDescription" id="createRoleDescription" class="form-control" rows="3"
+                                  placeholder="Brief description of role permissions..." maxlength="500"></textarea>
+                        <div class="form-text">
+                            <span id="descCharCount">0</span>/500 characters
+                        </div>
                     </div>
                     <div class="alert alert-info mb-0 small">
                         <i class="bi bi-info-circle me-1"></i>
@@ -300,33 +336,45 @@
                 <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Role</h5>
                 <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form asp-controller="UserManagement" asp-action="CreateRole" method="post">
+            <form id="editRoleForm" asp-controller="UserManagement" asp-action="EditRole" method="post">
                 @Html.AntiForgeryToken()
+                <input type="hidden" name="roleId" id="editRoleId" />
 
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Role Name <span class="text-danger">*</span></label>
-                        <input type="text" name="roleName" class="form-control" required
-                               placeholder="e.g., Project Manager" />
+                        <input type="text" name="roleName" id="editRoleName" class="form-control" required
+                               placeholder="e.g., Project Manager" maxlength="100" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Description</label>
-                        <textarea name="roleDescription" class="form-control" rows="3"
-                                  placeholder="Brief description of role permissions..."></textarea>
+                        <textarea name="roleDescription" id="editRoleDescription" class="form-control" rows="3"
+                                  placeholder="Brief description of role permissions..." maxlength="500"></textarea>
+                        <div class="form-text">
+                            <span id="editDescCharCount">0</span>/500 characters
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="isActive" id="editRoleActive" class="form-check-input" checked>
+                        <label class="form-check-label" for="editRoleActive">
+                            <span id="statusLabel">Active</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle me-1"></i>Create Role
+                        <i class="bi bi-check-circle me-1"></i>Update Role
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 @section Scripts {
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -396,22 +444,37 @@
                 showEmpty();
             }
 
-            $('#btnCreateRole').on('click', function () {
-                $('#createRoleForm')[0].reset();
-                $('#descCharCount').text('0');
-                new bootstrap.Modal(document.getElementById('createRoleModal')).show();
-            });
-
+            // Description character counters
             $('#createRoleDescription').on('input', function () {
                 $('#descCharCount').text(this.value.length);
+            });
+            
+            $('#editRoleDescription').on('input', function () {
+                $('#editDescCharCount').text(this.value.length);
             });
 
             $('#editRoleActive').on('change', function () {
                 $('#statusLabel').text(this.checked ? 'Active' : 'Inactive');
             });
 
-            $('#createRoleForm').on('submit', handleCreateRole);
-            $('#editRoleForm').on('submit', handleEditRole);
+            // Handle form submissions with proper UX
+            $('#createRoleForm').off('submit').on('submit', function(e) {
+                showLoading();
+                
+                // Add a small delay to ensure loading state is visible
+                setTimeout(() => {
+                    // Allow form to submit normally
+                }, 200);
+            });
+
+            $('#editRoleForm').off('submit').on('submit', function(e) {
+                showLoading();
+                
+                // Add a small delay to ensure loading state is visible
+                setTimeout(() => {
+                    // Allow form to submit normally
+                }, 200);
+            });
 
             $('#roleSearch').on('input', filterRoles);
             $('#statusFilter').on('change', filterRoles);
@@ -472,7 +535,7 @@
                             <div class="role-actions">
                                 <button type="button"
                                         class="btn btn-sm btn-outline-primary flex-fill"
-                                        onclick='editRole(${JSON.stringify(role).replace(/'/g, "&apos;")})'>
+                                        onclick='editRole(${JSON.stringify(role).replace(/"/g, "&quot;")})'>
                                     <i class="bi bi-pencil"></i> Edit
                                 </button>
 
@@ -511,7 +574,7 @@
                         <i class="bi bi-shield-exclamation display-1 text-muted opacity-50"></i>
                         <h4 class="mt-3 text-muted">No roles found</h4>
                         <p class="text-muted">Create your first role to get started</p>
-                        <button type="button" class="btn btn-create-role mt-2" onclick="$('#btnCreateRole').click()">
+                        <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#createRoleModal">
                             <i class="bi bi-plus-circle me-1"></i>Create Role
                         </button>
                     </div>
@@ -541,9 +604,9 @@
             const visibleCount = $('.role-card-wrapper:not(.hidden)').length;
 
             if (visibleCount === 0 && (query || status !== 'all')) {
-                if (!$('#noResultsMsg').length) {
+                if (!$('.no-results-message').length) {
                     $('#rolesGrid').append(`
-                        <div id="noResultsMsg" class="col-12 text-center py-4 text-muted">
+                        <div class="no-results-message col-12 text-center py-4 text-muted">
                             <i class="bi bi-search fs-1 opacity-50"></i>
                             <h5 class="mt-2">No roles match your search</h5>
                             <p class="small">Try different keywords or clear filters</p>
@@ -551,63 +614,7 @@
                     `);
                 }
             } else {
-                $('#noResultsMsg').remove();
-            }
-        }
-
-        async function handleCreateRole(e) {
-            e.preventDefault();
-
-            const roleName = $('#createRoleName').val().trim();
-            const roleDescription = $('#createRoleDescription').val().trim();
-            const token = $('#createRoleForm input[name="__RequestVerificationToken"]').val();
-
-            if (!roleName) {
-                Swal.fire('Validation Error', 'Role name is required', 'warning');
-                return;
-            }
-
-            const confirmResult = await Swal.fire({
-                title: 'Create New Role?',
-                html: `<strong>${escapeHtml(roleName)}</strong> role will be created.`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Create',
-                cancelButtonText: 'Cancel'
-            });
-
-            if (!confirmResult.isConfirmed) return;
-
-            const formData = new FormData();
-            formData.append('roleName', roleName);
-            formData.append('roleDescription', roleDescription);
-            formData.append('__RequestVerificationToken', token);
-
-            Swal.fire({
-                title: 'Creating Role...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            try {
-                const response = await fetch('/UserManagement/EditRole', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const html = await response.text();
-
-                if (html.includes('Role created successfully') || html.includes('✅')) {
-                    await Swal.fire('Success', 'Role created successfully!', 'success');
-                    window.location.href = '/UserManagement/Roles';
-                } else if (html.includes('Forbidden') || html.includes('permission')) {
-                    Swal.fire('Access Denied', 'You do not have permission to create role.', 'error');
-                } else {
-                    await Swal.fire('Completed', 'Request completed. Page will refresh now.', 'info');
-                    window.location.href = '/UserManagement/Roles';
-                }
-            } catch (error) {
-                Swal.fire('Error', error.message || 'Something went wrong', 'error');
+                $('.no-results-message').remove();
             }
         }
 
@@ -617,52 +624,11 @@
             $('#editRoleDescription').val(getRoleDescription(role));
             $('#editRoleActive').prop('checked', getIsActive(role));
             $('#statusLabel').text(getIsActive(role) ? 'Active' : 'Inactive');
+            
+            // Update character counter for edit description
+            $('#editDescCharCount').text($('#editRoleDescription').val().length);
 
             new bootstrap.Modal(document.getElementById('editRoleModal')).show();
-        }
-
-        async function handleEditRole(e) {
-            e.preventDefault();
-
-            const roleId = $('#editRoleId').val();
-            const roleName = $('#editRoleName').val().trim();
-            const roleDescription = $('#editRoleDescription').val().trim();
-            const isActive = $('#editRoleActive').is(':checked');
-            const token = $('#editRoleForm input[name="__RequestVerificationToken"]').val();
-
-            if (!roleName) {
-                Swal.fire('Validation Error', 'Role name is required', 'warning');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('roleId', roleId);
-            formData.append('roleName', roleName);
-            formData.append('roleDescription', roleDescription);
-            formData.append('isActive', isActive);
-            formData.append('__RequestVerificationToken', token);
-
-            Swal.fire({
-                title: 'Updating Role...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
-            try {
-                const response = await fetch('/UserManagement/EditRole', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response.ok) {
-                    await Swal.fire('Success', 'Role updated successfully!', 'success');
-                    window.location.href = '/UserManagement/Roles';
-                } else {
-                    Swal.fire('Error', 'Failed to update role', 'error');
-                }
-            } catch (error) {
-                Swal.fire('Error', error.message || 'Something went wrong', 'error');
-            }
         }
 
         async function deleteRole(id, name) {
@@ -678,23 +644,22 @@
 
             if (!confirmResult.isConfirmed) return;
 
-            const formData = new FormData();
-            formData.append('id', id);
-
-            Swal.fire({
-                title: 'Deleting Role...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
+            showLoading();
+            
             try {
                 const response = await fetch('/UserManagement/DeleteRole', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: `id=${encodeURIComponent(id)}`
                 });
 
                 const data = await response.json();
 
+                hideLoading();
+                
                 if (data.success) {
                     await Swal.fire('Deleted', data.message || 'Role deleted successfully', 'success');
                     window.location.href = '/UserManagement/Roles';
@@ -702,8 +667,17 @@
                     Swal.fire('Cannot Delete', data.message || 'Failed to delete role', 'error');
                 }
             } catch (error) {
+                hideLoading();
                 Swal.fire('Error', error.message || 'Something went wrong', 'error');
             }
+        }
+        
+        function showLoading() {
+            $('#loadingOverlay').removeClass('d-none');
+        }
+        
+        function hideLoading() {
+            $('#loadingOverlay').addClass('d-none');
         }
     </script>
 }

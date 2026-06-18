@@ -8,6 +8,7 @@
         public string? PhoneNumber { get; set; }
 
         public string Password { get; set; } = "";
+        public string PasswordHash { get; set; } = "";
 
         // comma separated roles from UI: "1,2,3"
         public string RoleIds { get; set; } = "";

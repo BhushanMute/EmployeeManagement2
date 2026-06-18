@@ -1,7 +1,11 @@
-﻿@{
+﻿@using EmployeeManagement.UI.Services
+@inject IImageService ImageService
+
+@{
     ViewData["Title"] = "User Management";
     var usersJson = ViewBag.UsersJson as string ?? "{}";
     var rolesJson = ViewBag.RolesJson as string ?? "{}";
+    var showNewUser = ViewBag.ShowNewUser as bool? ?? false;
 }
 
 @section Styles {
@@ -73,6 +77,161 @@
             font-size: 0.7rem;
             font-weight: 700;
         }
+
+        /* New styles for detailed success notification */
+        .user-created-notification {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+            .user-created-notification::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 4px;
+                height: 100%;
+                background: white;
+            }
+
+        .user-created-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-created-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .user-created-content h4 {
+            margin: 0 0 0.25rem 0;
+            font-weight: 700;
+        }
+
+        .user-created-content p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .user-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.75rem;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .notification-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-dismiss-user {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+            .btn-dismiss-user:hover {
+                background: rgba(255, 255, 255, 0.3);
+            }
+
+        .btn-view-user {
+            background: white;
+            color: #10b981;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+            .btn-view-user:hover {
+                background: #f0fdf4;
+                transform: translateY(-2px);
+            }
+
+        /* Profile image styles */
+        .profile-image-cell {
+            width: 60px;
+        }
+
+        .profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e2e8f0;
+        }
+
+        .profile-img-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+            .empty-state i {
+                font-size: 4rem;
+                color: #cbd5e1;
+                margin-bottom: 1rem;
+            }
+
+            .empty-state h3 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+                color: #1e293b;
+            }
+
+            .empty-state p {
+                max-width: 500px;
+                margin: 0 auto;
+            }
     </style>
 }
 
@@ -94,10 +253,67 @@
         </div>
     </div>
 
-    @if (TempData["Success"] != null)
+    @if (TempData["Success"] != null && showNewUser)
+    {
+        var successMessage = TempData["Success"]?.ToString() ?? "";
+        var isNewUserCreation = successMessage.Contains("created successfully", StringComparison.OrdinalIgnoreCase);
+
+        if (isNewUserCreation)
+        {
+            <div class="user-created-notification" id="userCreatedNotification">
+                <div class="user-created-header">
+                    <div class="user-created-icon">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div class="user-created-content">
+                        <h4>New User Created Successfully!</h4>
+                        <p>Your new user has been added to the system</p>
+                    </div>
+                </div>
+
+                <div class="user-details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Full Name</div>
+                        <div class="detail-value" id="newUserFullName">Loading...</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Username</div>
+                        <div class="detail-value" id="newUserUsername">Loading...</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value" id="newUserEmail">Loading...</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value" id="newUserStatus">Active</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Created Date</div>
+                        <div class="detail-value" id="newUserCreatedDate">Just now</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Roles</div>
+                        <div class="detail-value" id="newUserRoles">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="notification-actions">
+                    <button class="btn-dismiss-user" onclick="dismissUserNotification()">
+                        <i class="bi bi-x me-1"></i>Dismiss
+                    </button>
+                    <a href="#" class="btn-view-user" id="viewUserLink">
+                        <i class="bi bi-eye me-1"></i>View User
+                    </a>
+                </div>
+            </div>
+        }
+    }
+    else if (TempData["Success"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show">@TempData["Success"]<button class="btn-close" data-bs-dismiss="alert"></button></div>
     }
+
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show">@TempData["Error"]<button class="btn-close" data-bs-dismiss="alert"></button></div>
@@ -132,6 +348,7 @@
             <table class="table table-hover align-middle mb-0">
                 <thead style="background: #f8fafc;">
                     <tr>
+                        <th>Profile</th>
                         <th>User</th>
                         <th>Email</th>
                         <th>Roles</th>
@@ -142,7 +359,7 @@
                     </tr>
                 </thead>
                 <tbody id="userTableBody">
-                    <tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                    <!-- Content will be populated by JavaScript -->
                 </tbody>
             </table>
         </div>
@@ -188,16 +405,48 @@
             if (usersData?.data?.users) {
                 renderUsers(usersData.data.users);
             } else {
-                $('#userTableBody').html('<tr><td colspan="7" class="text-center py-4 text-muted">No users found</td></tr>');
+                // Check if the JSON is empty or malformed
+                if (usersJson === "{}" || !usersData || !usersData.data) {
+                    showEmptyState("No users found. Make sure the API is returning user data.");
+                } else {
+                    showEmptyState("No users returned from API. Check API response format.");
+                }
+            }
+
+            // If showing new user notification, fetch user details
+            @if (ViewBag.ShowNewUser as bool? ?? false)
+            {
+                    <text>
+                    setTimeout(fetchNewUserDetails, 100);
+                    </text>
             }
         });
+
+        function showEmptyState(message) {
+            $('#userTableBody').html(`
+                <tr>
+                    <td colspan="8" class="py-5">
+                        <div class="empty-state">
+                            <i class="bi bi-person-lines"></i>
+                            <h3>No Users Found</h3>
+                            <p>${message}</p>
+                            <div class="mt-3">
+                                <a asp-action="Create" class="btn btn-primary">
+                                    <i class="bi bi-person-plus me-1"></i>Create First User
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `);
+        }
 
         function renderUsers(users) {
             const tbody = $('#userTableBody');
             tbody.empty();
 
-            if (!users.length) {
-                tbody.html('<tr><td colspan="7" class="text-center py-4 text-muted">No users found</td></tr>');
+            if (!users || users.length === 0) {
+                showEmptyState("No users available in the system.");
                 return;
             }
 
@@ -207,8 +456,20 @@
                 const statusText = u.isActive ? 'Active' : 'Inactive';
                 const roles = u.roles ? u.roles.split(',').map(r => `<span class="role-tag">${r.trim()}</span>`).join(' ') : '<span class="text-muted small">No roles</span>';
 
+                // Get profile image URL using the service
+                const profileImageUrl = u.profilePicture || u.ProfilePicture || u.profilePicture || u.ProfilePicture || '';
+                const imageUrl = getImageUrl(profileImageUrl);
+
                 tbody.append(`
                     <tr>
+                        <td class="profile-image-cell">
+                            <div class="profile-img-container">
+                                <img src="${imageUrl}"
+                                     alt="Profile"
+                                     class="profile-img"
+                                     onerror="this.src='/images/default-profile.png'; this.onerror=null;" />
+                            </div>
+                        </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <div class="user-avatar">${initials}</div>
@@ -242,6 +503,44 @@
                     </tr>
                 `);
             });
+        }
+
+        function getImageUrl(profilePath) {
+            // This function simulates the server-side ImageService logic
+            if (!profilePath) {
+                return '/images/default-profile.png';
+            }
+
+            // If it's already a relative path, return as-is
+            if (profilePath.startsWith('/')) {
+                return profilePath;
+            }
+
+            // If it's an absolute URL from the API, convert it to relative
+            if (profilePath.startsWith('http')) {
+                try {
+                    var uri = new URL(profilePath);
+                    // If it's from the API server, convert to relative path
+                    if (uri.hostname.includes('localhost') && uri.port === '26024') {
+                        // Extract the path component
+                        var relativePath = uri.pathname;
+                        return relativePath;
+                    } else {
+                        // External URL - return as is
+                        return profilePath;
+                    }
+                } catch (e) {
+                    console.error('Invalid URI format:', profilePath);
+                    return '/images/default-profile.png';
+                }
+            }
+
+            // If it's a simple filename, assume it's in uploads
+            if (!profilePath.includes('/') && !profilePath.includes('\\')) {
+                return '/uploads/profiles/' + profilePath;
+            }
+
+            return profilePath;
         }
 
         function resetPassword(id, name) {
@@ -292,6 +591,42 @@
         function formatDate(d) {
             if (!d) return '';
             return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        // Function to fetch details of the newly created user
+        async function fetchNewUserDetails() {
+            try {
+                // Get the last created user from the user list (most recent first)
+                if (usersData?.data?.users && usersData.data.users.length > 0) {
+                    // Assuming the most recent user is the first one in the list
+                    const latestUser = usersData.data.users[0];
+
+                    // Update the notification with user details
+                    document.getElementById('newUserFullName').textContent = latestUser.fullName;
+                    document.getElementById('newUserUsername').textContent = latestUser.username;
+                    document.getElementById('newUserEmail').textContent = latestUser.email;
+                    document.getElementById('newUserStatus').textContent = latestUser.isActive ? 'Active' : 'Inactive';
+                    document.getElementById('newUserCreatedDate').textContent = formatDate(latestUser.createdDate);
+                    document.getElementById('newUserRoles').textContent = latestUser.roles || 'No roles assigned';
+                    document.getElementById('viewUserLink').href = `/UserManagement/Edit/${latestUser.userId}`;
+                }
+            } catch (error) {
+                console.error('Error fetching new user details:', error);
+            }
+        }
+
+        // Function to dismiss the user notification
+        function dismissUserNotification() {
+            const notification = document.getElementById('userCreatedNotification');
+            if (notification) {
+                notification.style.transition = 'all 0.3s ease';
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-20px)';
+
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 300);
+            }
         }
     </script>
 }

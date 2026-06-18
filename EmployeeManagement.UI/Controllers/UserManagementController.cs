@@ -13,7 +13,8 @@ namespace EmployeeManagement.UI.Controllers
     {
         private readonly HttpClient _client;
         private readonly ILogger<UserManagementController> _logger;
-
+        private int CurrentUserId =>
+           int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -113,13 +114,13 @@ namespace EmployeeManagement.UI.Controllers
 
             return (response.IsSuccessStatusCode, result, response.StatusCode);
         }
-        // ============================================================
-        // 📋 USER LIST
-        // ============================================================
 
+        // ============================================================
+        // 📋 USER LIST - SINGLE INDEX METHOD ONLY
+        // ============================================================
         [HttpGet]
         public async Task<IActionResult> Index(string? search = null, string? role = null,
-            string? status = null, int pageNumber = 1)
+    string? status = null, int pageNumber = 1, bool showNewUser = false)
         {
             try
             {
@@ -130,14 +131,21 @@ namespace EmployeeManagement.UI.Controllers
                 queryParams.Add($"pageNumber={pageNumber}");
                 queryParams.Add("pageSize=20");
 
+                // Add showNewUser parameter if needed
+                if (showNewUser) queryParams.Add("showNewUser=true");
+
                 var url = "api/UserManagement/users?" + string.Join("&", queryParams);
                 var content = await CallApiGetAsync(url);
+
+                // Debug: Log what we received
+                _logger.LogInformation("API Response for users: {Content}", content);
 
                 ViewBag.UsersJson = content;
                 ViewBag.SearchTerm = search;
                 ViewBag.SelectedRole = role;
                 ViewBag.SelectedStatus = status;
                 ViewBag.PageNumber = pageNumber;
+                ViewBag.ShowNewUser = showNewUser;
 
                 // Get roles for filter
                 var rolesContent = await CallApiGetAsync("api/UserManagement/roles");
@@ -154,7 +162,6 @@ namespace EmployeeManagement.UI.Controllers
                 return View();
             }
         }
-
         // ============================================================
         // ➕ CREATE USER
         // ============================================================
@@ -228,7 +235,8 @@ namespace EmployeeManagement.UI.Controllers
                 if (success)
                 {
                     TempData["Success"] = "✅ User created successfully!";
-                    return RedirectToAction(nameof(Index));
+                    // Redirect back to index with showNewUser flag to show detailed notification
+                    return RedirectToAction(nameof(Index), new { showNewUser = true });
                 }
 
                 // ✅ Parse error from API
@@ -280,15 +288,15 @@ namespace EmployeeManagement.UI.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(
-    int userId,
-    string fullName,
-    string email,
-    string? phoneNumber,
-    bool isActive,
-    string roleIds,
-    int? departmentId,
-    int? designationId,
-    string? employeeCode)
+            int userId,
+            string fullName,
+            string email,
+            string? phoneNumber,
+            bool isActive,
+            string roleIds,
+            int? departmentId,
+            int? designationId,
+            string? employeeCode)
         {
             try
             {
@@ -470,6 +478,7 @@ namespace EmployeeManagement.UI.Controllers
                 });
             }
         }
+
         // ============================================================
         // 🗑️ DELETE USER
         // ============================================================
@@ -541,25 +550,33 @@ namespace EmployeeManagement.UI.Controllers
                 return View();
             }
         }
-        /// <summary>
-        /// ✅ FIXED: Matches API endpoint /roles (lowercase)
-        /// </summary>
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateRole(string roleName, string? roleDescription)
         {
             try
             {
+                _logger.LogInformation("Creating role: {RoleName} by user {UserId}", roleName, CurrentUserId);
+
                 if (string.IsNullOrWhiteSpace(roleName))
                 {
                     TempData["Error"] = "Role name is required";
                     return RedirectToAction(nameof(Roles));
                 }
 
+                // Validate that the user is authenticated
+                if (CurrentUserId == 0)
+                {
+                    _logger.LogWarning("Unauthorized attempt to create role by unauthenticated user");
+                    TempData["Error"] = "Authentication required to create role";
+                    return RedirectToAction(nameof(Roles));
+                }
+
                 var data = new
                 {
-                    roleName,
-                    roleDescription
+                    RoleName = roleName.Trim(),
+                    RoleDescription = roleDescription?.Trim()
                 };
 
                 var (success, content, statusCode) =
@@ -567,38 +584,42 @@ namespace EmployeeManagement.UI.Controllers
 
                 if (success)
                 {
+                    _logger.LogInformation("Role created successfully: {RoleName} by user {CreatorId}",
+                        roleName, CurrentUserId);
+
                     TempData["Success"] = "✅ Role created successfully!";
                     return RedirectToAction(nameof(Roles));
                 }
 
+                // Parse error from API response
                 string errorMessage = "Failed to create role";
-
                 try
                 {
-                    var errorResp = JsonSerializer.Deserialize<JsonElement>(content, _jsonOptions);
-
-                    if (errorResp.TryGetProperty("message", out var msg))
+                    using var doc = JsonDocument.Parse(content);
+                    if (doc.RootElement.TryGetProperty("message", out var msg))
                         errorMessage = msg.GetString() ?? errorMessage;
                 }
                 catch { }
 
+                _logger.LogWarning("Failed to create role: {RoleName}, Error: {Message}", roleName, errorMessage);
                 TempData["Error"] = $"❌ {errorMessage} (Status: {statusCode})";
                 return RedirectToAction(nameof(Roles));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating role");
+                _logger.LogError(ex, "Error creating role: {RoleName} by user {UserId}", roleName, CurrentUserId);
                 TempData["Error"] = $"Error: {ex.Message}";
                 return RedirectToAction(nameof(Roles));
             }
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditRole(
-     int roleId,
-     string roleName,
-     string? roleDescription,
-     bool isActive)
+            int roleId,
+            string roleName,
+            string? roleDescription,
+            bool isActive)
         {
             try
             {
@@ -647,6 +668,7 @@ namespace EmployeeManagement.UI.Controllers
                 return RedirectToAction(nameof(Roles));
             }
         }
+
         [HttpPost]
         public async Task<IActionResult> DeleteRole(int id)
         {
@@ -725,5 +747,6 @@ namespace EmployeeManagement.UI.Controllers
                 claims = User.Claims.Select(c => new { c.Type, c.Value })
             });
         }
+
     }
 }

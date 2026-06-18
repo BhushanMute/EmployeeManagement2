@@ -31,9 +31,9 @@
             border-bottom: 1px solid #f1f5f9;
         }
 
-        .form-section:last-child {
-            border-bottom: none;
-        }
+            .form-section:last-child {
+                border-bottom: none;
+            }
 
         .section-header {
             display: flex;
@@ -69,11 +69,11 @@
             padding: 0.65rem 1rem;
         }
 
-        .form-control:focus,
-        .form-select:focus {
-            border-color: #fa709a;
-            box-shadow: 0 0 0 3px rgba(250, 112, 154, 0.15);
-        }
+            .form-control:focus,
+            .form-select:focus {
+                border-color: #fa709a;
+                box-shadow: 0 0 0 3px rgba(250, 112, 154, 0.15);
+            }
 
         .form-label {
             font-weight: 600;
@@ -97,15 +97,16 @@
             color: #6b21a8;
         }
 
-        .role-pill:hover {
-            transform: translateY(-2px);
-        }
+            .role-pill:hover {
+                transform: translateY(-2px);
+                background: linear-gradient(135deg, #c4b5fd, #ffffff);
+            }
 
-        .role-pill.selected {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            border-color: transparent;
-            color: white;
-        }
+            .role-pill.selected {
+                background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                border-color: transparent;
+                color: white;
+            }
 
         .user-avatar-large {
             width: 100px;
@@ -143,11 +144,11 @@
             font-weight: 700;
         }
 
-        .btn-update:hover {
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(250, 112, 154, 0.4);
-        }
+            .btn-update:hover {
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(250, 112, 154, 0.4);
+            }
 
         .info-row {
             display: flex;
@@ -157,9 +158,9 @@
             gap: 1rem;
         }
 
-        .info-row:last-child {
-            border-bottom: none;
-        }
+            .info-row:last-child {
+                border-bottom: none;
+            }
 
         .info-label {
             color: #64748b;
@@ -183,6 +184,53 @@
 
         .is-invalid {
             border-color: #dc2626 !important;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .department-hint {
+            font-size: 0.75rem;
+            color: #64748b;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .role-search-container {
+            margin-bottom: 1rem;
+        }
+
+        .role-search {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
         }
 
         @@media (max-width: 768px) {
@@ -373,13 +421,15 @@
                                 <select name="departmentId" id="departmentId" class="form-select">
                                     <option value="">-- Select Department --</option>
                                 </select>
+                                <div class="department-hint" id="deptHint">Select department to load designations</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Designation</label>
-                                <select name="designationId" id="designationId" class="form-select">
+                                <select name="designationId" id="designationId" class="form-select" disabled>
                                     <option value="">-- Select Designation --</option>
                                 </select>
+                                <div class="department-hint" id="desigHint">Select department first</div>
                             </div>
                         </div>
                     </div>
@@ -390,6 +440,13 @@
                                 <i class="bi bi-shield-check"></i>
                             </div>
                             <h5 class="section-title">Assigned Roles</h5>
+                        </div>
+
+                        <div class="role-search-container">
+                            <input type="text"
+                                   id="roleSearch"
+                                   class="role-search"
+                                   placeholder="Search roles..." />
                         </div>
 
                         <p class="text-muted small mb-2">Click to toggle role assignment.</p>
@@ -425,6 +482,11 @@
 
         </div>
     </form>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <div class="loading-spinner"></div>
+    </div>
 </div>
 
 @section Scripts {
@@ -433,7 +495,10 @@
         const dropdownData = @Html.Raw(dropdownsJson);
 
         let allRoles = [];
+        let allDepartments = [];
+        let allDesignations = [];
         let selectedRoleIds = new Set();
+        let allDesignationsByDepartment = {};
 
         $(document).ready(function () {
             loadDropdownData();
@@ -453,9 +518,26 @@
                 toggleRole(roleId);
             });
 
+            $('#departmentId').on('change', function () {
+                const deptId = $(this).val();
+                loadDesignationsByDepartment(deptId);
+            });
+
             $('#fullName, #email').on('input', function () {
                 $(this).removeClass('is-invalid');
                 $('#' + this.id + 'Error').hide();
+            });
+
+            $('#roleSearch').on('input', function () {
+                const query = $(this).val().toLowerCase().trim();
+                $('.role-pill').each(function () {
+                    const roleName = $(this).attr('data-name').toLowerCase();
+                    if (roleName.includes(query)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
             });
         });
 
@@ -471,9 +553,77 @@
             }
 
             allRoles = dropdownData.data.roles || [];
+            allDepartments = dropdownData.data.departments || [];
+            allDesignations = dropdownData.data.designations || [];
 
-            populateDepartments(dropdownData.data.departments || []);
-            populateDesignations(dropdownData.data.designations || []);
+            populateDepartments(allDepartments);
+            groupDesignationsByDepartment(allDesignations);
+        }
+
+        function groupDesignationsByDepartment(designations) {
+            allDesignationsByDepartment = {};
+
+            designations.forEach(function (designation) {
+                const deptId = getItemDepartmentId(designation);
+
+                if (!deptId) return;
+
+                if (!allDesignationsByDepartment[deptId]) {
+                    allDesignationsByDepartment[deptId] = [];
+                }
+
+                allDesignationsByDepartment[deptId].push(designation);
+            });
+        }
+
+        function getItemDepartmentId(item) {
+            return item.departmentId || item.DepartmentId || item.deptId || item.DeptId;
+        }
+
+        function populateDepartments(departments) {
+            const select = $('#departmentId');
+            select.find('option:not(:first)').remove();
+
+            departments.forEach(function (department) {
+                const id = getItemId(department);
+                const name = getItemName(department);
+
+                if (id && name) {
+                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
+                }
+            });
+        }
+
+        function loadDesignationsByDepartment(deptId) {
+            const select = $('#designationId');
+            select.empty();
+            select.append('<option value="">-- Select Designation --</option>');
+            select.prop('disabled', true);
+            $('#desigHint').text('Select department first').show();
+
+            if (!deptId) {
+                return;
+            }
+
+            const deptDesignations = allDesignationsByDepartment[deptId] || [];
+
+            if (deptDesignations.length === 0) {
+                select.append('<option value="">No designations found</option>');
+                $('#desigHint').text('No designations available').show();
+                return;
+            }
+
+            deptDesignations.forEach(function (designation) {
+                const id = getItemId(designation);
+                const name = getItemName(designation);
+
+                if (id && name) {
+                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
+                }
+            });
+
+            select.prop('disabled', false);
+            $('#desigHint').hide();
         }
 
         function escapeHtml(value) {
@@ -558,11 +708,11 @@
         }
 
         function getItemId(item) {
-            return item.id || item.departmentId || item.designationId || item.Id || item.DepartmentId || item.DesignationId;
+            return item.id || item.departmentId || item.designationId || item.RoleId || item.Id || item.DepartmentId || item.DesignationId;
         }
 
         function getItemName(item) {
-            return item.name || item.departmentName || item.designationName || item.Name || item.DepartmentName || item.DesignationName;
+            return item.name || item.departmentName || item.designationName || item.RoleName || item.Name || item.DepartmentName || item.DesignationName;
         }
 
         function populateUserData(user) {
@@ -596,10 +746,13 @@
 
             if (departmentId) {
                 $('#departmentId').val(departmentId);
-            }
-
-            if (designationId) {
-                $('#designationId').val(designationId);
+                // Load designations after setting department
+                setTimeout(() => {
+                    loadDesignationsByDepartment(departmentId);
+                    if (designationId) {
+                        $('#designationId').val(designationId);
+                    }
+                }, 100);
             }
 
             $('#infoUserId').text(userId ? '#' + userId : '-');
@@ -635,34 +788,6 @@
                 .join('')
                 .substring(0, 2)
                 .toUpperCase();
-        }
-
-        function populateDepartments(departments) {
-            const select = $('#departmentId');
-            select.find('option:not(:first)').remove();
-
-            departments.forEach(function (department) {
-                const id = getItemId(department);
-                const name = getItemName(department);
-
-                if (id && name) {
-                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
-                }
-            });
-        }
-
-        function populateDesignations(designations) {
-            const select = $('#designationId');
-            select.find('option:not(:first)').remove();
-
-            designations.forEach(function (designation) {
-                const id = getItemId(designation);
-                const name = getItemName(designation);
-
-                if (id && name) {
-                    select.append('<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>');
-                }
-            });
         }
 
         function renderRolePills() {
@@ -776,6 +901,10 @@
             const fullName = $('#fullName').val().trim();
             const email = $('#email').val().trim();
 
+            // Clear previous errors
+            $('.form-control').removeClass('is-invalid');
+            $('.field-error').hide();
+
             if (!fullName) {
                 $('#fullName').addClass('is-invalid');
                 $('#fullNameError').show();
@@ -796,15 +925,33 @@
             return isValid;
         }
 
+        function showLoading() {
+            $('#loadingOverlay').removeClass('d-none');
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').addClass('d-none');
+        }
+
         $('#editForm').on('submit', function (event) {
             if (!validateForm()) {
                 event.preventDefault();
                 return;
             }
 
+            showLoading();
+
             $('#submitBtn')
                 .prop('disabled', true)
                 .html('<i class="bi bi-hourglass-split me-1"></i>Updating...');
+        });
+
+        // Add a global error handler for form submission
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                $('#submitBtn').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Update User');
+                hideLoading();
+            }
         });
     </script>
 }

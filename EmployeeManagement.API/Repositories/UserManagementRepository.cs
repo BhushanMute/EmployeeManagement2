@@ -77,6 +77,12 @@ namespace EmployeeManagement.API.Repositories
         {
             try
             {
+                if (approvedBy <= 0)
+                {
+                    _logger.LogWarning("Invalid approvedBy ID: {ApprovedBy}", approvedBy);
+                    throw new ArgumentException("Valid approvedBy ID is required", nameof(approvedBy));
+                }
+
                 using var conn = GetConnection();
                 using var cmd = new SqlCommand("sp_ApproveUserAndAssignRole", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -91,7 +97,7 @@ namespace EmployeeManagement.API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error approving user: {UserId}", userId);
+                _logger.LogError(ex, "Error approving user: {UserId} by user {ApprovedBy}", userId, approvedBy);
                 throw;
             }
         }
@@ -100,6 +106,12 @@ namespace EmployeeManagement.API.Repositories
         {
             try
             {
+                if (rejectedBy <= 0)
+                {
+                    _logger.LogWarning("Invalid rejectedBy ID: {RejectedBy}", rejectedBy);
+                    throw new ArgumentException("Valid rejectedBy ID is required", nameof(rejectedBy));
+                }
+
                 using var conn = GetConnection();
                 using var cmd = new SqlCommand("sp_RejectUserRegistration", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -113,7 +125,7 @@ namespace EmployeeManagement.API.Repositories
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error rejecting user: {UserId}", userId);
+                _logger.LogError(ex, "Error rejecting user: {UserId} by user {RejectedBy}", userId, rejectedBy);
                 throw;
             }
         }
@@ -273,307 +285,584 @@ namespace EmployeeManagement.API.Repositories
 
         public async Task<UserOperationResult> CreateUserAsync(CreateUserRequest request, int createdBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_CreateUser", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            cmd.Parameters.AddWithValue("@Username", request.Username);
-            cmd.Parameters.AddWithValue("@FullName", request.FullName);
-            cmd.Parameters.AddWithValue("@Email", request.Email);
-            cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
-            cmd.Parameters.AddWithValue("@PasswordSalt", "BCryptEmbeddedSalt");
-            cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
-            cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
-
-            var newIdParam = new SqlParameter("@NewUserId", SqlDbType.Int)
+            try
             {
-                Direction = ParameterDirection.Output
-            };
-            cmd.Parameters.Add(newIdParam);
+                if (createdBy <= 0)
+                {
+                    _logger.LogWarning("Invalid createdBy ID: {CreatedBy}", createdBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to create user"
+                    };
+                }
 
-            await conn.OpenAsync();
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_CreateUser", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            using var reader = await cmd.ExecuteReaderAsync();
+                cmd.Parameters.AddWithValue("@Username", request.Username);
+                cmd.Parameters.AddWithValue("@FullName", request.FullName);
+                cmd.Parameters.AddWithValue("@Email", request.Email);
+                cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@PasswordHash", request.PasswordHash);
+                cmd.Parameters.AddWithValue("@PasswordSalt", "BCryptEmbeddedSalt");
+                cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
+                cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
 
-            if (await reader.ReadAsync())
-            {
+                var newIdParam = new SqlParameter("@NewUserId", SqlDbType.Int)
+                {
+                    Direction = ParameterDirection.Output
+                };
+                cmd.Parameters.Add(newIdParam);
+
+                await conn.OpenAsync();
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserOperationResult
+                    {
+                        Success = Convert.ToInt32(reader["Success"]) == 1,
+                        Message = reader["Message"]?.ToString() ?? "",
+                        NewId = reader["UserId"] == DBNull.Value ? null : Convert.ToInt32(reader["UserId"])
+                    };
+                }
+
                 return new UserOperationResult
                 {
-                    Success = Convert.ToInt32(reader["Success"]) == 1,
-                    Message = reader["Message"]?.ToString() ?? "",
-                    NewId = reader["UserId"] == DBNull.Value ? null : Convert.ToInt32(reader["UserId"])
+                    Success = false,
+                    Message = "No response from database"
                 };
             }
-
-            return new UserOperationResult
+            catch (Exception ex)
             {
-                Success = false,
-                Message = "No response from database"
-            };
+                _logger.LogError(ex, "Error creating user by user {CreatedBy}", createdBy);
+                throw;
+            }
         }
+
         public async Task<UserOperationResult> UpdateUserAsync(UpdateUserRequest request, int updatedBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_UpdateUser", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            cmd.Parameters.AddWithValue("@UserId", request.UserId);
-            cmd.Parameters.AddWithValue("@FullName", request.FullName);
-            cmd.Parameters.AddWithValue("@Email", request.Email);
-            cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
-            cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
-            cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                if (updatedBy <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid updatedBy ID: {UpdatedBy}", updatedBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to update user"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_UpdateUser", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue("@UserId", request.UserId);
+                cmd.Parameters.AddWithValue("@FullName", request.FullName);
+                cmd.Parameters.AddWithValue("@Email", request.Email);
+                cmd.Parameters.AddWithValue("@PhoneNumber", (object?)request.PhoneNumber ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
+                cmd.Parameters.AddWithValue("@RoleIds", request.RoleIds);
+                cmd.Parameters.AddWithValue("@DepartmentId", (object?)request.DepartmentId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@DesignationId", (object?)request.DesignationId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@EmployeeCode", (object?)request.EmployeeCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserOperationResult
+                    {
+                        Success = reader.GetInt32(0) == 1,
+                        Message = reader.GetString(1)
+                    };
+                }
+                return new UserOperationResult { Success = false, Message = "No response" };
             }
-            return new UserOperationResult { Success = false, Message = "No response" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user {UserId} by user {UpdatedBy}", request.UserId, updatedBy);
+                throw;
+            }
         }
 
         public async Task<UserOperationResult> DeleteUserAsync(int userId, int deletedBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_DeleteUser", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@UserId", userId);
-            cmd.Parameters.AddWithValue("@DeletedBy", deletedBy);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                if (deletedBy <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid deletedBy ID: {DeletedBy}", deletedBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to delete user"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_DeleteUser", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@DeletedBy", deletedBy);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserOperationResult
+                    {
+                        Success = reader.GetInt32(0) == 1,
+                        Message = reader.GetString(1)
+                    };
+                }
+                return new UserOperationResult { Success = false, Message = "Failed" };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user {UserId} by user {DeletedBy}", userId, deletedBy);
+                throw;
+            }
         }
 
         public async Task<UserOperationResult> ToggleStatusAsync(int userId, bool isActive, int updatedBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_ToggleUserStatus", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@UserId", userId);
-            cmd.Parameters.AddWithValue("@IsActive", isActive);
-            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                if (updatedBy <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid updatedBy ID: {UpdatedBy}", updatedBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to toggle user status"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_ToggleUserStatus", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@IsActive", isActive);
+                cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserOperationResult
+                    {
+                        Success = reader.GetInt32(0) == 1,
+                        Message = reader.GetString(1)
+                    };
+                }
+                return new UserOperationResult { Success = false, Message = "Failed" };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling status for user {UserId} by user {UpdatedBy}", userId, updatedBy);
+                throw;
+            }
         }
 
         public async Task<UserOperationResult> ResetPasswordAsync(int userId, string passwordHash, int resetBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_ResetUserPassword", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@UserId", userId);
-            cmd.Parameters.AddWithValue("@NewPasswordHash", passwordHash);
-            cmd.Parameters.AddWithValue("@ResetBy", resetBy);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                if (resetBy <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid resetBy ID: {ResetBy}", resetBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to reset user password"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_ResetUserPassword", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@NewPasswordHash", passwordHash);
+                cmd.Parameters.AddWithValue("@ResetBy", resetBy);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    return new UserOperationResult
+                    {
+                        Success = reader.GetInt32(0) == 1,
+                        Message = reader.GetString(1)
+                    };
+                }
+                return new UserOperationResult { Success = false, Message = "Failed" };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting password for user {UserId} by user {ResetBy}", userId, resetBy);
+                throw;
+            }
         }
 
         public async Task<List<RoleWithCountResponse>> GetAllRolesAsync()
         {
             var roles = new List<RoleWithCountResponse>();
 
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_GetAllRolesWithCount", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            try
             {
-                roles.Add(new RoleWithCountResponse
-                {
-                    RoleId = Convert.ToInt32(reader["RoleId"]),
-                    RoleName = reader["RoleName"]?.ToString() ?? "",
-                    RoleDescription = reader["RoleDescription"] == DBNull.Value
-                        ? null
-                        : reader["RoleDescription"]?.ToString(),
-                    IsActive = Convert.ToBoolean(reader["IsActive"]),
-                    CreatedDate = reader["CreatedDate"] == DBNull.Value
-                        ? DateTime.Now
-                        : Convert.ToDateTime(reader["CreatedDate"]),
-                    UserCount = Convert.ToInt32(reader["UserCount"])
-                });
-            }
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetAllRolesWithCount", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            return roles;
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                while (await reader.ReadAsync())
+                {
+                    roles.Add(new RoleWithCountResponse
+                    {
+                        RoleId = Convert.ToInt32(reader["RoleId"]),
+                        RoleName = reader["RoleName"]?.ToString() ?? "",
+                        RoleDescription = reader["RoleDescription"] == DBNull.Value
+                            ? null
+                            : reader["RoleDescription"]?.ToString(),
+                        IsActive = Convert.ToBoolean(reader["IsActive"]),
+                        CreatedDate = reader["CreatedDate"] == DBNull.Value
+                            ? DateTime.Now
+                            : Convert.ToDateTime(reader["CreatedDate"]),
+                        UserCount = Convert.ToInt32(reader["UserCount"])
+                    });
+                }
+
+                return roles;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all roles");
+                throw;
+            }
         }
 
         public async Task<UserOperationResult> CreateRoleAsync(CreateRoleRequest request, int createdBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_CreateRole", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
-            cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
-
-            var newIdParam = new SqlParameter("@NewRoleId", SqlDbType.Int) { Direction = ParameterDirection.Output };
-            cmd.Parameters.Add(newIdParam);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
+                // ✅ FIXED: Validate createdBy parameter before proceeding
+                if (createdBy <= 0)
+                {
+                    _logger.LogWarning("Invalid createdBy ID: {CreatedBy} when creating role '{RoleName}'",
+                        createdBy, request?.RoleName);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to create role"
+                    };
+                }
+
+                if (request == null)
+                {
+                    _logger.LogWarning("Null request passed to CreateRoleAsync");
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Request cannot be null"
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.RoleName))
+                {
+                    _logger.LogWarning("Empty role name provided by user {CreatedBy}", createdBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Role name is required"
+                    };
+                }
+
+                // Trim whitespace
+                request.RoleName = request.RoleName.Trim();
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_CreateRole", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
+                cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription?.Trim() ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
+
+                var newIdParam = new SqlParameter("@NewRoleId", SqlDbType.Int) { Direction = ParameterDirection.Output };
+                cmd.Parameters.Add(newIdParam);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    var success = reader.GetInt32(0) == 1;
+                    var message = reader.GetString(1);
+
+                    if (success)
+                    {
+                        _logger.LogInformation("Role created successfully: '{RoleName}' by user {CreatedBy}",
+                            request.RoleName, createdBy);
+
+                        return new UserOperationResult
+                        {
+                            Success = true,
+                            Message = message,
+                            NewId = newIdParam.Value as int?
+                        };
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Role creation failed: '{RoleName}' by user {CreatedBy}. Reason: {Message}",
+                            request.RoleName, createdBy, message);
+
+                        return new UserOperationResult
+                        {
+                            Success = false,
+                            Message = message
+                        };
+                    }
+                }
+
+                _logger.LogWarning("No response from sp_CreateRole for user {CreatedBy}", createdBy);
                 return new UserOperationResult
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1),
-                    NewId = newIdParam.Value as int?
+                    Success = false,
+                    Message = "No response from database"
                 };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (SqlException sqlEx)
+            {
+                _logger.LogError(sqlEx, "SQL Error creating role by user {CreatedBy}. Error: {SqlMessage}",
+                    createdBy, sqlEx.Message);
+                return new UserOperationResult
+                {
+                    Success = false,
+                    Message = $"Database error: {sqlEx.Message}"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating role by user {CreatedBy}", createdBy);
+                return new UserOperationResult
+                {
+                    Success = false,
+                    Message = $"Error creating role: {ex.Message}"
+                };
+            }
         }
 
         public async Task<UserOperationResult> UpdateRoleAsync(UpdateRoleRequest request, int updatedBy)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_UpdateRole", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@RoleId", request.RoleId);
-            cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
-            cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
-            cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                // ✅ FIXED: Validate updatedBy parameter before proceeding
+                if (updatedBy <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid updatedBy ID: {UpdatedBy} when updating role ID {RoleId}",
+                        updatedBy, request?.RoleId);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Authentication required to update role"
+                    };
+                }
+
+                if (request == null)
+                {
+                    _logger.LogWarning("Null request passed to UpdateRoleAsync");
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Request cannot be null"
+                    };
+                }
+
+                if (request.RoleId <= 0)
+                {
+                    _logger.LogWarning("Invalid RoleId: {RoleId} provided by user {UpdatedBy}",
+                        request.RoleId, updatedBy);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Valid RoleId is required"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_UpdateRole", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@RoleId", request.RoleId);
+                cmd.Parameters.AddWithValue("@RoleName", request.RoleName);
+                cmd.Parameters.AddWithValue("@RoleDescription", (object?)request.RoleDescription ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@IsActive", request.IsActive);
+                cmd.Parameters.AddWithValue("@UpdatedBy", updatedBy);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    var success = reader.GetInt32(0) == 1;
+                    var message = reader.GetString(1);
+
+                    if (success)
+                    {
+                        _logger.LogInformation("Role updated successfully: ID {RoleId} by user {UpdatedBy}",
+                            request.RoleId, updatedBy);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Role update failed: ID {RoleId} by user {UpdatedBy}. Reason: {Message}",
+                            request.RoleId, updatedBy, message);
+                    }
+
+                    return new UserOperationResult
+                    {
+                        Success = success,
+                        Message = message
+                    };
+                }
+
+                return new UserOperationResult { Success = false, Message = "No response" };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating role {RoleId} by user {UpdatedBy}", request?.RoleId, updatedBy);
+                throw;
+            }
         }
 
         public async Task<UserOperationResult> DeleteRoleAsync(int roleId)
         {
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_DeleteRole", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@RoleId", roleId);
-
-            await conn.OpenAsync();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            try
             {
-                return new UserOperationResult
+                if (roleId <= 0)
                 {
-                    Success = reader.GetInt32(0) == 1,
-                    Message = reader.GetString(1)
-                };
+                    _logger.LogWarning("Invalid roleId: {RoleId} for deletion", roleId);
+                    return new UserOperationResult
+                    {
+                        Success = false,
+                        Message = "Valid RoleId is required"
+                    };
+                }
+
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_DeleteRole", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@RoleId", roleId);
+
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    var success = reader.GetInt32(0) == 1;
+                    var message = reader.GetString(1);
+
+                    if (success)
+                    {
+                        _logger.LogInformation("Role deleted successfully: ID {RoleId}", roleId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Role deletion failed: ID {RoleId}. Reason: {Message}", roleId, message);
+                    }
+
+                    return new UserOperationResult
+                    {
+                        Success = success,
+                        Message = message
+                    };
+                }
+
+                return new UserOperationResult { Success = false, Message = "No response" };
             }
-            return new UserOperationResult { Success = false, Message = "Failed" };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting role {RoleId}", roleId);
+                throw;
+            }
         }
 
         public async Task<UserDropdownData> GetDropdownDataAsync()
         {
             var data = new UserDropdownData();
 
-            using var conn = GetConnection();
-            using var cmd = new SqlCommand("sp_GetUserManagementDropdowns", conn);
-            cmd.CommandType = CommandType.StoredProcedure;
-
-            await conn.OpenAsync();
-
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            // 1. Roles result set
-            while (await reader.ReadAsync())
+            try
             {
-                data.Roles.Add(new RoleWithCountResponse
-                {
-                    RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
-                    RoleName = reader["RoleName"]?.ToString() ?? "",
-                    RoleDescription = reader["RoleDescription"]?.ToString(),
-                    IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
-                    CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
-                    UserCount = reader.GetInt32(reader.GetOrdinal("UserCount"))
-                });
-            }
+                using var conn = GetConnection();
+                using var cmd = new SqlCommand("sp_GetUserManagementDropdowns", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
-            // 2. Departments result set
-            if (await reader.NextResultAsync())
-            {
+                await conn.OpenAsync();
+
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                // 1. Roles result set
                 while (await reader.ReadAsync())
                 {
-                    data.Departments.Add(new DropdownItem
+                    data.Roles.Add(new RoleWithCountResponse
                     {
-                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                        Name = reader["Name"]?.ToString() ?? ""
+                        RoleId = reader.GetInt32(reader.GetOrdinal("RoleId")),
+                        RoleName = reader["RoleName"]?.ToString() ?? "",
+                        RoleDescription = reader["RoleDescription"]?.ToString(),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("IsActive")),
+                        CreatedDate = reader.GetDateTime(reader.GetOrdinal("CreatedDate")),
+                        UserCount = reader.GetInt32(reader.GetOrdinal("UserCount"))
                     });
                 }
-            }
 
-            // 3. Designations result set
-            if (await reader.NextResultAsync())
-            {
-                while (await reader.ReadAsync())
+                // 2. Departments result set
+                if (await reader.NextResultAsync())
                 {
-                    data.Designations.Add(new DropdownItem
+                    while (await reader.ReadAsync())
                     {
-                        Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                        Name = reader["Name"]?.ToString() ?? "",
-                        DepartmentId = reader.IsDBNull(reader.GetOrdinal("DepartmentId"))
-                            ? null
-                            : reader.GetInt32(reader.GetOrdinal("DepartmentId"))
-                    });
+                        data.Departments.Add(new DropdownItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? ""
+                        });
+                    }
                 }
-            }
 
-            return data;
+                // 3. Designations result set
+                if (await reader.NextResultAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        data.Designations.Add(new DropdownItem
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader["Name"]?.ToString() ?? "",
+                            DepartmentId = reader.IsDBNull(reader.GetOrdinal("DepartmentId"))
+                                ? null
+                                : reader.GetInt32(reader.GetOrdinal("DepartmentId"))
+                        });
+                    }
+                }
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting dropdown data");
+                throw;
+            }
         }
     }
 }

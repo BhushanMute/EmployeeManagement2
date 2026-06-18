@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.Extensions.FileProviders;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -78,7 +79,6 @@ builder.Services.AddHttpClient("ApiClient", client =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 })
 .AddPolicyHandler(GetRetryPolicy());
-// ✅ FIXED: NO circuit breaker
 
 // 2️⃣ Typed HttpClient for PaymentService
 builder.Services.AddHttpClient<IPaymentService, PaymentService>(client =>
@@ -96,7 +96,6 @@ builder.Services.AddHttpClient<IPaymentService, PaymentService>(client =>
     MaxConnectionsPerServer = 20
 })
 .AddPolicyHandler(GetRetryPolicy());
-// ✅ FIXED: NO circuit breaker
 
 // 3️⃣ Named client for API — THIS IS USED BY LeaveController, EmployeeController etc.
 builder.Services.AddHttpClient("API", client =>
@@ -115,7 +114,6 @@ builder.Services.AddHttpClient("API", client =>
     AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
 })
 .AddPolicyHandler(GetRetryPolicy());
-// ✅ FIXED: Circuit breaker REMOVED — this was causing "circuit is now open" error!
 
 // 4️⃣ EmployeeAPI Client
 builder.Services.AddHttpClient("EmployeeAPI", client =>
@@ -133,13 +131,13 @@ builder.Services.AddHttpClient("EmployeeAPI", client =>
     MaxConnectionsPerServer = 20
 })
 .AddPolicyHandler(GetRetryPolicy());
-// ✅ FIXED: NO circuit breaker
 
 // =============================================
 // REGISTER SERVICES
 // =============================================
 builder.Services.AddScoped<EmployeeManagement.UI.Services.ITokenService, EmployeeManagement.UI.Services.TokenService>();
 builder.Services.AddScoped<IApiService, ApiService>();
+builder.Services.AddScoped<IImageService, ImageService>();
 
 // =============================================
 // AUTHENTICATION CONFIGURATION
@@ -201,7 +199,6 @@ builder.Services.AddAuthentication(options =>
     options.Fields.Add("picture");
 });
 
- 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
@@ -209,7 +206,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Admin", "HR", "Manager"));
 });
 
- 
 builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
@@ -218,7 +214,6 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
- 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -228,10 +223,30 @@ if (!builder.Environment.IsDevelopment())
     builder.Logging.AddEventLog();
 }
 
- 
 var app = builder.Build();
 
- 
+// Create upload directories before starting the app
+var webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+var uploadPath = Path.Combine(webRootPath, "uploads");
+
+if (!Directory.Exists(uploadPath))
+{
+    Directory.CreateDirectory(uploadPath);
+    Console.WriteLine($"Created directory: {uploadPath}");
+}
+
+// Subdirectories for different types of uploads
+var subdirs = new[] { "profiles", "employees", "documents", "temp" };
+foreach (var subdir in subdirs)
+{
+    var dirPath = Path.Combine(uploadPath, subdir);
+    if (!Directory.Exists(dirPath))
+    {
+        Directory.CreateDirectory(dirPath);
+        Console.WriteLine($"Created directory: {dirPath}");
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -248,10 +263,11 @@ else
     app.UseDeveloperExceptionPage();
 }
 
- app.UseResponseCompression();
+app.UseResponseCompression();
 
 app.UseHttpsRedirection();
 
+// Configure static files middleware to serve uploaded images from the same origin
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
@@ -260,13 +276,23 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// Serve uploads from the same domain to prevent mixed content
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadPath),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=3600");
+    }
+});
+
 app.UseRouting();
 
- app.UseSession();
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
- 
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -277,12 +303,12 @@ app.MapControllerRoute(
 
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
- 
+
 Console.WriteLine($"🚀 MVC Application starting...");
 Console.WriteLine($"🔗 API Base URL: {apiBaseUrl}");
 
 app.Run();
- 
+
 static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
 {
     return HttpPolicyExtensions
@@ -297,5 +323,3 @@ static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
                     $"{outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
             });
 }
-
- 

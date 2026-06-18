@@ -1,6 +1,4 @@
-﻿ 
-
-using EmployeeManagement.API.Models;
+﻿using EmployeeManagement.API.Models;
 using EmployeeManagement.API.services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
